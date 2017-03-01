@@ -1,0 +1,2 @@
+# PS1="\[\033[01;33m\][$pet_project_name]\[\033[00m\]$PS1"
+echo $$
