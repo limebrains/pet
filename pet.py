@@ -27,7 +27,7 @@ def start_project(name, config):
     config["active"][name] = ppid
     with open("config.yaml", "w") as f:
         yaml.dump(config, f)
-    Popen(["./start.sh", name, "./projects/{}".format(name)]).communicate(input)
+    Popen(["./start.sh", name, "./projects/%s" % name]).communicate(input)
     config["active"].pop(name)
     with open("config.yaml", "w") as f:
         yaml.dump(config, f)
