@@ -35,7 +35,8 @@ def start_project(name, config):
 
 @cli.command()
 def stop():
-    pass
+    import signal
+    os.kill(os.getppid(), signal.SIGKILL)
 
 
 @cli.command()
@@ -43,7 +44,7 @@ def stop():
 @click.option('--temp', '-m', multiple=True, default=None, help='Creates project using templates')
 def create(name, temp):
     """creates new project"""
-    print(name, temp)
+    click.echo(name, temp)
 
 
 @cli.command()
