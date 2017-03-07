@@ -18,5 +18,5 @@ elif [ "$SHELL" = "/bin/zsh" ]; then
         echo "source $HOME/.zshrc" > shell_profiles
     fi
 else
-    echo 'havent found correct $SHELL (/bin/bash, /bin/zsh)'
+    echo "haven't found correct \$SHELL (/bin/bash, /bin/zsh)"
 fi
