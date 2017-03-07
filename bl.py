@@ -35,7 +35,7 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-def create(name, templates=[]):
+def create(name, templates=()):
     """creates new project"""
     if not os.path.exists("./projects/%s" % name):
         os.makedirs("./projects/%s" % name)
@@ -47,7 +47,7 @@ def create(name, templates=[]):
     Popen(create_args).communicate(input)
 
 
-def list():
+def print_list(tasks=()):
     """lists all projects"""
     projects = os.listdir('./projects/')
     if projects:
@@ -63,6 +63,27 @@ def remove(name):
 
 
 def clean_up():
+    """unlocks all projects"""
     for dirname in os.listdir("./projects"):
-        if os.path.exists("./projects/%s/_lock"):
-            os.remove("./projects/%s/_lock")
+        if os.path.exists("./projects/%s/_lock" % dirname):
+            os.remove("./projects/%s/_lock" % dirname)
+
+
+def rename(old, new):
+    """renames projects"""
+    if not os.path.exists("./projects/%s" % old):
+        return "project not found"
+    if os.path.exists("./projects/%s" % new):
+        return "new name already taken"
+    os.rename("./projects/%s" % old, "./projects/%s" % new)
+
+
+def edit_project(name):
+    if name in print_list():
+        Popen(["./edit_project.sh", "./projects/%s" % name]).communicate(input)
+    else:
+        return "project not found"
+
+
+def edit_task(name):
+    pass

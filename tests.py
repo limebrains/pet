@@ -15,6 +15,7 @@ def test_create_command(project_names):
         assert os.path.exists("./projects/%s/project_stop" % name)
 
 
+# don't forget to change that!
 def test_create_with_templates_command(project_names):
     for name in project_names:
         create(name)
