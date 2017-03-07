@@ -3,4 +3,4 @@ import pytest
 
 @pytest.fixture
 def project_names():
-    return ["project", "fun_project"]
+    return ["test_project", "test_project_2", "test_project_3"]
