@@ -16,9 +16,11 @@ def test_create_command():
     assert os.path.exists("./projects/%s/project_stop" % name)
 
 
-def test_start_command():
+@mock.patch('bl.Popen')
+def test_start_command(Popen):
     assert not os.path.exists("./projects/%s/_lock" % name)
     start(name)
+    Popen.assert_called_with(["./start.sh", name, "./projects/%s" % name])
     assert not os.path.exists("./projects/%s/_lock" % name)
 
 

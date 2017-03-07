@@ -4,34 +4,30 @@ import signal
 import shutil
 
 
-class File():
+class ProjectLock(object):
 
-    def __init__(self, filename, mode):
-        self.filename = filename
-        self.mode = mode
+    def __init__(self, name):
+
+        if not os.path.exists("./projects/%s" % name):
+            raise Exception("project not found")
+        if os.path.isfile("./projects/%s/_lock" % name):
+            raise Exception("project already activated")
+        self.filepath = "./projects/%s/_lock" % name
 
     def __enter__(self):
-        self.open_file = open(self.filename, self.mode)
+        self.open_file = open(self.filepath, "w")
 
     def __exit__(self, *args):
         self.open_file.close()
-        os.remove(self.filename)
+        os.remove(self.filepath)
 
 
 def start(name):
     """starts new project"""
-    if os.path.exists("./projects/%s" % name):
-        if not os.path.isfile("./projects/%s/_lock" % name):
-            lock = File(filename="./projects/%s/_lock" % name, mode='w')
-            lock.__enter__()
-            if not os.path.isfile("./shell_profiles"):
-                Popen("./create_shell.sh")
-            Popen(["./start.sh", name, "./projects/%s" % name]).communicate(input)
-            lock.__exit__()
-        else:
-            return "project already activated"
-    else:
-        return "project not found"
+    with ProjectLock(name=name):
+        if not os.path.isfile("./shell_profiles"):
+            Popen("./create_shell.sh")
+        Popen(["./start.sh", name, "./projects/%s" % name]).communicate(input)
 
 
 def stop():
@@ -39,11 +35,16 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-def create(name, templates=None):
+def create(name, templates=[]):
     """creates new project"""
     if not os.path.exists("./projects/%s" % name):
         os.makedirs("./projects/%s" % name)
-    Popen(["./create.sh", "./projects/%s" % name]).communicate(input)
+    create_args = ["./create.sh", "./projects/%s" % name]
+    for template in templates:
+        if not os.path.exists("./projects/%s" % name):
+            return "template: '%s' not found" % template
+        create_args.append(template)
+    Popen(create_args).communicate(input)
 
 
 def list():
@@ -55,4 +56,13 @@ def list():
 
 def remove(name):
     """removes project"""
-    shutil.rmtree("./projects/%s" % name)
+    if os.path.exists("./projects/%s" % name):
+        shutil.rmtree("./projects/%s" % name)
+    else:
+        return "project not found"
+
+
+def clean_up():
+    for dirname in os.listdir("./projects"):
+        if os.path.exists("./projects/%s/_lock"):
+            os.remove("./projects/%s/_lock")

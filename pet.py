@@ -25,7 +25,9 @@ def stop():
 @click.option('--templates', '-t', multiple=True, default=None, help='Creates project using templates')
 def create(name, templates):
     """creates new project"""
-    bl.create(name, templates)
+    output = bl.create(name, templates)
+    if output:
+        click.secho(output, fg='red')
 
 
 @cli.command()
@@ -42,7 +44,14 @@ def remove(name):
     """removes project"""
     output = bl.remove(name)
     if output:
-        click.echo(output)
+        click.secho(output, fg='red')
+
+
+@cli.command()
+def clean_up():
+    """unlocks all projects"""
+    bl.clean_up()
+
 
 if __name__ == '__main__':
     cli()
