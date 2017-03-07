@@ -1,7 +1,6 @@
 #!/bin/sh
 
 add_project () {
-    ./create_shell.sh
     echo "source ./shell_profiles" > $2/$3
     echo "pet_project_name=$1" >> $2/$3
     echo "source $2/project_start" >> $2/$3

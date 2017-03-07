@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ "$SHELL" = "/bin/bash" ]; then
-    "" > shell_profiles
+    echo "# your profile files" > shell_profiles
     if [ -f ~/.bashrc ]; then
         echo "source ~/.bashrc" >> shell_profiles
     fi
