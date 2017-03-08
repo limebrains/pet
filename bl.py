@@ -30,6 +30,10 @@ def start(name):
         Popen(["./start.sh", name, "./projects/%s" % name]).communicate(input)
 
 
+def check_if_project_exist(name):
+    return os.path.exists("./projects/%s" % name)
+
+
 def stop():
     """stops project"""
     os.kill(os.getppid(), signal.SIGKILL)
@@ -41,8 +45,8 @@ def create(name, templates=()):
         os.makedirs("./projects/%s" % name)
     create_args = ["./create.sh", "./projects/%s" % name]
     for template in templates:
-        if not os.path.exists("./projects/%s" % name):
-            return "template: '%s' not found" % template
+        if not check_if_project_exist(template):
+            raise Exception("template: '%s' not found" % template)
         create_args.append(template)
     Popen(create_args).communicate(input)
 
@@ -59,7 +63,7 @@ def remove(name):
     if os.path.exists("./projects/%s" % name):
         shutil.rmtree("./projects/%s" % name)
     else:
-        return "project not found"
+        raise Exception("project not found")
 
 
 def clean_up():
@@ -72,9 +76,9 @@ def clean_up():
 def rename(old, new):
     """renames projects"""
     if not os.path.exists("./projects/%s" % old):
-        return "project not found"
+        raise Exception("project not found")
     if os.path.exists("./projects/%s" % new):
-        return "new name already taken"
+        raise Exception("new name already taken")
     os.rename("./projects/%s" % old, "./projects/%s" % new)
 
 
@@ -82,7 +86,7 @@ def edit_project(name):
     if name in print_list():
         Popen(["./edit_project.sh", "./projects/%s" % name]).communicate(input)
     else:
-        return "project not found"
+        raise Exception("project not found")
 
 
 def edit_task(name):

@@ -5,13 +5,19 @@ import bl
 cli = click.Group()
 
 
+project_list = []
+if bl.print_list():
+    project_list = bl.print_list().splitlines()
+
+
 @cli.command()
 @click.argument('name')
 def start(name):
     """starts new project"""
-    output = bl.start(name)
-    if output:
-        click.secho(output, fg='red')
+    if name in project_list:
+        bl.start(name)
+    else:
+        click.secho("project not found", fg='red')
 
 
 @cli.command()
@@ -25,9 +31,14 @@ def stop():
 @click.option('--templates', '-t', multiple=True, help='Creates project using templates')
 def create(name, templates):
     """creates new project"""
-    output = bl.create(name, templates)
-    if output:
-        click.secho(output, fg='red')
+    if name not in project_list:
+        for template in templates:
+            if template in project_list:
+                bl.create(name, templates)
+            else:
+                click.secho("template not found", fg='red')
+    else:
+        click.secho("name already taken", fg='red')
 
 
 @cli.command('list')
@@ -43,9 +54,7 @@ def print_list(tasks):
 @click.argument('name')
 def remove(name):
     """removes project"""
-    output = bl.remove(name)
-    if output:
-        click.secho(output, fg='red')
+    bl.remove(name)
 
 
 @cli.command()
@@ -59,9 +68,7 @@ def clean_up():
 @click.argument('new')
 def rename(old, new):
     """renames projects"""
-    output = bl.rename(old, new)
-    if output:
-        click.secho(output, fg='red')
+    bl.rename(old, new)
 
 
 @cli.group()
@@ -73,9 +80,7 @@ def edit(ctx):
 @edit.command()
 @click.argument('name')
 def project(name):
-    output = bl.edit_project(name)
-    if output:
-        click.secho(output, fg='red')
+    bl.edit_project(name)
 
 
 @edit.command()
