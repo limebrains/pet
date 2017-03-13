@@ -25,13 +25,15 @@ class ProjectLock(object):
 def start(name):
     """starts new project"""
     with ProjectLock(name=name):
-        if not os.path.isfile("./shell_profiles"):
-            Popen("./create_shell.sh")
         Popen(["./start.sh", name, "./projects/%s" % name]).communicate(input)
 
 
 def check_if_project_exist(name):
     return os.path.exists("./projects/%s" % name)
+
+
+def check_if_task_exist(project, name):
+    return os.path.exists("./projects/%s/tasks/%s.sh" % (project, name))
 
 
 def stop():
@@ -46,34 +48,72 @@ def create(name, templates=()):
         if not check_if_project_exist(template):
             raise Exception("template: %s not found" % template)
         create_args.append(template)
+    if not os.path.isfile("./shell_profiles"):
+        Popen("./create_shell.sh")
     if not os.path.exists("./projects/%s" % name):
         os.makedirs("./projects/%s" % name)
-    start_file = open("./projects/%s/project_start" % name, mode='w')
-    stop_file = open("./projects/%s/project_stop" % name, mode='w')
-    if templates:
-        start_file.write("# TEMPLATES\n")
-        stop_file.write("# TEMPLATES\n")
-        for template in templates:
-            start_file.write("# from template: %s\n" % template)
-            template_start_file = open("./projects/%s/project_start" % template)
-            start_file.write(template_start_file.read())
-            start_file.write("\n")
+    if not os.path.exists("./projects/%s/tasks" % name):
+        os.makedirs("./projects/%s/tasks" % name)
 
-            stop_file.write("# from template: %s\n" % template)
-            template_stop_file = open("./projects/%s/project_stop" % template)
-            stop_file.write(template_stop_file.read())
-            stop_file.write("\n")
-        start_file.write("# check if correctly imported templates\n")
-        stop_file.write("# check if correctly imported templates\n")
-    else:
-        start_file.write('# add here shell code to be executed while entering project\n')
-        stop_file.write('# add here shell code to be executed while exiting project\n')
-    start_file.close()
-    stop_file.close()
+    with open("./projects/%s/%s.py" % (name, name), mode='w') as project_file:
+        project_file.write("""import click
+import bl
+
+
+@click.group(chain=True, invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    if ctx.invoked_subcommand is None:
+        bl.start('%s')
+""" % name)
+
+    with open("./projects/%s/project_start" % name, mode='w') as start_file:
+        if templates:
+            start_file.write("# TEMPLATES\n")
+            for template in templates:
+                start_file.write("# from template: %s\n" % template)
+                template_start_file = open("./projects/%s/project_start" % template)
+                start_file.write(template_start_file.read())
+                start_file.write("\n")
+            start_file.write("# check if correctly imported templates\n")
+        else:
+            start_file.write('# add here shell code to be executed while entering project\n')
+    with open("./projects/%s/project_stop" % name, mode='w') as stop_file:
+        if templates:
+            stop_file.write("# TEMPLATES\n")
+            for template in templates:
+                stop_file.write("# from template: %s\n" % template)
+                template_stop_file = open("./projects/%s/project_stop" % template)
+                stop_file.write(template_stop_file.read())
+                stop_file.write("\n")
+            stop_file.write("# check if correctly imported templates\n")
+        else:
+            stop_file.write('# add here shell code to be executed while exiting project\n')
     Popen(create_args).communicate(input)
 
 
-def print_list(project_name=()):
+def create_task(project, name, description):
+    if check_if_project_exist(project):
+        if not check_if_task_exist(project, name):
+            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > ./projects/%s/tasks/%s.sh\n$EDITOR ./projects/%s/tasks/%s.sh" %
+                   (project, name, project, name)]).communicate(input)
+            os.chmod("./projects/%s/tasks/%s.sh" % (project, name), 0o755)
+            with open("./projects/%s/%s.py" % (project, project), mode='a') as project_file:
+                project_file.write("""
+
+@cli.command()
+@click.argument('args', nargs=-1)
+def %s(args=()):
+    \"""%s""\"
+    bl.run_task("%s", "%s", args)
+""" % (name, description, project, name))
+        else:
+            raise Exception("task already exists")
+    else:
+        raise Exception("project not found")
+
+
+def print_list():
     """lists all projects"""
     projects = os.listdir('./projects/')
     if projects:
@@ -111,5 +151,17 @@ def edit_project(name):
         raise Exception("project not found")
 
 
-def edit_task(name):
-    pass
+def run_task(project, task, args=()):
+    if check_if_task_exist(project, task):
+        popen_args = ["./projects/%s/tasks/%s.sh" % (project, task)]
+        popen_args.extend(list(args))
+        Popen(popen_args)
+    else:
+        raise Exception("task not found")
+
+
+def edit_task(project, task):
+    if check_if_task_exist(project, task):
+        Popen(["/bin/sh", "-c", "$EDITOR ./projects/%s/tasks/%s.sh" % (project, task)]).communicate(input)
+    else:
+        raise Exception("task not found")
