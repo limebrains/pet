@@ -22,6 +22,10 @@ class ProjectLock(object):
         os.remove(self.filepath)
 
 
+def edit_file(path):
+    Popen(["/bin/sh", "-c", "$EDITOR %s" % path]).communicate(input)
+
+
 def start(name):
     """starts new project"""
     with ProjectLock(name=name):
@@ -43,11 +47,9 @@ def stop():
 
 def create(name, templates=()):
     """creates new project"""
-    create_args = ["./create.sh", "./projects/%s" % name]
     for template in templates:
         if not check_if_project_exist(template):
             raise Exception("template: %s not found" % template)
-        create_args.append(template)
     if not os.path.isfile("./shell_profiles"):
         Popen("./create_shell.sh")
     if not os.path.exists("./projects/%s" % name):
@@ -89,14 +91,15 @@ def cli(ctx):
             stop_file.write("# check if correctly imported templates\n")
         else:
             stop_file.write('# add here shell code to be executed while exiting project\n')
-    Popen(create_args).communicate(input)
+    edit_file("./projects/%s/project_start" % name)
+    edit_file("./projects/%s/project_stop" % name)
 
 
 def create_task(project, name, description):
     if check_if_project_exist(project):
         if not check_if_task_exist(project, name):
-            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > ./projects/%s/tasks/%s.sh\n$EDITOR ./projects/%s/tasks/%s.sh" %
-                   (project, name, project, name)]).communicate(input)
+            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > ./projects/%s/tasks/%s.sh" % (project, name)]).communicate(input)
+            edit_file("./projects/%s/tasks/%s.sh" % (project, name))
             os.chmod("./projects/%s/tasks/%s.sh" % (project, name), 0o755)
             with open("./projects/%s/%s.py" % (project, project), mode='a') as project_file:
                 project_file.write("""
@@ -146,7 +149,8 @@ def rename(old, new):
 
 def edit_project(name):
     if name in print_list():
-        Popen(["./edit_project.sh", "./projects/%s" % name]).communicate(input)
+        edit_file("./projects/%s/project_start" % name)
+        edit_file("./projects/%s/project_stop" % name)
     else:
         raise Exception("project not found")
 
@@ -162,6 +166,6 @@ def run_task(project, task, args=()):
 
 def edit_task(project, task):
     if check_if_task_exist(project, task):
-        Popen(["/bin/sh", "-c", "$EDITOR ./projects/%s/tasks/%s.sh" % (project, task)]).communicate(input)
+        edit_file("./projects/%s/tasks/%s.sh" % (project, task))
     else:
         raise Exception("task not found")

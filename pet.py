@@ -98,14 +98,13 @@ def rename(old, new):
 
 @cli.group()
 @click.pass_context
-def edit():
-    pass
+def edit(ctx):
+    """helps you edit stuff"""
 
 
 @edit.command()
 @click.argument('name')
 def project(name):
-    """helps you edit project"""
     if name in project_list:
         bl.edit_project(name)
     else:
