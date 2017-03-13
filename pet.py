@@ -33,10 +33,11 @@ def create(name, templates):
     """creates new project"""
     if name not in project_list:
         for template in templates:
-            if template in project_list:
-                bl.create(name, templates)
-            else:
+            if template not in project_list:
                 click.secho("template not found", fg='red')
+                break
+        else:
+            bl.create(name, templates)
     else:
         click.secho("name already taken", fg='red')
 
@@ -54,7 +55,10 @@ def print_list(tasks):
 @click.argument('name')
 def remove(name):
     """removes project"""
-    bl.remove(name)
+    if name in project_list:
+        bl.remove(name)
+    else:
+        click.secho("project not found", fg='red')
 
 
 @cli.command()
@@ -68,7 +72,13 @@ def clean_up():
 @click.argument('new')
 def rename(old, new):
     """renames projects"""
-    bl.rename(old, new)
+    if old in project_list:
+        if new not in project_list:
+            bl.rename(old, new)
+        else:
+            click.secho("name already taken", fg='red')
+    else:
+        click.secho("project not found", fg='red')
 
 
 @cli.group()
@@ -80,7 +90,10 @@ def edit(ctx):
 @edit.command()
 @click.argument('name')
 def project(name):
-    bl.edit_project(name)
+    if name in project_list:
+        bl.edit_project(name)
+    else:
+        click.secho("project not found", fg='red')
 
 
 @edit.command()

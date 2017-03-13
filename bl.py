@@ -41,17 +41,39 @@ def stop():
 
 def create(name, templates=()):
     """creates new project"""
-    if not os.path.exists("./projects/%s" % name):
-        os.makedirs("./projects/%s" % name)
     create_args = ["./create.sh", "./projects/%s" % name]
     for template in templates:
         if not check_if_project_exist(template):
-            raise Exception("template: '%s' not found" % template)
+            raise Exception("template: %s not found" % template)
         create_args.append(template)
+    if not os.path.exists("./projects/%s" % name):
+        os.makedirs("./projects/%s" % name)
+    start_file = open("./projects/%s/project_start" % name, mode='w')
+    stop_file = open("./projects/%s/project_stop" % name, mode='w')
+    if templates:
+        start_file.write("# TEMPLATES\n")
+        stop_file.write("# TEMPLATES\n")
+        for template in templates:
+            start_file.write("# from template: %s\n" % template)
+            template_start_file = open("./projects/%s/project_start" % template)
+            start_file.write(template_start_file.read())
+            start_file.write("\n")
+
+            stop_file.write("# from template: %s\n" % template)
+            template_stop_file = open("./projects/%s/project_stop" % template)
+            stop_file.write(template_stop_file.read())
+            stop_file.write("\n")
+        start_file.write("# check if correctly imported templates\n")
+        stop_file.write("# check if correctly imported templates\n")
+    else:
+        start_file.write('# add here shell code to be executed while entering project\n')
+        stop_file.write('# add here shell code to be executed while exiting project\n')
+    start_file.close()
+    stop_file.close()
     Popen(create_args).communicate(input)
 
 
-def print_list(tasks=()):
+def print_list(project_name=()):
     """lists all projects"""
     projects = os.listdir('./projects/')
     if projects:
