@@ -20,8 +20,8 @@ class ProjectCLI(click.MultiCommand):
 
     def get_command(self, ctx, name):
         ns = {}
-        if os.path.exists("./projects/%s/%s.py" % (name, name)):
-            fn = "./projects/%s/%s.py" % (name, name)
+        if os.path.exists(os.path.join(bl.get_projects_root(), name, name + ".py")):
+            fn = os.path.join(bl.get_projects_root(), name, name + ".py")
             with open(fn) as f:
                 code = compile(f.read(), fn, 'exec')
                 eval(code, ns, ns)
@@ -36,7 +36,7 @@ class ActiveCli(click.MultiCommand):
     def get_command(self, ctx, name):
         ns = {}
         active = os.environ.get('PET_ACTIVE_PROJECT', None)
-        fn = "./projects/%s/tasks.py" % active
+        fn = os.path.join(bl.get_projects_root(), active, "tasks.py")
         with open(fn) as f:
             code = compile(f.read(), fn, 'exec')
             eval(code, ns, ns)
