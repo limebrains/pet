@@ -4,9 +4,10 @@ import signal
 import shutil
 from exceptions import NameAlreadyTaken, NameNotFound, ProjectActivated
 from file_templates import new_tasks_file, new_project_py_file, new_task
-from config import PET_INSTALL_FOLDER
 
 
+# TODO: change this later for sth like /bin...
+PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 # TODO: pet register
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
