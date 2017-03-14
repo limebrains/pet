@@ -2,13 +2,13 @@
 
 add_project () {
     echo "source ./shell_profiles" > $2/$3
-    echo "pet_project_name=$1" >> $2/$3
-    echo "source $2/project_start" >> $2/$3
+    echo "export PET_ACTIVE_PROJECT=$1" >> $2/$3
+    echo "source $2/start.sh" >> $2/$3
     echo "PS1=\"[$1] \$PS1\"" >> $2/$3
 }
 
 stop_project () {
-    $SHELL $1/project_stop
+    $SHELL $1/stop.sh
 }
 
 if [ "$SHELL" = "/bin/bash" ]; then

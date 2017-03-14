@@ -1,12 +1,16 @@
 import click
 import bl
+import os
 
 
 cli = click.Group()
 
-project_list = []
-if bl.print_list():
-    project_list = bl.print_list().splitlines()
+
+def get_projects():
+    project_list = []
+    if bl.print_list():
+        project_list = bl.print_list().splitlines()
+    return project_list
 
 
 class MyCLI(click.MultiCommand):
@@ -16,30 +20,56 @@ class MyCLI(click.MultiCommand):
 
     def get_command(self, ctx, name):
         ns = {}
-        fn = "./projects/%s/%s.py" % (name, name)
-        with open(fn) as f:
-            code = compile(f.read(), fn, 'exec')
-            eval(code, ns, ns)
-        return ns['cli']
+        if os.path.exists("./projects/%s/%s.py" % (name, name)):
+            fn = "./projects/%s/%s.py" % (name, name)
+            with open(fn) as f:
+                code = compile(f.read(), fn, 'exec')
+                eval(code, ns, ns)
+            return ns['cli']
 
 
 projects_cli = MyCLI()
+
+
+class MyProjectCli(click.MultiCommand):
+
+    def list_commands(self, ctx):
+        return []
+
+    def get_command(self, ctx, name):
+        ns = {}
+        active = os.environ.get('PET_ACTIVE_PROJECT', None)
+        fn = "./projects/%s/tasks.py" % active
+        with open(fn) as f:
+            code = compile(f.read(), fn, 'exec')
+            eval(code, ns, ns)
+        if name in ns:
+            return ns[name]
+
+if os.environ.get('PET_ACTIVE_PROJECT', None):
+    active_cli = MyProjectCli()
+else:
+    active_cli = click.Group()
 
 
 @cli.command()
 @click.argument('name')
 def start(name):
     """starts new project"""
-    if name in project_list:
+    if name in get_projects():
         bl.start(name)
     else:
         click.secho("project not found", fg='red')
 
 
 @cli.command()
-def stop():
+@click.option('--active', envvar='PET_ACTIVE_PROJECT')
+def stop(active):
     """stops project"""
-    bl.stop()
+    if active:
+        bl.stop()
+    else:
+        click.secho("project not activated", fg='red')
 
 
 @cli.command()
@@ -47,9 +77,9 @@ def stop():
 @click.argument('templates', nargs=-1)
 def create(name, templates):
     """creates new project"""
-    if name not in project_list:
+    if name not in get_projects():
         for template in templates:
-            if template not in project_list:
+            if template not in get_projects():
                 click.secho("template not found", fg='red')
                 break
         else:
@@ -68,27 +98,31 @@ def print_list():
 
 @cli.command()
 @click.argument('name')
-def remove(name):
+@click.option('--active', envvar='PET_ACTIVE_PROJECT')
+def remove(name, active=""):
     """removes project"""
-    if name in project_list:
-        bl.remove(name)
+    if name in get_projects():
+        if name != active:
+            bl.remove(name)
+        else:
+            click.secho("project active", fg='red')
     else:
         click.secho("project not found", fg='red')
 
 
 @cli.command()
-def clean_up():
+def clean():
     """unlocks all projects"""
-    bl.clean_up()
+    bl.clean()
 
 
 @cli.command()
 @click.argument('old')
 @click.argument('new')
 def rename(old, new):
-    """renames projects"""
-    if old in project_list:
-        if new not in project_list:
+    """renames project"""
+    if old in get_projects():
+        if new not in get_projects():
             bl.rename(old, new)
         else:
             click.secho("name already taken", fg='red')
@@ -105,7 +139,7 @@ def edit(ctx):
 @edit.command()
 @click.argument('name')
 def project(name):
-    if name in project_list:
+    if name in get_projects():
         bl.edit_project(name)
     else:
         click.secho("project not found", fg='red')
@@ -115,20 +149,25 @@ def project(name):
 @click.argument('project')
 @click.argument('name')
 def task(project, name):
-    if project in print_list:
+    if project in get_projects():
         bl.edit_task(project, name)
+    else:
+        click.secho("project not found", fg='red')
 
 
 @cli.command()
 @click.argument('project')
 @click.argument('name')
-@click.argument('description')
+@click.argument('description', default="description")
 def task(project, name, description):
     """creates new task"""
-    if project in project_list:
+    if project in get_projects():
         bl.create_task(project, name, description)
+    else:
+        click.secho("project not found", fg='red')
 
-multi_cli = click.CommandCollection(sources=[cli, projects_cli])
+
+multi_cli = click.CommandCollection(sources=[cli, active_cli, projects_cli])
 
 
 if __name__ == '__main__':

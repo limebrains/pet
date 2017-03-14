@@ -5,6 +5,7 @@ import os
 from bl import create
 from bl import remove
 from bl import start
+from bl import edit_file
 
 
 def test_create_command(project_names):
@@ -31,6 +32,13 @@ def test_start_command(Popen, project_names):
         start(name)
         Popen.assert_called_with(["./start.sh", name, "./projects/%s" % name])
         assert not os.path.exists("./projects/%s/_lock" % name)
+
+
+@mock.patch('bl.Popen')
+def test_edit_file_command(Popen, files):
+    for path in files:
+        edit_file(path)
+        Popen.assert_called_with(["/bin/sh", "-c", "$EDITOR %s" % path])
 
 
 def test_remove_command(project_names):
