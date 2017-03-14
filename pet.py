@@ -160,6 +160,7 @@ def task(project, name, description):
 
 
 if __name__ == '__main__':
+    bl.get_projects_root_or_create()
     if os.environ.get('PET_ACTIVE_PROJECT', None):
         active_cli = ActiveCli()
     else:

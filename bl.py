@@ -16,7 +16,7 @@ def create_projects_root():
 
 
 def get_projects_root():
-    if os.path.exists(PET_FOLDER):
+    if os.path.exists(os.path.join(PET_FOLDER, "projects")):
         return os.path.join(PET_FOLDER, "projects")
 
 
