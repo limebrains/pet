@@ -6,6 +6,8 @@ from exceptions import NameAlreadyTaken, NameNotFound, ProjectActivated
 from file_templates import new_tasks_file, new_project_py_file, new_task
 
 
+# TODO: change this later for sth like /bin...
+PET_INSTALL_FOLDER = os.path.join(os.path.expanduser("~"), "PycharmProjects", "pet")
 # TODO: pet register
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
@@ -53,7 +55,8 @@ def edit_file(path):
 def start(name):
     """starts new project"""
     with ProjectLock(name=name):
-        Popen(["./boot.sh", name, os.path.join(get_projects_root(), name)]).communicate(input)
+        Popen([os.path.join(PET_INSTALL_FOLDER, "boot.sh"), name, os.path.join(get_projects_root(), name),
+               PET_INSTALL_FOLDER]).communicate(input)
 
 
 def project_exist(name):
@@ -77,8 +80,8 @@ def create(name, templates=()):
     for template in templates:
         if not project_exist(template):
             raise NameNotFound("{0} - template not found".format(template))
-    if not os.path.isfile("./shell_profiles"):
-        Popen("./create_shell.sh")
+    if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, "shell_profiles")):
+        Popen(os.path.join(PET_INSTALL_FOLDER, "create_shell.sh"))
     if not os.path.exists(os.path.join(projects_root, name)):
         os.makedirs(os.path.join(projects_root, name))
     if not os.path.exists(os.path.join(projects_root, name, "tasks")):
