@@ -45,7 +45,7 @@ class ProjectLock(object):
 
 def edit_file(path):
     """edits file using $EDITOR"""
-    Popen(["/bin/sh", "-c", "$EDITOR %s" % path]).communicate(input)
+    Popen(["/bin/sh", "-c", "$EDITOR {0}".format(path)]).communicate(input)
 
 
 def start(name):
@@ -110,7 +110,7 @@ def create(name, templates=()):
         if templates:
             start_file.write("# TEMPLATES\n")
             for template in templates:
-                start_file.write("# from template: %s\n" % template)
+                start_file.write("# from template: {0}\n".format(template))
                 template_start_file = open(os.path.join(projects_root, template, "start.sh"))
                 start_file.write(template_start_file.read())
                 start_file.write("\n")
@@ -121,7 +121,7 @@ def create(name, templates=()):
         if templates:
             stop_file.write("# TEMPLATES\n")
             for template in templates:
-                stop_file.write("# from template: %s\n" % template)
+                stop_file.write("# from template: {0}\n".format(template))
                 template_stop_file = open(os.path.join(projects_root, template, "stop.sh"))
                 stop_file.write(template_stop_file.read())
                 stop_file.write("\n")
