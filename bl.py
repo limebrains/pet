@@ -3,8 +3,10 @@ import os
 import signal
 import shutil
 from exceptions import NameAlreadyTaken, NameNotFound, ProjectActivated
+from file_templates import new_tasks_file, new_project_py_file, new_task
 
 
+# TODO: pet register
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
 
@@ -69,24 +71,6 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-new_project_py_file = '''
-import click
-import bl
-
-
-@click.group(chain=True, invoke_without_command=True)
-@click.pass_context
-def cli(ctx):
-    if ctx.invoked_subcommand is None:
-        bl.start('{0}')
-'''
-
-new_tasks_file = '''
-import click
-import bl
-'''
-
-
 def create(name, templates=()):
     """creates new project"""
     projects_root = get_projects_root()
@@ -130,17 +114,6 @@ def create(name, templates=()):
             stop_file.write('# add here shell code to be executed while exiting project\n')
     edit_file(os.path.join(projects_root, name, "start.sh"))
     edit_file(os.path.join(projects_root, name, "stop.sh"))
-
-
-new_task = '''
-
-@click.command()
-@click.argument('args', nargs=-1)
-@click.option('--active', envvar='PET_ACTIVE_PROJECT')
-def {0}(active="", args=()):
-    \"""{1}""\"
-    bl.run_task("{2}", "{3}", active, args)
-'''
 
 
 def create_task(project, name, description):
