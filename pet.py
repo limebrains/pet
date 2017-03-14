@@ -13,7 +13,7 @@ def get_projects():
     return project_list
 
 
-class MyCLI(click.MultiCommand):
+class ProjectCLI(click.MultiCommand):
 
     def list_commands(self, ctx):
         return []
@@ -28,10 +28,7 @@ class MyCLI(click.MultiCommand):
             return ns['cli']
 
 
-projects_cli = MyCLI()
-
-
-class MyProjectCli(click.MultiCommand):
+class ActiveCli(click.MultiCommand):
 
     def list_commands(self, ctx):
         return []
@@ -45,11 +42,6 @@ class MyProjectCli(click.MultiCommand):
             eval(code, ns, ns)
         if name in ns:
             return ns[name]
-
-if os.environ.get('PET_ACTIVE_PROJECT', None):
-    active_cli = MyProjectCli()
-else:
-    active_cli = click.Group()
 
 
 @cli.command()
@@ -167,8 +159,11 @@ def task(project, name, description):
         click.secho("project not found", fg='red')
 
 
-multi_cli = click.CommandCollection(sources=[cli, active_cli, projects_cli])
-
-
 if __name__ == '__main__':
+    if os.environ.get('PET_ACTIVE_PROJECT', None):
+        active_cli = ActiveCli()
+    else:
+        active_cli = click.Group()
+    projects_cli = ProjectCLI()
+    multi_cli = click.CommandCollection(sources=[cli, active_cli, projects_cli])
     multi_cli()
