@@ -6,9 +6,9 @@ from exceptions import NameAlreadyTaken, NameNotFound, ProjectActivated
 from file_templates import new_tasks_file, new_project_py_file, new_task
 
 
-# TODO: change this later for sth like /bin...
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 # TODO: pet register
+# TODO: restore list
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
 
@@ -115,6 +115,8 @@ def create(name, templates=()):
             stop_file.write("# check if correctly imported templates\n")
         else:
             stop_file.write('# add here shell code to be executed while exiting project\n')
+    with open(os.path.join(projects_root, name, "tasks.sh"), mode='w') as tasks_alias_file:
+        tasks_alias_file.write("# aliases for your tasks\n")
     edit_file(os.path.join(projects_root, name, "start.sh"))
     edit_file(os.path.join(projects_root, name, "stop.sh"))
 
@@ -130,6 +132,8 @@ def create_task(project, name, description):
             os.chmod(os.path.join(projects_root, project, "tasks", name + ".sh"), 0o755)
             with open(os.path.join(projects_root, project, "tasks.py"), mode='a') as tasks_file:
                 tasks_file.write(new_task.format(name, description, project, name))
+            with open(os.path.join(projects_root, project, "tasks.sh"), mode='w') as tasks_alias_file:
+                tasks_alias_file.write("alias {0}='pet {0}'\n".format(name))
         else:
             raise NameAlreadyTaken("{0} - task already exists".format(name))
     else:
@@ -148,17 +152,53 @@ def print_list():
         return "\n".join(projects)
 
 
-# TODO: Archiving projects with suffix .old plus restore command
 def remove(name):
     """removes project"""
     projects_root = get_projects_root()
     if os.path.exists(os.path.join(projects_root, name)):
         if not os.path.exists(os.path.join(projects_root, name, "_lock")):
-            shutil.rmtree(os.path.join(projects_root, name))
+            print("(A) - Archive\n(R) - Remove")
+            answer = input()
+            if answer == "A" or answer == "a":
+                if not os.path.exists(os.path.join(PET_FOLDER, "old")):
+                    os.makedirs(os.path.join(PET_FOLDER, "old"))
+                shutil.move(os.path.join(projects_root, name), os.path.join(PET_FOLDER, "old", name))
+            elif answer == "R" or answer == "r":
+                if os.path.islink(os.path.join(projects_root, name)):
+                    os.remove(os.path.join(projects_root, name))
+                else:
+                    shutil.rmtree(os.path.join(projects_root, name))
+            else:
+                print("{0} - is not a valid option".format(answer))
         else:
             raise ProjectActivated("{0} - project is active".format(name))
     else:
         raise NameNotFound("{0} - project not found".format(name))
+
+
+def restore(name):
+    """restores project from archive"""
+    if os.path.exists(os.path.join(PET_FOLDER, "old", name)):
+        shutil.move(os.path.join(PET_FOLDER, "old", name), os.path.join(get_projects_root(), name))
+    else:
+        raise NameNotFound("{0} - project not found in \"old\" folder".format(name))
+
+
+def register():
+    folder = os.getcwd()
+    name = os.path.basename(folder)
+    if not project_exist(name):
+        if (os.path.exists(os.path.join(folder, name + ".py")) and
+                os.path.exists(os.path.join(folder, "start.sh")) and
+                os.path.exists(os.path.join(folder, "stop.sh")) and
+                os.path.exists(os.path.join(folder, "tasks.sh")) and
+                os.path.exists(os.path.join(folder, "tasks.py")) and
+                os.path.exists(os.path.join(folder, "tasks"))):
+            os.symlink(folder, os.path.join(get_projects_root(), name))
+        else:
+            print("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
+    else:
+        raise NameAlreadyTaken("{0} - name already taken".format(name))
 
 
 def clean():

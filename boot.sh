@@ -4,6 +4,7 @@ add_project () {
     echo "source $4/shell_profiles" > $2/$3
     echo "export PET_ACTIVE_PROJECT=$1" >> $2/$3
     echo "source $2/start.sh" >> $2/$3
+    echo "source $2/tasks.sh" >> $2/$3
     echo "PS1=\"[$1] \$PS1\"" >> $2/$3
 }
 

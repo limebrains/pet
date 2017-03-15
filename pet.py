@@ -51,7 +51,7 @@ def start(name):
     if name in get_projects():
         bl.start(name)
     else:
-        click.secho("project not found", fg='red')
+        click.secho("{0} - project not found".format(name), fg='red')
 
 
 @cli.command()
@@ -72,12 +72,12 @@ def create(name, templates):
     if name not in get_projects():
         for template in templates:
             if template not in get_projects():
-                click.secho("template not found", fg='red')
+                click.secho("{0} - template not found".format(template), fg='red')
                 break
         else:
             bl.create(name, templates)
     else:
-        click.secho("name already taken", fg='red')
+        click.secho("{0} - name already taken".format(name), fg='red')
 
 
 @cli.command('list')
@@ -97,9 +97,22 @@ def remove(name, active=""):
         if name != active:
             bl.remove(name)
         else:
-            click.secho("project active", fg='red')
+            click.secho("{0} - project is active".format(name), fg='red')
     else:
-        click.secho("project not found", fg='red')
+        click.secho("{0} - project not found".format(name), fg='red')
+
+
+@cli.command()
+@click.argument('name')
+def restore(name):
+    """restores project from archive"""
+    bl.restore(name)
+
+
+@cli.command()
+def register():
+    """registers .pet as project folder"""
+    bl.register()
 
 
 @cli.command()
@@ -117,9 +130,9 @@ def rename(old, new):
         if new not in get_projects():
             bl.rename(old, new)
         else:
-            click.secho("name already taken", fg='red')
+            click.secho("{0} - name already taken".format(new), fg='red')
     else:
-        click.secho("project not found", fg='red')
+        click.secho("{0} - project not found".format(old), fg='red')
 
 
 @cli.group()
@@ -134,7 +147,7 @@ def project(name):
     if name in get_projects():
         bl.edit_project(name)
     else:
-        click.secho("project not found", fg='red')
+        click.secho("{0} - project not found".format(name), fg='red')
 
 
 @edit.command()
@@ -144,7 +157,7 @@ def task(project, name):
     if project in get_projects():
         bl.edit_task(project, name)
     else:
-        click.secho("project not found", fg='red')
+        click.secho("{0} - project not found".format(project), fg='red')
 
 
 @cli.command()
@@ -156,7 +169,7 @@ def task(project, name, description):
     if project in get_projects():
         bl.create_task(project, name, description)
     else:
-        click.secho("project not found", fg='red')
+        click.secho("{0} - project not found".format(project), fg='red')
 
 
 if __name__ == '__main__':
