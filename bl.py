@@ -64,6 +64,31 @@ class ProjectLock(object):
         os.remove(self.filepath)
 
 
+class TaskExec(object):
+
+    def __init__(self, name, task, shell):
+
+        project_root = os.path.join(get_projects_root(), name)
+        self.filepath = os.path.join(project_root, shell)
+        shutil.copyfile(self.filepath, self.filepath + "_tmp")
+        with open(self.filepath, mode='a') as work_shell:
+            work_shell.write("source {0}\n".format(os.path.join(project_root, "tasks", task + ".sh")))
+        if shell == "tmp_bashrc":
+            self.out = Popen(["/bin/sh", "-c", "$SHELL $1/tmp_bashrc; $SHELL $1/stop.sh",
+                              name, project_root], stdout=PIPE).stdout.read()
+        elif shell == ".zshrc":
+            self.out = Popen(["/bin/sh", "-c", "$SHELL $1/.zshrc; $SHELL $1/stop.sh",
+                              name, project_root], stdout=PIPE).stdout.read()
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *args):
+        shutil.copyfile(self.filepath + "_tmp", self.filepath)
+        os.remove(self.filepath + "_tmp")
+        print(self.out.decode("utf-8"))
+
+
 def edit_file(path):
     """edits file using $EDITOR"""
     Popen(["/bin/sh", "-c", "$EDITOR {0}".format(path)]).communicate(input)
@@ -216,12 +241,14 @@ def remove(name):
 
 
 def remove_task(project, task):
+    """removes task"""
     if task_exist(project, task):
         project_root = os.path.join(get_projects_root(), project)
         num = Popen(["/bin/sh", "-c", "grep -n \"def {0}\" {1} | cut -d \":\" -f 1".format(
             task, os.path.join(project_root, "tasks.py"))], stdout=PIPE).stdout.read()
         num = int(num.decode("utf-8")[:-1])
-        Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(str(num-3), str(num+2), os.path.join(project_root, "tasks.py"))])
+        Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
+            str(num-3), str(num+2), os.path.join(project_root, "tasks.py"))])
         Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task, os.path.join(project_root, "tasks.sh"))])
         os.remove(os.path.join(project_root, "tasks", task + ".sh"))
     else:
@@ -237,6 +264,7 @@ def restore(name):
 
 
 def register():
+    """adds symbolic link to .pet folder in projects"""
     folder = os.getcwd()
     name = os.path.basename(folder)
     if not project_exist(name):
@@ -284,13 +312,25 @@ def edit_project(name):
 def run_task(project, task, active, args=()):
     """executes task in correct project"""
     if task_exist(project, task):
+        popen_args = [os.path.join(get_projects_root(), project, "tasks", task + ".sh")]
+        popen_args.extend(list(args))
         if active == project:
-            popen_args = [os.path.join(get_projects_root(), project, "tasks", task + ".sh")]
-            popen_args.extend(list(args))
             Popen(popen_args)
         else:
-            # TODO: run in project if is not already turned on
-            pass
+            if os.path.isfile(os.path.join(get_projects_root(), project, "_lock")):
+                raise ProjectActivated("{0} - project already activated".format(project))
+            project_root = os.path.join(get_projects_root(), project)
+            if not os.path.exists(os.path.join(project_root, "tmp_bashrc")) and \
+                    not os.path.exists(os.path.join(project_root, ".zshrc")):
+                Popen([os.path.join(PET_INSTALL_FOLDER, "boot.sh"), project, project_root,
+                       PET_INSTALL_FOLDER])
+            with ProjectLock(name=project):
+                if os.path.exists(os.path.join(project_root, "tmp_bashrc")):
+                    with TaskExec(project, task, "tmp_bashrc"):
+                        pass
+                elif os.path.exists(os.path.join(project_root, ".zshrc")):
+                    with TaskExec(project, task, ".zshrc"):
+                        pass
     else:
         raise NameNotFound("{0} - task not found".format(task))
 

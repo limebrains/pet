@@ -200,6 +200,21 @@ def task(project, name):
         click.secho("{0} - project not found".format(project), fg='red')
 
 
+@cli.command()
+@click.argument('project')
+@click.argument('task')
+@click.argument('args', nargs=-1)
+@click.option('--active', envvar='PET_ACTIVE_PROJECT')
+def run_task(project, task, active="", args=()):
+    bl.run_task(project, task, active, args)
+
+
+@click.command()
+def hello(active="", args=()):
+    """description"""
+    bl.run_task("new", "hello", active, args)
+
+
 if __name__ == '__main__':
     bl.get_projects_root_or_create()
     if os.environ.get('PET_ACTIVE_PROJECT', None):

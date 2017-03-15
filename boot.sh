@@ -1,6 +1,6 @@
 #!/bin/sh
 
-add_project () {
+start_project () {
     echo "source $4/shell_profiles" > $2/$3
     echo "export PET_ACTIVE_PROJECT=$1" >> $2/$3
     echo "source $2/start.sh" >> $2/$3
@@ -13,12 +13,12 @@ stop_project () {
 }
 
 if [ "$SHELL" = "/bin/bash" ]; then
-    add_project $1 $2 tmp_bashrc $3
+    start_project $1 $2 tmp_bashrc $3
     $SHELL --rcfile $2/tmp_bashrc
     stop_project $2
 
 elif [ "$SHELL" = "/bin/zsh" ]; then
-    add_project $1 $2 .zshrc $3
+    start_project $1 $2 .zshrc $3
     ZDOTDIR=$2 $SHELL
     stop_project $2
 else
