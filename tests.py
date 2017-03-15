@@ -2,12 +2,7 @@ from unittest import mock
 import pytest
 import os
 
-from bl import create
-from bl import remove
-from bl import start
-from bl import edit_file
-from bl import get_pet_install_folder
-from bl import get_projects_root
+from bl import create, remove, start, edit_file, get_pet_install_folder, get_projects_root, print_list, print_old
 
 
 def test_create_command(project_names):
@@ -33,6 +28,11 @@ def test_edit_file_command(Popen, files):
     for path in files:
         edit_file(path)
         Popen.assert_called_with(["/bin/sh", "-c", "$EDITOR %s" % path])
+
+
+def test_print_list(project_names):
+    for name in project_names:
+        assert name in print_list()
 
 
 def test_remove_command(project_names):
