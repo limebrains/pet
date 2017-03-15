@@ -97,7 +97,7 @@ def task(project, name):
 
 
 @cli.command('list')
-@click.argument('switch', nargs=-1)
+@click.argument('old', nargs=-1)
 def print_list(old):
     """lists all projects"""
     if old and old[0] == "old":
