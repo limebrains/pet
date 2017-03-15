@@ -88,11 +88,10 @@ def project(name, templates):
 @create.command()
 @click.argument('project')
 @click.argument('name')
-@click.argument('description', default="description")
-def task(project, name, description):
+def task(project, name):
     """creates new task"""
     if project in get_projects():
-        bl.create_task(project, name, description)
+        bl.create_task(project, name)
     else:
         click.secho("{0} - project not found".format(project), fg='red')
 

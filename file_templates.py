@@ -29,6 +29,5 @@ new_task = '''
 @click.argument('args', nargs=-1)
 @click.option('--active', envvar='PET_ACTIVE_PROJECT')
 def {0}(active="", args=()):
-    \"""{1}""\"
-    bl.run_task("{2}", "{3}", active, args)
+    bl.run_task("{1}", "{2}", active, args)
 '''

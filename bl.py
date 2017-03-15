@@ -1,4 +1,4 @@
-from subprocess import Popen
+from subprocess import Popen, PIPE
 import os
 import signal
 import shutil
@@ -7,7 +7,6 @@ from file_templates import new_tasks_file, new_project_py_file, new_task
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
-# TODO: deleting tasks and cleaning tasks.py and tasks.sh files
 # TODO: move boot.sh and create_shell.sh to python
 # TODO: tests!!!
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
@@ -139,7 +138,7 @@ def create(name, templates=()):
     edit_file(os.path.join(projects_root, name, "stop.sh"))
 
 
-def create_task(project, name, description):
+def create_task(project, name):
     """creates task"""
     if project_exist(project):
         if not task_exist(project, name):
@@ -149,9 +148,9 @@ def create_task(project, name, description):
             edit_file(os.path.join(projects_root, project, "tasks", name + ".sh"))
             os.chmod(os.path.join(projects_root, project, "tasks", name + ".sh"), 0o755)
             with open(os.path.join(projects_root, project, "tasks.py"), mode='a') as tasks_file:
-                tasks_file.write(new_task.format(name, description, project, name))
-            with open(os.path.join(projects_root, project, "tasks.sh"), mode='w') as tasks_alias_file:
-                tasks_alias_file.write("alias {0}='pet {0}'\n".format(name))
+                tasks_file.write(new_task.format(name, project, name))
+            with open(os.path.join(projects_root, project, "tasks.sh"), mode='a') as tasks_alias_file:
+                tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(name))
         else:
             raise NameAlreadyTaken("{0} - task already exists".format(name))
     else:
@@ -217,7 +216,16 @@ def remove(name):
 
 
 def remove_task(project, task):
-    pass
+    if task_exist(project, task):
+        project_root = os.path.join(get_projects_root(), project)
+        num = Popen(["/bin/sh", "-c", "grep -n \"def {0}\" {1} | cut -d \":\" -f 1".format(
+            task, os.path.join(project_root, "tasks.py"))], stdout=PIPE).stdout.read()
+        num = int(num.decode("utf-8")[:-1])
+        Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(str(num-3), str(num+2), os.path.join(project_root, "tasks.py"))])
+        Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task, os.path.join(project_root, "tasks.sh"))])
+        os.remove(os.path.join(project_root, "tasks", task + ".sh"))
+    else:
+        raise NameNotFound("{0}/{1} - task not found in this project".format(project, task))
 
 
 def restore(name):
