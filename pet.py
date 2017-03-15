@@ -64,10 +64,15 @@ def stop(active):
         click.secho("project not activated", fg='red')
 
 
-@cli.command()
+@cli.group()
+def create():
+    """creates new project or task"""
+
+
+@create.command()
 @click.argument('name')
 @click.argument('templates', nargs=-1)
-def create(name, templates):
+def project(name, templates):
     """creates new project"""
     if name not in get_projects():
         for template in templates:
@@ -80,8 +85,20 @@ def create(name, templates):
         click.secho("{0} - name already taken".format(name), fg='red')
 
 
+@create.command()
+@click.argument('project')
+@click.argument('name')
+@click.argument('description', default="description")
+def task(project, name, description):
+    """creates new task"""
+    if project in get_projects():
+        bl.create_task(project, name, description)
+    else:
+        click.secho("{0} - project not found".format(project), fg='red')
+
+
 @cli.command('list')
-@click.argument('old', nargs=-1)
+@click.argument('switch', nargs=-1)
 def print_list(old):
     """lists all projects"""
     if old and old[0] == "old":
@@ -94,10 +111,27 @@ def print_list(old):
             click.echo(projects)
 
 
-@cli.command()
+@cli.group()
+def remove():
+    """removes project or task"""
+    pass
+
+
+@remove.command()
+@click.argument('project')
+@click.argument('task')
+def task(project, task):
+    """removes task"""
+    if project in get_projects():
+        bl.remove_task(project, task)
+    else:
+        click.secho("{0} - project not found".format(project), fg='red')
+
+
+@remove.command()
 @click.argument('name')
 @click.option('--active', envvar='PET_ACTIVE_PROJECT')
-def remove(name, active=""):
+def project(name, active=""):
     """removes project"""
     if name in get_projects():
         if name != active:
@@ -145,6 +179,7 @@ def rename(old, new):
 @click.pass_context
 def edit(ctx):
     """helps you edit stuff"""
+    pass
 
 
 @edit.command()
@@ -162,18 +197,6 @@ def project(name):
 def task(project, name):
     if project in get_projects():
         bl.edit_task(project, name)
-    else:
-        click.secho("{0} - project not found".format(project), fg='red')
-
-
-@cli.command()
-@click.argument('project')
-@click.argument('name')
-@click.argument('description', default="description")
-def task(project, name, description):
-    """creates new task"""
-    if project in get_projects():
-        bl.create_task(project, name, description)
     else:
         click.secho("{0} - project not found".format(project), fg='red')
 

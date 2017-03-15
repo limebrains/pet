@@ -8,6 +8,8 @@ from file_templates import new_tasks_file, new_project_py_file, new_task
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 # TODO: deleting tasks and cleaning tasks.py and tasks.sh files
+# TODO: move boot.sh and create_shell.sh to python
+# TODO: tests!!!
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
 
@@ -180,6 +182,17 @@ def print_old():
         return "\n".join(projects)
 
 
+def print_tasks(name):
+    """lists tasks in project"""
+    projects_root = get_projects_root()
+    tasks = [
+        task[:-3]
+        for task in os.listdir(os.path.join(projects_root, name, "tasks"))
+    ]
+    if tasks:
+        return "\n".join(tasks)
+
+
 def remove(name):
     """removes project"""
     projects_root = get_projects_root()
@@ -201,6 +214,10 @@ def remove(name):
             raise ProjectActivated("{0} - project is active".format(name))
     else:
         raise NameNotFound("{0} - project not found".format(name))
+
+
+def remove_task(project, task):
+    pass
 
 
 def restore(name):

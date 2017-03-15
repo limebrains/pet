@@ -13,6 +13,14 @@ def cli(ctx):
 new_tasks_file = '''
 import click
 import bl
+
+
+@click.command()
+@click.option('--active', envvar='PET_ACTIVE_PROJECT')
+def tasks(active=""):
+    tasks_list = bl.print_tasks(active)
+    if tasks_list:
+        click.echo(tasks_list)
 '''
 
 new_task = '''
