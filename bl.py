@@ -7,8 +7,7 @@ from file_templates import new_tasks_file, new_project_py_file, new_task
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
-# TODO: pet register
-# TODO: restore list
+# TODO: deleting tasks and cleaning tasks.py and tasks.sh files
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
 
@@ -27,6 +26,23 @@ def get_projects_root_or_create():
         create_projects_root()
         return get_projects_root(), True
     return project_root, False
+
+
+def create_archive_root():
+    os.makedirs(os.path.join(PET_FOLDER, "old"))
+
+
+def get_archive_root():
+    if os.path.exists(os.path.join(PET_FOLDER, "old")):
+        return os.path.join(PET_FOLDER, "old")
+
+
+def get_archive_root_or_create():
+    archive_root = get_archive_root()
+    if not archive_root:
+        create_archive_root()
+        return get_archive_root(), True
+    return archive_root, False
 
 
 class ProjectLock(object):
@@ -152,6 +168,18 @@ def print_list():
         return "\n".join(projects)
 
 
+def print_old():
+    """lists archived projects"""
+    projects_root = get_archive_root_or_create()
+    projects = [
+        project
+        for project in os.listdir(projects_root[0])
+        if os.path.isdir(os.path.join(projects_root[0], project))
+    ]
+    if projects:
+        return "\n".join(projects)
+
+
 def remove(name):
     """removes project"""
     projects_root = get_projects_root()
@@ -160,9 +188,8 @@ def remove(name):
             print("(A) - Archive\n(R) - Remove")
             answer = input()
             if answer == "A" or answer == "a":
-                if not os.path.exists(os.path.join(PET_FOLDER, "old")):
-                    os.makedirs(os.path.join(PET_FOLDER, "old"))
-                shutil.move(os.path.join(projects_root, name), os.path.join(PET_FOLDER, "old", name))
+                archive = get_archive_root_or_create()
+                shutil.move(os.path.join(projects_root, name), os.path.join(archive, name))
             elif answer == "R" or answer == "r":
                 if os.path.islink(os.path.join(projects_root, name)):
                     os.remove(os.path.join(projects_root, name))
@@ -178,8 +205,8 @@ def remove(name):
 
 def restore(name):
     """restores project from archive"""
-    if os.path.exists(os.path.join(PET_FOLDER, "old", name)):
-        shutil.move(os.path.join(PET_FOLDER, "old", name), os.path.join(get_projects_root(), name))
+    if os.path.exists(os.path.join(get_archive_root(), name)):
+        shutil.move(os.path.join(get_archive_root(), name), os.path.join(get_projects_root(), name))
     else:
         raise NameNotFound("{0} - project not found in \"old\" folder".format(name))
 

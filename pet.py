@@ -81,11 +81,17 @@ def create(name, templates):
 
 
 @cli.command('list')
-def print_list():
+@click.argument('old', nargs=-1)
+def print_list(old):
     """lists all projects"""
-    projects = bl.print_list()
-    if projects:
-        click.echo(projects)
+    if old and old[0] == "old":
+        projects = bl.print_old()
+        if projects:
+            click.echo(projects)
+    else:
+        projects = bl.print_list()
+        if projects:
+            click.echo(projects)
 
 
 @cli.command()
@@ -102,7 +108,7 @@ def remove(name, active=""):
         click.secho("{0} - project not found".format(name), fg='red')
 
 
-@cli.command()
+@cli.group()
 @click.argument('name')
 def restore(name):
     """restores project from archive"""
