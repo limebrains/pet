@@ -129,12 +129,13 @@ def task(project, task):
 
 @remove.command()
 @click.argument('name')
+@click.argument('archive_or_remove', type=click.Choice(["A", "a", "R", "r"]))
 @click.option('--active', envvar='PET_ACTIVE_PROJECT')
-def project(name, active=""):
+def project(name, archive_or_remove, active=""):
     """removes project"""
     if name in get_projects():
         if name != active:
-            bl.remove(name)
+            bl.remove(name, archive_or_remove)
         else:
             click.secho("{0} - project is active".format(name), fg='red')
     else:
@@ -205,7 +206,8 @@ def task(project, name):
 @click.argument('task')
 @click.argument('args', nargs=-1)
 @click.option('--active', envvar='PET_ACTIVE_PROJECT')
-def run_task(project, task, active="", args=()):
+def task(project, task, active="", args=()):
+    """runs task in project"""
     bl.run_task(project, task, active, args)
 
 

@@ -12,6 +12,14 @@ PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
 
+def get_pet_install_folder():
+    return PET_INSTALL_FOLDER
+
+
+def get_pet_folder():
+    return PET_FOLDER
+
+
 def create_projects_root():
     os.makedirs(os.path.join(PET_FOLDER, "projects"))
 
@@ -213,13 +221,11 @@ def print_tasks(name):
         return "\n".join(tasks)
 
 
-def remove(name):
+def remove(name, answer):
     """removes project"""
     projects_root = get_projects_root()
     if os.path.exists(os.path.join(projects_root, name)):
         if not os.path.exists(os.path.join(projects_root, name, "_lock")):
-            print("(A) - Archive\n(R) - Remove")
-            answer = input()
             if answer == "A" or answer == "a":
                 archive = get_archive_root_or_create()
                 shutil.move(os.path.join(projects_root, name), os.path.join(archive, name))
