@@ -66,26 +66,22 @@ class ProjectLock(object):
 
 class TaskExec(object):
 
-    def __init__(self, name, task, shell):
+    def __init__(self, name, task, shell, args=()):
 
         project_root = os.path.join(get_projects_root(), name)
         self.filepath = os.path.join(project_root, shell)
-        shutil.copyfile(self.filepath, self.filepath + "_tmp")
-        with open(self.filepath, mode='a') as work_shell:
+        shutil.copyfile(self.filepath, self.filepath + "_task")
+        with open(self.filepath + "_task", mode='a') as work_shell:
             work_shell.write("source {0}\n".format(os.path.join(project_root, "tasks", task + ".sh")))
-        if shell == "tmp_bashrc":
-            self.out = Popen(["/bin/sh", "-c", "$SHELL $1/tmp_bashrc; $SHELL $1/stop.sh",
-                              name, project_root], stdout=PIPE).stdout.read()
-        elif shell == ".zshrc":
-            self.out = Popen(["/bin/sh", "-c", "$SHELL $1/.zshrc; $SHELL $1/stop.sh",
-                              name, project_root], stdout=PIPE).stdout.read()
+        self.out = Popen(["/bin/sh", "-c", "$SHELL $1/{0} {1}; $SHELL $1/stop.sh".format(
+            shell + "_task", " ".join(map(str, args))),
+                          name, project_root], stdout=PIPE).stdout.read()
 
     def __enter__(self):
         pass
 
     def __exit__(self, *args):
-        shutil.copyfile(self.filepath + "_tmp", self.filepath)
-        os.remove(self.filepath + "_tmp")
+        os.remove(self.filepath + "_task")
         print(self.out.decode("utf-8"))
 
 
@@ -326,10 +322,10 @@ def run_task(project, task, active, args=()):
                        PET_INSTALL_FOLDER])
             with ProjectLock(name=project):
                 if os.path.exists(os.path.join(project_root, "tmp_bashrc")):
-                    with TaskExec(project, task, "tmp_bashrc"):
+                    with TaskExec(project, task, "tmp_bashrc", list(args)):
                         pass
                 elif os.path.exists(os.path.join(project_root, ".zshrc")):
-                    with TaskExec(project, task, ".zshrc"):
+                    with TaskExec(project, task, ".zshrc", list(args)):
                         pass
     else:
         raise NameNotFound("{0} - task not found".format(task))
