@@ -93,6 +93,66 @@ class TaskExec(object):
         print(self.out.decode("utf-8"))
 
 
+class Create(object):
+
+    def __init__(self, name, templates=()):
+        self.projects_root = get_projects_root()
+        self.name = name
+        self.project_root = os.path.join(self.projects_root, self.name)
+        self.templates = templates
+
+    def check_templates(self):
+        for template in self.templates:
+            if not project_exist(template):
+                raise NameNotFound("{0} - template not found".format(template))
+
+    def create_dirs(self):
+        if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, "shell_profiles")):
+            Popen(os.path.join(PET_INSTALL_FOLDER, "create_shell.sh"))
+        if not os.path.exists(self.project_root):
+            os.makedirs(self.project_root)
+        if not os.path.exists(os.path.join(self.project_root, "tasks")):
+            os.makedirs(os.path.join(self.project_root, "tasks"))
+
+    def create_additional_files(self):
+        with open(os.path.join(self.project_root, self.name + ".py"), mode='w') as project_file:
+            project_file.write(new_project_py_file.format(self.name))
+        with open(os.path.join(self.project_root, "tasks.py"), mode='w') as tasks_file:
+            tasks_file.write(new_tasks_file)
+        with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
+            tasks_alias_file.write("# aliases for your tasks\n")
+
+    def create_start(self):
+        with open(os.path.join(self.project_root, "start.sh"), mode='w') as start_file:
+            if self.templates:
+                start_file.write("# TEMPLATES\n")
+                for template in self.templates:
+                    start_file.write("# from template: {0}\n".format(template))
+                    template_start_file = open(os.path.join(self.projects_root, template, "start.sh"))
+                    start_file.write(template_start_file.read())
+                    start_file.write("\n")
+                start_file.write("# check if correctly imported templates\n")
+            else:
+                start_file.write('# add here shell code to be executed while entering project\n')
+
+    def create_stop(self):
+        with open(os.path.join(self.project_root, "stop.sh"), mode='w') as stop_file:
+            if self.templates:
+                stop_file.write("# TEMPLATES\n")
+                for template in self.templates:
+                    stop_file.write("# from template: {0}\n".format(template))
+                    template_stop_file = open(os.path.join(self.projects_root, template, "stop.sh"))
+                    stop_file.write(template_stop_file.read())
+                    stop_file.write("\n")
+                stop_file.write("# check if correctly imported templates\n")
+            else:
+                stop_file.write('# add here shell code to be executed while exiting project\n')
+
+    def edit(self):
+        edit_file(os.path.join(self.project_root, "start.sh"))
+        edit_file(os.path.join(self.project_root, "stop.sh"))
+
+
 def edit_file(path):
     """edits file using $EDITOR"""
     Popen(["/bin/sh", "-c", "$EDITOR {0}".format(path)]).communicate(input)
@@ -122,63 +182,27 @@ def stop():
 
 def create(name, templates=()):
     """creates new project"""
-    projects_root = get_projects_root()
-    for template in templates:
-        if not project_exist(template):
-            raise NameNotFound("{0} - template not found".format(template))
-    if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, "shell_profiles")):
-        Popen(os.path.join(PET_INSTALL_FOLDER, "create_shell.sh"))
-    if not os.path.exists(os.path.join(projects_root, name)):
-        os.makedirs(os.path.join(projects_root, name))
-    if not os.path.exists(os.path.join(projects_root, name, "tasks")):
-        os.makedirs(os.path.join(projects_root, name, "tasks"))
-
-    with open(os.path.join(projects_root, name, name + ".py"), mode='w') as project_file:
-        project_file.write(new_project_py_file.format(name))
-
-    with open(os.path.join(projects_root, name, "tasks.py"), mode='w') as tasks_file:
-        tasks_file.write(new_tasks_file)
-
-    with open(os.path.join(projects_root, name, "start.sh"), mode='w') as start_file:
-        if templates:
-            start_file.write("# TEMPLATES\n")
-            for template in templates:
-                start_file.write("# from template: {0}\n".format(template))
-                template_start_file = open(os.path.join(projects_root, template, "start.sh"))
-                start_file.write(template_start_file.read())
-                start_file.write("\n")
-            start_file.write("# check if correctly imported templates\n")
-        else:
-            start_file.write('# add here shell code to be executed while entering project\n')
-    with open(os.path.join(projects_root, name, "stop.sh"), mode='w') as stop_file:
-        if templates:
-            stop_file.write("# TEMPLATES\n")
-            for template in templates:
-                stop_file.write("# from template: {0}\n".format(template))
-                template_stop_file = open(os.path.join(projects_root, template, "stop.sh"))
-                stop_file.write(template_stop_file.read())
-                stop_file.write("\n")
-            stop_file.write("# check if correctly imported templates\n")
-        else:
-            stop_file.write('# add here shell code to be executed while exiting project\n')
-    with open(os.path.join(projects_root, name, "tasks.sh"), mode='w') as tasks_alias_file:
-        tasks_alias_file.write("# aliases for your tasks\n")
-    edit_file(os.path.join(projects_root, name, "start.sh"))
-    edit_file(os.path.join(projects_root, name, "stop.sh"))
+    project = Create(name, templates)
+    project.check_templates()
+    project.create_dirs()
+    project.create_additional_files()
+    project.create_start()
+    project.create_stop()
+    project.edit()
 
 
 def create_task(project, name):
     """creates task"""
     if project_exist(project):
         if not task_exist(project, name):
-            projects_root = get_projects_root()
-            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(os.path.join(projects_root, project, "tasks",
+            project_root = os.path.join(get_projects_root(), project)
+            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(os.path.join(project_root, "tasks",
                                                                                  name + ".sh"))]).communicate(input)
-            edit_file(os.path.join(projects_root, project, "tasks", name + ".sh"))
-            os.chmod(os.path.join(projects_root, project, "tasks", name + ".sh"), 0o755)
-            with open(os.path.join(projects_root, project, "tasks.py"), mode='a') as tasks_file:
+            edit_file(os.path.join(project_root, "tasks", name + ".sh"))
+            os.chmod(os.path.join(project_root, "tasks", name + ".sh"), 0o755)
+            with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
                 tasks_file.write(new_task.format(name, project, name))
-            with open(os.path.join(projects_root, project, "tasks.sh"), mode='a') as tasks_alias_file:
+            with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
                 tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(name))
         else:
             raise NameAlreadyTaken("{0} - task already exists".format(name))
@@ -221,25 +245,25 @@ def print_tasks(name):
         return "\n".join(tasks)
 
 
-def remove(name, answer):
+def remove(project, answer):
     """removes project"""
-    projects_root = get_projects_root()
-    if os.path.exists(os.path.join(projects_root, name)):
-        if not os.path.exists(os.path.join(projects_root, name, "_lock")):
+    project_root = os.path.join(get_projects_root(), project)
+    if os.path.exists(project_root):
+        if not os.path.exists(os.path.join(project_root, "_lock")):
             if answer == "A" or answer == "a":
                 archive = get_archive_root_or_create()
-                shutil.move(os.path.join(projects_root, name), os.path.join(archive, name))
+                shutil.move(project_root, os.path.join(archive, project))
             elif answer == "R" or answer == "r":
-                if os.path.islink(os.path.join(projects_root, name)):
-                    os.remove(os.path.join(projects_root, name))
+                if os.path.islink(project_root):
+                    os.remove(project_root)
                 else:
-                    shutil.rmtree(os.path.join(projects_root, name))
+                    shutil.rmtree(project_root)
             else:
                 print("{0} - is not a valid option".format(answer))
         else:
-            raise ProjectActivated("{0} - project is active".format(name))
+            raise ProjectActivated("{0} - project is active".format(project))
     else:
-        raise NameNotFound("{0} - project not found".format(name))
+        raise NameNotFound("{0} - project not found".format(project))
 
 
 def remove_task(project, task):
