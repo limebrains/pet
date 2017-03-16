@@ -7,6 +7,11 @@ def project_names():
 
 
 @pytest.fixture
+def task_names():
+    return ["hello", "bye", "task_1", "task_2", "task_3"]
+
+
+@pytest.fixture
 def additional_project_names():
     return ["project_with_templates", "project_with_templates_2"]
 

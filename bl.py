@@ -6,9 +6,9 @@ from exceptions import NameAlreadyTaken, NameNotFound, ProjectActivated
 from file_templates import new_tasks_file, new_project_py_file, new_task
 
 
-PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 # TODO: move boot.sh and create_shell.sh to python
 # TODO: tests!!!
+PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 
 
@@ -93,6 +93,7 @@ class TaskExec(object):
         print(self.out.decode("utf-8"))
 
 
+# TODO: change name to noun
 class Create(object):
 
     def __init__(self, name, templates=()):
@@ -100,6 +101,13 @@ class Create(object):
         self.name = name
         self.project_root = os.path.join(self.projects_root, self.name)
         self.templates = templates
+        self.check_templates()
+        # TODO: below add to create
+        self.create_dirs()
+        self.create_additional_files()
+        self.create_start()
+        self.create_stop()
+        self.edit()
 
     def check_templates(self):
         for template in self.templates:
@@ -160,7 +168,7 @@ def edit_file(path):
 
 def start(name):
     """starts new project"""
-    with ProjectLock(name=name):
+    with ProjectLock(name):
         Popen([os.path.join(PET_INSTALL_FOLDER, "boot.sh"), name, os.path.join(get_projects_root(), name),
                PET_INSTALL_FOLDER]).communicate(input)
 
@@ -182,13 +190,7 @@ def stop():
 
 def create(name, templates=()):
     """creates new project"""
-    project = Create(name, templates)
-    project.check_templates()
-    project.create_dirs()
-    project.create_additional_files()
-    project.create_start()
-    project.create_stop()
-    project.edit()
+    Create(name, templates)
 
 
 def create_task(project, name):
