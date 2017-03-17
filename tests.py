@@ -84,8 +84,24 @@ def test_project_lock_class(mock_exists, mock_isfile, mock_open, mock_remove, mo
             mock_remove.assert_called_with(lock)
 
 
-def test_task_exec_class():
-    pass
+@mock.patch('bl.PIPE')
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('shutil.copyfile')
+@mock.patch('os.remove')
+@mock.patch('bl.open')
+@mock.patch('bl.Popen')
+def test_task_exec_class(mock_popen, mock_open, mock_remove, mock_copyfile, mock_root, mock_pipe, project_names, task_names):
+    for project in project_names:
+        project_root = projects_root + "/" + project
+        shell = "tmp_bashrc"
+        filepath = os.path.join(project_root, shell)
+        for task in task_names:
+            with TaskExec(project, task, shell):
+                mock_copyfile.assert_called_with(filepath, filepath + "_task")
+                mock_open.assert_called_with(filepath + "_task", mode='a')
+                mock_popen.assert_called_with(["/bin/sh", "-c", "$SHELL $1/{0} {1}; $SHELL $1/stop.sh".format(
+                    shell + "_task", " ".join(map(str, ()))), project, project_root], stdout=mock_pipe)
+            mock_remove.assert_called_with(filepath + "_task")
 
 
 # @mock.patch()
