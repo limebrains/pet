@@ -319,3 +319,81 @@ def test_clean_command(mock_remove, mock_exists, mock_listdir, mock_root):
         calls.append(mock.call(os.path.join(projects_root, project, "_lock")))
     for call in calls:
         assert call in mock_remove.mock_calls
+
+
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.rename')
+@mock.patch('os.path.exists', side_effect=[False, True, True, True, False, True, False, True, False, True, False, True,
+                                           False, True, False, True, False, True, False, True, False])
+def test_rename_command(mock_exists, mock_rename, mock_root, project_names, additional_project_names):
+    for old in project_names:
+        old_root = os.path.join(projects_root, old)
+        for new in additional_project_names:
+            new_root = os.path.join(projects_root, new)
+            if old == "test_project" and new == "project_with_templates":
+                with pytest.raises(NameNotFound):
+                    rename(old, new)
+            elif old == "test_project" and new == "project_with_templates_2":
+                with pytest.raises(NameAlreadyTaken):
+                    rename(old, new)
+            else:
+                rename(old, new)
+
+
+@mock.patch('bl.edit_file')
+@mock.patch('bl.print_list', return_value=["test_project_2", "test_project_3"])
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+def test_edit_project_command(mock_root, mock_list, mock_edit_file, project_names):
+    for project in project_names:
+        if project == "test_project":
+            with pytest.raises(NameNotFound):
+                edit_project(project)
+        else:
+            edit_project(project)
+            mock_edit_file.assert_called_with(os.path.join(projects_root, project, "stop.sh"))
+
+
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('bl.task_exist', side_effect=[False, True, True, True, True, True, True, True, True, True, True, True,
+                                          True, True, True, True, True, True, True, True, True, True, True, True, True])
+@mock.patch('bl.Popen')
+@mock.patch('os.path.isfile', side_effect=[True, False, False])
+@mock.patch('os.path.exists', side_effect=[False, False, True, True, False, True])
+@mock.patch('bl.ProjectLock')
+@mock.patch('bl.TaskExec')
+def test_run_task_command(mock_task_exec, mock_lock, mock_exists, mock_isfile, mock_popen, mock_task_exist, mock_root,
+                          project_names, task_names):
+    for project in project_names:
+        for task in task_names:
+            if project == "test_project":
+                if task == task_names[0]:
+                    with pytest.raises(NameNotFound):
+                        run_task(project, task, None)
+                elif task == task_names[1]:
+                    run_task(project, task, "test_project")
+                    assert mock_popen.called
+                elif task == task_names[2]:
+                    with pytest.raises(ProjectActivated):
+                        run_task(project, task, None)
+                elif task == task_names[3]:
+                    run_task(project, task, None)
+                    assert mock_popen.called
+                    assert mock_lock.called
+                    assert mock_task_exec.called
+                elif task == task_names[4]:
+                    run_task(project, task, None)
+
+
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('bl.task_exist', side_effect=[False, True, True, True, True, True, True, True, True, True, True, True, True,
+                                          True, True, True, True, True, True, True, True])
+@mock.patch('bl.edit_file')
+def test_edit_task_command(mock_edit_file, mock_task_exist, mock_root, project_names, task_names):
+    for project in project_names:
+        for task in task_names:
+            if project == "test_project" and task == "hello":
+                with pytest.raises(NameNotFound):
+                    edit_task(project, task)
+            else:
+                edit_task(project, task)
+                mock_edit_file.assert_called_with(os.path.join(projects_root, project, "tasks", task + ".sh"))
