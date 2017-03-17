@@ -261,7 +261,7 @@ def remove(project, answer):
                 else:
                     shutil.rmtree(project_root)
             else:
-                print("{0} - is not a valid option".format(answer))
+                return "{0} - is not a valid option".format(answer)
         else:
             raise ProjectActivated("{0} - project is active".format(project))
     else:
@@ -304,7 +304,7 @@ def register():
                 os.path.exists(os.path.join(folder, "tasks"))):
             os.symlink(folder, os.path.join(get_projects_root(), name))
         else:
-            print("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
+            return "Haven't found all 5 files and tasks folder in\n{0}".format(folder)
     else:
         raise NameAlreadyTaken("{0} - name already taken".format(name))
 

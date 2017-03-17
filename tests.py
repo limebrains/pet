@@ -174,27 +174,34 @@ def test_create_command(create_class, project_names, additional_project_names):
             create_class.assert_called_with(project, additional_project_names[:i])
 
 
-# @pytest.mark.skipif(not (str(os.environ.get('WIP', default=False)).lower() in ['true', 't', '1']),
-#  reason="I'm workin on that test :)")
 @mock.patch('bl.open')
 @mock.patch('os.chmod')
 @mock.patch('bl.edit_file')
 @mock.patch('bl.Popen')
-@mock.patch('bl.task_exist', return_value=False)
-@mock.patch('bl.project_exist')
+@mock.patch('bl.task_exist', side_effect=[True, False, False, False, False, False, False, False, False, False, False,
+                                          False, False, False, False, False, False, False, False, False, False])
+@mock.patch('bl.project_exist', side_effect=[False, True, True, True, True, True, True, True, True, True, True, True,
+                                             True, True, True, True, True, True, True, True, True, True, True, True])
 def test_create_task_command(mock_project_exist, mock_task_exist, mock_popen, mock_edit_file, mock_chmod, mock_open,
                              project_names, task_names):
     for project in project_names:
         project_root = projects_root + "/" + project
         for task in task_names:
-            create_task(project, task)
-            mock_popen.assert_called_with(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(
-                project_root + "/tasks/" + task + ".sh")])
-            mock_edit_file.assert_called_with(project_root + "/tasks/" + task + ".sh")
-            mock_chmod.assert_called_with((project_root + "/tasks/" + task + ".sh"), 0o755)
-            calls = [mock.call(project_root + "/tasks.py", mode='a'), mock.call(project_root + "/tasks.sh", mode='a')]
-            for call in calls:
-                assert call in mock_open.mock_calls
+            if task == "hello" and project == "test_project":
+                with pytest.raises(NameNotFound):
+                    create_task(project, task)
+            elif task == "bye" and project == "test_project":
+                with pytest.raises(NameAlreadyTaken):
+                    create_task(project, task)
+            else:
+                create_task(project, task)
+                mock_popen.assert_called_with(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(
+                    project_root + "/tasks/" + task + ".sh")])
+                mock_edit_file.assert_called_with(project_root + "/tasks/" + task + ".sh")
+                mock_chmod.assert_called_with((project_root + "/tasks/" + task + ".sh"), 0o755)
+                calls = [mock.call(project_root + "/tasks.py", mode='a'), mock.call(project_root + "/tasks.sh", mode='a')]
+                for call in calls:
+                    assert call in mock_open.mock_calls
 
 
 @mock.patch('os.path.isdir', return_value=True)
@@ -230,38 +237,37 @@ def test_print_tasks_command(mock_listdir, task_names, project_names):
 @mock.patch('bl.get_projects_root', return_value="")
 @mock.patch('shutil.rmtree')
 @mock.patch('os.remove')
-@mock.patch('os.path.islink', side_effect=[True, False]*10)
-@mock.patch('os.path.exists', side_effect=[True, False]*10)
+@mock.patch('os.path.islink', side_effect=[True, False, True, False])
+@mock.patch('os.path.exists', side_effect=[False, True, True, True, False, True, False, True, False, True, False,
+                                           True, False, True, False, True, False, True, False, True, False, True])
 def test_remove_r_command(mock_exists, mock_islink, mock_remove, mock_rmtree, mock_root,
                           mock_archive, mock_move, project_names):
+    answer = "g"
     for project in project_names:
         project_root = projects_root + "/" + project
+        if project == "test_project":
+            with pytest.raises(NameNotFound):
+                remove(project, "A")
+            with pytest.raises(ProjectActivated):
+                remove(project, "A")
         remove(project, "R")
         assert (mock_remove.called or mock_rmtree.called)
-
-
-@mock.patch('shutil.move')
-@mock.patch('bl.get_archive_root_or_create', return_value="")
-@mock.patch('bl.get_projects_root', return_value="")
-@mock.patch('shutil.rmtree')
-@mock.patch('os.remove')
-@mock.patch('os.path.islink', side_effect=[True, False]*10)
-@mock.patch('os.path.exists', side_effect=[True, False]*10)
-def test_remove_a_command(mock_exists, mock_islink, mock_remove, mock_rmtree, mock_root,
-                          mock_archive, mock_move, project_names):
-    for project in project_names:
-        project_root = projects_root + "/" + project
         remove(project, "A")
         assert mock_move.called
+        assert remove(project, answer) == "{0} - is not a valid option".format(answer)
 
 
 @mock.patch('os.remove')
 @mock.patch('bl.PIPE')
 @mock.patch('bl.Popen')
-@mock.patch('bl.task_exist', return_value=True)
+@mock.patch('bl.task_exist', side_effect=[False, True, True, True, True, True, True, True, True, True, True, True,
+                                          True, True, True, True, True, True, True, True, True, True, True, True])
 def test_remove_task_command(mock_exist, mock_popen, mock_pipe, mock_remove, project_names, task_names):
     for project in project_names:
         project_root = projects_root + "/" + project
+        if project == "test_project":
+            with pytest.raises(NameNotFound):
+                remove_task(project, "task")
         for task in task_names:
             remove_task(project, task)
             calls = [mock.call(["/bin/sh", "-c", "grep -n \"def {0}\" {1} | cut -d \":\" -f 1".format(
@@ -271,3 +277,45 @@ def test_remove_task_command(mock_exist, mock_popen, mock_pipe, mock_remove, pro
             for call in calls:
                 assert call in mock_popen.mock_calls
             assert mock_remove.called
+
+
+@mock.patch('bl.get_archive_root', return_value=projects_archive)
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('shutil.move')
+@mock.patch('os.path.exists', side_effect=[False, True, True, True, True])
+def test_restore_command(mock_exists, mock_move, mock_projects_root, mock_archive_root, project_names):
+    for project in project_names:
+        project_root = os.path.join(projects_root, project)
+        project_archive = os.path.join(projects_archive, project)
+        if project == "test_project":
+            with pytest.raises(NameNotFound):
+                restore(project)
+        else:
+            restore(project)
+            mock_move.assert_called_with(project_archive, project_root)
+
+
+@mock.patch('bl.get_projects_root', return_value="/home/user/pet/projects")
+@mock.patch('os.symlink')
+@mock.patch('os.path.exists', side_effect=[False, True, True, True, True, True, True])
+@mock.patch('bl.project_exist', side_effect=[True, False, False])
+@mock.patch('os.getcwd', return_value="/home/user/PycharmProjects/name")
+def test_register_command(mock_getcwd, mock_project_exist, mock_exists, mock_symlink, mock_root):
+    with pytest.raises(NameAlreadyTaken):
+        register()
+    assert register() == "Haven't found all 5 files and tasks folder in\n/home/user/PycharmProjects/name"
+    register()
+    mock_symlink.assert_called_with("/home/user/PycharmProjects/name", "/home/user/pet/projects/name")
+
+
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.listdir', return_value=["test_project", "test_project_2", "test_project_3"])
+@mock.patch('os.path.exists')
+@mock.patch('os.remove')
+def test_clean_command(mock_remove, mock_exists, mock_listdir, mock_root):
+    clean()
+    calls = []
+    for project in ["test_project", "test_project_2", "test_project_3"]:
+        calls.append(mock.call(os.path.join(projects_root, project, "_lock")))
+    for call in calls:
+        assert call in mock_remove.mock_calls
