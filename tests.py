@@ -5,7 +5,7 @@ from exceptions import NameNotFound, NameAlreadyTaken, ProjectActivated
 
 from bl import get_pet_install_folder, get_pet_folder, create_projects_root, get_projects_root, \
     get_projects_root_or_create, create_archive_root, get_archive_root, get_archive_root_or_create, ProjectLock, \
-    TaskExec, Create, edit_file, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
+    TaskExec, ProjectCreator, edit_file, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove, remove_task, restore, register, clean, rename, edit_project, run_task, edit_task
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -104,10 +104,26 @@ def test_task_exec_class(mock_popen, mock_open, mock_remove, mock_copyfile, mock
             mock_remove.assert_called_with(filepath + "_task")
 
 
-# @mock.patch()
-# def test_create_without_templates(project_names):
-#     for project in project_names:
-#         Create(project)
+@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('bl.project_exist', side_effect=[False, True, True])
+@mock.patch('os.path.isfile', side_effect=[False, True, True])
+@mock.patch('os.path.exists', side_effect=[False, False, True, True, True, True])
+@mock.patch('os.makedirs')
+@mock.patch('bl.Popen')
+@mock.patch('bl.open')
+@mock.patch('bl.edit_file')
+def test_project_creator_class(mock_edit_file, mock_open, mock_popen, mock_makedirs, mock_exists, mock_isfile,
+                               mock_project_exists, mock_root, project_names, additional_project_names):
+    for project in project_names:
+        project_root = projects_root + "/" + project
+        if project == "test_project":
+            with pytest.raises(NameNotFound):
+                with ProjectCreator(project, "task").create():
+                    pass
+        elif project == "test_project_2":
+            ProjectCreator(project, templates=additional_project_names).create()
+        else:
+            ProjectCreator(project).create()
 
 
 @mock.patch('bl.Popen')
@@ -150,7 +166,7 @@ def test_stop_command(mock_kill):
     assert mock_kill.called
 
 
-@mock.patch('bl.Create')
+@mock.patch('bl.ProjectCreator')
 def test_create_command(create_class, project_names, additional_project_names):
     for project in project_names:
         for i in range(len(additional_project_names)):

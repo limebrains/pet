@@ -93,8 +93,7 @@ class TaskExec(object):
         print(self.out.decode("utf-8"))
 
 
-# TODO: change name to noun
-class Create(object):
+class ProjectCreator(object):
 
     def __init__(self, name, templates=()):
         self.projects_root = get_projects_root()
@@ -102,12 +101,6 @@ class Create(object):
         self.project_root = os.path.join(self.projects_root, self.name)
         self.templates = templates
         self.check_templates()
-        # TODO: below add to create
-        self.create_dirs()
-        self.create_additional_files()
-        self.create_start()
-        self.create_stop()
-        self.edit()
 
     def check_templates(self):
         for template in self.templates:
@@ -160,6 +153,13 @@ class Create(object):
         edit_file(os.path.join(self.project_root, "start.sh"))
         edit_file(os.path.join(self.project_root, "stop.sh"))
 
+    def create(self):
+        self.create_dirs()
+        self.create_additional_files()
+        self.create_start()
+        self.create_stop()
+        self.edit()
+
 
 def edit_file(path):
     """edits file using $EDITOR"""
@@ -190,7 +190,7 @@ def stop():
 
 def create(name, templates=()):
     """creates new project"""
-    Create(name, templates)
+    ProjectCreator(name, templates).create()
 
 
 def create_task(project, name):
