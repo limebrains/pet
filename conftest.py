@@ -12,6 +12,12 @@ def task_names():
 
 
 @pytest.fixture
+def roots():
+    return ["/home/user/pet/projects/test_project", "/home/user/pet/projects/test_project_2",
+            "/home/user/pet/projects/test_project_3", "/home/user/pet/projects/test_project_4"]
+
+
+@pytest.fixture
 def additional_project_names():
     return ["project_with_templates", "project_with_templates_2"]
 

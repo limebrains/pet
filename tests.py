@@ -1,11 +1,13 @@
 from unittest import mock
 import pytest
 import os
+from exceptions import NameNotFound, NameAlreadyTaken, ProjectActivated
 
 from bl import get_pet_install_folder, get_pet_folder, create_projects_root, get_projects_root, \
     get_projects_root_or_create, create_archive_root, get_archive_root, get_archive_root_or_create, ProjectLock, \
     TaskExec, Create, edit_file, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove, remove_task, restore, register, clean, rename, edit_project, run_task, edit_task
+
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 projects_root = PET_FOLDER + "/projects"
@@ -32,7 +34,10 @@ def test_get_projects_root_command(mock_exists):
     mock_exists.assert_called_with(projects_root)
 
 
-def test_get_projects_root_or_create_command():
+@mock.patch('bl.create_projects_root')
+@mock.patch('bl.get_projects_root', side_effect=[None, projects_root, projects_root])
+def test_get_projects_root_or_create_command(mock_root, mock_create_root):
+    assert get_projects_root_or_create() in ((projects_root, False), (projects_root, True))
     assert get_projects_root_or_create() in ((projects_root, False), (projects_root, True))
 
 
@@ -48,24 +53,35 @@ def test_get_archive_root_command(mock_exists):
     mock_exists.assert_called_with(projects_archive)
 
 
-def test_get_archive_root_or_create_command():
+@mock.patch('bl.create_archive_root')
+@mock.patch('bl.get_archive_root', side_effect=[None, projects_archive, projects_archive])
+def test_get_archive_root_or_create_command(mock_root, mock_create_root):
+    assert get_archive_root_or_create() in ((projects_archive, False), (projects_archive, True))
     assert get_archive_root_or_create() in ((projects_archive, False), (projects_archive, True))
 
 
+@mock.patch('bl.get_projects_root', return_value=projects_root)
 @mock.patch('os.remove')
 @mock.patch('bl.open')
-@mock.patch('os.path.isfile', return_value=False)
-@mock.patch('os.path.exists')
-def test_project_lock_class(mock_exists, mock_isfile, mock_open, mock_remove, project_names):
+@mock.patch('os.path.isfile', side_effect=[True, False])
+@mock.patch('os.path.exists', side_effect=[False, True, True])
+def test_project_lock_class(mock_exists, mock_isfile, mock_open, mock_remove, mock_root, project_names):
     for project in project_names:
         project_root = projects_root + "/" + project
         lock = project_root + "/_lock"
-        with ProjectLock(project):
-            # mock_exists.assert_called_with(project_root)
-            # TODO: butt why?
-            mock_isfile.assert_called_with(lock)
-            mock_open.assert_called_with(lock, "w")
-        mock_remove.assert_called_with(lock)
+        if project == "test_project":
+            with pytest.raises(NameNotFound):
+                with ProjectLock(project):
+                    pass
+        elif project == "test_project_2":
+            with pytest.raises(ProjectActivated):
+                with ProjectLock(project):
+                    mock_isfile.assert_called_with(lock)
+        else:
+            with ProjectLock(project):
+                mock_isfile.assert_called_with(lock)
+                mock_open.assert_called_with(lock, "w")
+            mock_remove.assert_called_with(lock)
 
 
 def test_task_exec_class():
