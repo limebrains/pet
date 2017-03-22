@@ -54,6 +54,54 @@ def get_rc_type(project_root):
         return ".zshrc"
 
 
+def make_rc_file(name, project_root, shell):
+    contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\nPS1=\"[{1}] $PS1\"\n" \
+               "source {3}\n".format(PET_INSTALL_FOLDER, name, project_root, os.path.join(project_root, "tasks.sh"))
+    rc_type = get_shell_as_type()
+    if rc_type:
+        rc = os.path.join(project_root, rc_type)
+        with open(rc, mode='w') as rcfile:
+            rcfile.write(contents)
+    else:
+        raise NameNotFound("{0} - isn't supported or correct file isn't existing".format(shell))
+
+
+def edit_file(path):
+    """edits file using $EDITOR"""
+    Popen(["/bin/sh", "-c", "$EDITOR {0}".format(path)]).communicate(input)
+
+
+def project_exist(name):
+    """checks existence of project"""
+    return os.path.exists(os.path.join(get_projects_root(), name))
+
+
+def task_exist(project, name):
+    """checks existence of task"""
+    return os.path.exists(os.path.join(get_projects_root(), project, "tasks", name + ".sh"))
+
+
+def create_shell():
+    shell = os.environ.get('SHELL', "")
+    if shell.find('bash') != -1:
+        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
+                shell_profiles.write("source ~/.bashrc\n")
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
+                shell_profiles.write("source ~/.profile\n")
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
+                shell_profiles.write("source ~/.bash_profile\n")
+    elif shell.find('zsh') != -1:
+        if os.environ.get('ZDOTDIR', ""):
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
+                shell_profiles.write("source $ZDOTDIR/.zshrc\n")
+        else:
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
+                shell_profiles.write("source $HOME/.zshrc\n")
+    else:
+        raise NameNotFound("{0} - isn't supported".format(shell))
+
+
 class ProjectLock(object):
 
     def __init__(self, name):
@@ -109,27 +157,6 @@ class TaskExec(object):
 
     def __exit__(self, *args):
         pass
-
-
-def create_shell():
-    shell = os.environ.get('SHELL', "")
-    if shell.find('bash') != -1:
-        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
-                shell_profiles.write("source ~/.bashrc\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
-                shell_profiles.write("source ~/.profile\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
-                shell_profiles.write("source ~/.bash_profile\n")
-    elif shell.find('zsh') != -1:
-        if os.environ.get('ZDOTDIR', ""):
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
-                shell_profiles.write("source $ZDOTDIR/.zshrc\n")
-        else:
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
-                shell_profiles.write("source $HOME/.zshrc\n")
-    else:
-        raise NameNotFound("{0} - isn't supported".format(shell))
 
 
 class ProjectCreator(object):
@@ -208,23 +235,6 @@ class ProjectCreator(object):
         self.edit()
 
 
-def edit_file(path):
-    """edits file using $EDITOR"""
-    Popen(["/bin/sh", "-c", "$EDITOR {0}".format(path)]).communicate(input)
-
-
-def make_rc_file(name, project_root, shell):
-    contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\nPS1=\"[{1}] $PS1\"\n" \
-               "source {3}\n".format(PET_INSTALL_FOLDER, name, project_root, os.path.join(project_root, "tasks.sh"))
-    rc_type = get_shell_as_type()
-    if rc_type:
-        rc = os.path.join(project_root, rc_type)
-        with open(rc, mode='w') as rcfile:
-            rcfile.write(contents)
-    else:
-        raise NameNotFound("{0} - isn't supported or correct file isn't existing".format(shell))
-
-
 def start(name):
     """starts new project"""
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, "shell_profiles")):
@@ -244,14 +254,46 @@ def start(name):
             raise NameNotFound("{0} - isn't supported".format(shell))
 
 
-def project_exist(name):
-    """checks existence of project"""
-    return os.path.exists(os.path.join(get_projects_root(), name))
+def create(name, templates=()):
+    """creates new project"""
+    ProjectCreator(name, templates).create()
 
 
-def task_exist(project, name):
-    """checks existence of task"""
-    return os.path.exists(os.path.join(get_projects_root(), project, "tasks", name + ".sh"))
+def register():
+    """adds symbolic link to .pet folder in projects"""
+    folder = os.getcwd()
+    name = os.path.basename(folder)
+    if not project_exist(name):
+        if (os.path.exists(os.path.join(folder, name + ".py")) and
+                os.path.exists(os.path.join(folder, "start.sh")) and
+                os.path.exists(os.path.join(folder, "stop.sh")) and
+                os.path.exists(os.path.join(folder, "tasks.py")) and
+                os.path.exists(os.path.join(folder, "tasks"))):
+            os.symlink(folder, os.path.join(get_projects_root(), name))
+        else:
+            return "Haven't found all 5 files and tasks folder in\n{0}".format(folder)
+    else:
+        raise NameAlreadyTaken("{0} - name already taken".format(name))
+
+
+def rename_project(old, new):
+    """renames projects"""
+    projects_root = get_projects_root()
+    if not os.path.exists(os.path.join(projects_root, old)):
+        raise NameNotFound("{0} - project not found".format(old))
+    if os.path.exists(os.path.join(projects_root, new)):
+        raise NameAlreadyTaken("{0} - new name already taken".format(new))
+    os.rename(os.path.join(projects_root, old), os.path.join(projects_root, new))
+
+
+def edit_project(name):
+    """edits project start&stop files"""
+    projects_root = get_projects_root()
+    if name in print_list():
+        edit_file(os.path.join(projects_root, name, "start.sh"))
+        edit_file(os.path.join(projects_root, name, "stop.sh"))
+    else:
+        raise NameNotFound("{0} - project not found".format(name))
 
 
 def stop():
@@ -259,29 +301,48 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-def create(name, templates=()):
-    """creates new project"""
-    ProjectCreator(name, templates).create()
-
-
-def create_task(project, name):
-    """creates task"""
-    if project_exist(project):
-        if not task_exist(project, name):
-            project_root = os.path.join(get_projects_root(), project)
-            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(os.path.join(project_root, "tasks",
-                                                                                 name + ".sh"))]).communicate(input)
-            edit_file(os.path.join(project_root, "tasks", name + ".sh"))
-            os.chmod(os.path.join(project_root, "tasks", name + ".sh"), 0o755)
-            with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
-                tasks_file.write(new_task.format(name, project, name))
-            with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
-                tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(name))
-            print("alias available during next boot of project")
+def remove_project(project):
+    """removes project"""
+    project_root = os.path.join(get_projects_root(), project)
+    if os.path.exists(project_root):
+        if not os.path.exists(os.path.join(project_root, "_lock")):
+            if os.path.islink(project_root):
+                os.remove(project_root)
+            else:
+                shutil.rmtree(project_root)
         else:
-            raise NameAlreadyTaken("{0} - task already exists".format(name))
+            raise ProjectActivated("{0} - project is active".format(project))
     else:
         raise NameNotFound("{0} - project not found".format(project))
+
+
+def archive(project):
+    """removes project"""
+    project_root = os.path.join(get_projects_root(), project)
+    if os.path.exists(project_root):
+        if not os.path.exists(os.path.join(project_root, "_lock")):
+            archive_root = get_archive_root()[0]
+            shutil.move(project_root, os.path.join(archive_root, project))
+        else:
+            raise ProjectActivated("{0} - project is active".format(project))
+    else:
+        raise NameNotFound("{0} - project not found".format(project))
+
+
+def restore(name):
+    """restores project from archive"""
+    if os.path.exists(os.path.join(get_archive_root(), name)):
+        shutil.move(os.path.join(get_archive_root(), name), os.path.join(get_projects_root(), name))
+    else:
+        raise NameNotFound("{0} - project not found in \"old\" folder".format(name))
+
+
+def clean():
+    """unlocks all projects"""
+    projects_root = get_projects_root()
+    for dirname in os.listdir(projects_root):
+        if os.path.exists(os.path.join(projects_root, dirname, "_lock")):
+            os.remove(os.path.join(projects_root, dirname, "_lock"))
 
 
 def print_list():
@@ -319,100 +380,42 @@ def print_tasks(name):
         return "\n".join(tasks)
 
 
-def remove_project(project):
-    """removes project"""
-    project_root = os.path.join(get_projects_root(), project)
-    if os.path.exists(project_root):
-        if not os.path.exists(os.path.join(project_root, "_lock")):
-            if os.path.islink(project_root):
-                os.remove(project_root)
-            else:
-                shutil.rmtree(project_root)
+def create_task(project, name):
+    """creates task"""
+    if project_exist(project):
+        if not task_exist(project, name):
+            project_root = os.path.join(get_projects_root(), project)
+            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(os.path.join(project_root, "tasks",
+                                                                                 name + ".sh"))]).communicate(input)
+            edit_file(os.path.join(project_root, "tasks", name + ".sh"))
+            os.chmod(os.path.join(project_root, "tasks", name + ".sh"), 0o755)
+            with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
+                tasks_file.write(new_task.format(name, project, name))
+            with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
+                tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(name))
+            print("alias available during next boot of project")
         else:
-            raise ProjectActivated("{0} - project is active".format(project))
+            raise NameAlreadyTaken("{0} - task already exists".format(name))
     else:
         raise NameNotFound("{0} - project not found".format(project))
 
 
-def archive(project):
-    """removes project"""
-    project_root = os.path.join(get_projects_root(), project)
-    if os.path.exists(project_root):
-        if not os.path.exists(os.path.join(project_root, "_lock")):
-            archive_root = get_archive_root()[0]
-            shutil.move(project_root, os.path.join(archive_root, project))
-        else:
-            raise ProjectActivated("{0} - project is active".format(project))
-    else:
-        raise NameNotFound("{0} - project not found".format(project))
-
-
-def remove_task(project, task):
-    """removes task"""
+def edit_task(project, task):
+    """edits task"""
     if task_exist(project, task):
-        project_root = os.path.join(get_projects_root(), project)
-        num = Popen(["/bin/sh", "-c", "grep -n \"def {0}\" {1} | cut -d \":\" -f 1".format(
-            task, os.path.join(project_root, "tasks.py"))], stdout=PIPE).stdout.read()
-        num = int(num.decode("utf-8")[:-1])
-        Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
-            str(num-6), str(num+1), os.path.join(project_root, "tasks.py"))])
-        Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task, os.path.join(project_root, "tasks.sh"))])
-        os.remove(os.path.join(project_root, "tasks", task + ".sh"))
+        edit_file(os.path.join(get_projects_root(), project, "tasks", task + ".sh"))
     else:
-        raise NameNotFound("{0}/{1} - task not found in this project".format(project, task))
+        raise NameNotFound("{0} - task not found".format(task))
 
 
-def restore(name):
-    """restores project from archive"""
-    if os.path.exists(os.path.join(get_archive_root(), name)):
-        shutil.move(os.path.join(get_archive_root(), name), os.path.join(get_projects_root(), name))
-    else:
-        raise NameNotFound("{0} - project not found in \"old\" folder".format(name))
-
-
-def register():
-    """adds symbolic link to .pet folder in projects"""
-    folder = os.getcwd()
-    name = os.path.basename(folder)
-    if not project_exist(name):
-        if (os.path.exists(os.path.join(folder, name + ".py")) and
-                os.path.exists(os.path.join(folder, "start.sh")) and
-                os.path.exists(os.path.join(folder, "stop.sh")) and
-                os.path.exists(os.path.join(folder, "tasks.py")) and
-                os.path.exists(os.path.join(folder, "tasks"))):
-            os.symlink(folder, os.path.join(get_projects_root(), name))
-        else:
-            return "Haven't found all 5 files and tasks folder in\n{0}".format(folder)
-    else:
-        raise NameAlreadyTaken("{0} - name already taken".format(name))
-
-
-def clean():
-    """unlocks all projects"""
-    projects_root = get_projects_root()
-    for dirname in os.listdir(projects_root):
-        if os.path.exists(os.path.join(projects_root, dirname, "_lock")):
-            os.remove(os.path.join(projects_root, dirname, "_lock"))
-
-
-def rename_project(old, new):
-    """renames projects"""
-    projects_root = get_projects_root()
-    if not os.path.exists(os.path.join(projects_root, old)):
-        raise NameNotFound("{0} - project not found".format(old))
-    if os.path.exists(os.path.join(projects_root, new)):
-        raise NameAlreadyTaken("{0} - new name already taken".format(new))
-    os.rename(os.path.join(projects_root, old), os.path.join(projects_root, new))
-
-
-def edit_project(name):
-    """edits project start&stop files"""
-    projects_root = get_projects_root()
-    if name in print_list():
-        edit_file(os.path.join(projects_root, name, "start.sh"))
-        edit_file(os.path.join(projects_root, name, "stop.sh"))
-    else:
-        raise NameNotFound("{0} - project not found".format(name))
+def rename_task(project, old, new):
+    """renames task"""
+    project_tasks = os.path.join(get_projects_root(), project, "tasks")
+    if not os.path.isfile(os.path.join(project_tasks, old + ".sh")):
+        raise NameNotFound("{0}/{1} - task not found".format(project, old))
+    if os.path.isfile(os.path.join(project_tasks, new + ".sh")):
+        raise NameAlreadyTaken("{0}/{1} - new name already taken".format(project, new))
+    os.rename(os.path.join(project_tasks, old + ".sh"), os.path.join(project_tasks, new + ".sh"))
 
 
 def run_task(project, task, active, interactive, args=()):
@@ -442,19 +445,16 @@ def run_task(project, task, active, interactive, args=()):
         raise NameNotFound("{0} - task not found".format(task))
 
 
-def edit_task(project, task):
-    """edits task"""
+def remove_task(project, task):
+    """removes task"""
     if task_exist(project, task):
-        edit_file(os.path.join(get_projects_root(), project, "tasks", task + ".sh"))
+        project_root = os.path.join(get_projects_root(), project)
+        num = Popen(["/bin/sh", "-c", "grep -n \"def {0}\" {1} | cut -d \":\" -f 1".format(
+            task, os.path.join(project_root, "tasks.py"))], stdout=PIPE).stdout.read()
+        num = int(num.decode("utf-8")[:-1])
+        Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
+            str(num-6), str(num+1), os.path.join(project_root, "tasks.py"))])
+        Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task, os.path.join(project_root, "tasks.sh"))])
+        os.remove(os.path.join(project_root, "tasks", task + ".sh"))
     else:
-        raise NameNotFound("{0} - task not found".format(task))
-
-
-def rename_task(project, old, new):
-    """renames task"""
-    project_tasks = os.path.join(get_projects_root(), project, "tasks")
-    if not os.path.isfile(os.path.join(project_tasks, old + ".sh")):
-        raise NameNotFound("{0}/{1} - task not found".format(project, old))
-    if os.path.isfile(os.path.join(project_tasks, new + ".sh")):
-        raise NameAlreadyTaken("{0}/{1} - new name already taken".format(project, new))
-    os.rename(os.path.join(project_tasks, old + ".sh"), os.path.join(project_tasks, new + ".sh"))
+        raise NameNotFound("{0}/{1} - task not found in this project".format(project, task))
