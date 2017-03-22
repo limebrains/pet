@@ -4,14 +4,15 @@ import signal
 import shutil
 from pet_exceptions import NameAlreadyTaken, NameNotFound, ProjectActivated
 from file_templates import new_tasks_file, new_project_py_file, new_task
-from pet import commands
-# TODO: are we going to do this this way? A: probably without importing
 
 # TODO: sort functions
+# TODO: make tasks not only in .sh
+# TODO: get rid of hardcoded names like "tmp_bashrc", "PET_FOLDER", "projects", etc.
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
+commands = ("pet", "archive", "clean", "edit", "init", "list", "register", "remove", "rename", "restore", "stop", "task", "run")
 
 
 def get_pet_install_folder():
@@ -22,28 +23,9 @@ def get_pet_folder():
     return PET_FOLDER
 
 
-# TODO: DELETE THIS because it should be done in setup
-def create_projects_root():
-    os.makedirs(os.path.join(PET_FOLDER, "projects"))
-
-
 def get_projects_root():
     if os.path.exists(os.path.join(PET_FOLDER, "projects")):
         return os.path.join(PET_FOLDER, "projects")
-
-
-# TODO: DELETE THIS
-def get_projects_root_or_create():
-    project_root = get_projects_root()
-    if not project_root:
-        create_projects_root()
-        return get_projects_root(), True
-    return project_root, False
-
-
-# TODO: DELETE THIS because it should be done in setup
-def create_archive_root():
-    os.makedirs(os.path.join(PET_FOLDER, "old"))
 
 
 def get_archive_root():
@@ -51,19 +33,10 @@ def get_archive_root():
         return os.path.join(PET_FOLDER, "old")
 
 
-# TODO: DELETE THIS
-def get_archive_root_or_create():
-    archive_root = get_archive_root()
-    if not archive_root:
-        create_archive_root()
-        return get_archive_root(), True
-    return archive_root, False
-
-
 def get_shell_as_type():
-    if os.environ.get('SHELL', "").find('bash'):
+    if os.environ.get('SHELL', "").find('bash') != -1:
         return "tmp_bashrc"
-    elif os.environ.get('SHELL', "").find('zsh'):
+    elif os.environ.get('SHELL', "").find('zsh') != -1:
         return ".zshrc"
 
 
@@ -75,9 +48,9 @@ def get_rc_file(project_root):
 
 
 def get_rc_type(project_root):
-    if os.environ.get('SHELL', "").find('bash') and os.path.isfile(os.path.join(project_root, "tmp_bashrc")):
+    if os.environ.get('SHELL', "").find('bash') != -1 and os.path.isfile(os.path.join(project_root, "tmp_bashrc")):
         return "tmp_bashrc"
-    elif os.environ.get('SHELL', "").find('zsh') and os.path.isfile(os.path.join(project_root, ".zshrc")):
+    elif os.environ.get('SHELL', "").find('zsh') != -1 and os.path.isfile(os.path.join(project_root, ".zshrc")):
         return ".zshrc"
 
 
@@ -101,25 +74,28 @@ class ProjectLock(object):
 
 class TaskExec(object):
 
-    def __init__(self, name, task, shell, interactive, args=()):
+    def __init__(self, project, task, shell, interactive, args=()):
 
-        self.name = name
+        self.project = project
         self.task = task
-        self.project_root = os.path.join(get_projects_root(), name)
+        self.project_root = os.path.join(get_projects_root(), project)
         self.args = args
         self.interactive = interactive
         self.shell = shell
 
     def __enter__(self):
         if self.interactive:
-            if self.shell.find('bash'):
-                # TODO: MAKE run.bash
-                # TODO: chmod run.bash
-                # TODO: remove run.bash
-                # TODO: maybe turn bash right now
+            if self.shell.find('bash') != -1:
+                run_path = os.path.join(self.project_root, 'run.bash')
+                with open(run_path, mode='w') as run:
+                    run.write("#!/usr/bin/env bash\n$SHELL --rcfile <(echo '. {0}; {1}')\n".format(
+                        os.path.join(self.project_root, "tmp_bashrc"),
+                        os.path.join(self.project_root, "tasks", self.task + ".sh")))
+                os.chmod(run_path, 0o755)
                 Popen(["/bin/sh", "-c", "{0}\n$SHELL {1}/stop.sh".format(
-                    os.path.join(self.project_root, 'run.bash'), self.project_root)]).communicate(input)
-            elif self.shell.find('zsh'):
+                    run_path, self.project_root)]).communicate(input)
+                os.remove(run_path)
+            elif self.shell.find('zsh') != -1:
                 # TODO: here it DOESN't work
                 print("it doesn't work in zsh")
                 Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
@@ -137,7 +113,7 @@ class TaskExec(object):
 
 def create_shell():
     shell = os.environ.get('SHELL', "")
-    if shell.find('bash'):
+    if shell.find('bash') != -1:
         with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
             if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
                 shell_profiles.write("source ~/.bashrc\n")
@@ -145,7 +121,7 @@ def create_shell():
                 shell_profiles.write("source ~/.profile\n")
             if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
                 shell_profiles.write("source ~/.bash_profile\n")
-    elif shell.find('zsh'):
+    elif shell.find('zsh') != -1:
         if os.environ.get('ZDOTDIR', ""):
             with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
                 shell_profiles.write("source $ZDOTDIR/.zshrc\n")
@@ -163,7 +139,14 @@ class ProjectCreator(object):
         self.name = name
         self.project_root = os.path.join(self.projects_root, self.name)
         self.templates = templates
+        self.check_name()
         self.check_templates()
+
+    def check_name(self):
+        if self.name in print_list():
+            raise NameAlreadyTaken("{0} - name already taken".format(self.name))
+        if self.name in commands:
+            raise NameAlreadyTaken("{0} - there is pet command with this name".format(self.name))
 
     def check_templates(self):
         for template in self.templates:
@@ -250,10 +233,11 @@ def start(name):
         project_root = os.path.join(get_projects_root(), name)
         shell = os.environ.get('SHELL', "")
         make_rc_file(name, project_root, shell)
-        if shell.find('bash'):
+        if shell.find('bash') != -1:
             Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
                 os.path.join(project_root, 'tmp_bashrc'), project_root)]).communicate(input)
-        elif shell.find('zsh'):
+        elif shell.find('zsh') != -1:
+            print('I am doing this!')
             Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
                 project_root)]).communicate(input)
         else:
@@ -314,7 +298,7 @@ def print_list():
 
 def print_old():
     """lists archived projects"""
-    projects_root = get_archive_root_or_create()
+    projects_root = get_archive_root()
     projects = [
         project
         for project in os.listdir(projects_root[0])
@@ -355,7 +339,7 @@ def archive(project):
     project_root = os.path.join(get_projects_root(), project)
     if os.path.exists(project_root):
         if not os.path.exists(os.path.join(project_root, "_lock")):
-            archive_root = get_archive_root_or_create()[0]
+            archive_root = get_archive_root()[0]
             shutil.move(project_root, os.path.join(archive_root, project))
         else:
             raise ProjectActivated("{0} - project is active".format(project))

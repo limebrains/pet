@@ -2,24 +2,15 @@ import click
 import bl
 import os
 
-# TODO: put executable files into folder /pet/pet/ ?
-# TODO: NOTE: deploy only once, changes autocomplete in complete.bash on fly
+# TODO: META: put executable files into folder /pet/pet/ ?
+# TODO: CLEANING: deploy only once, changes autocomplete in complete.bash on fly
 
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', False)
-commands = ()
-# TODO: add commands here and check when creating are they in here!
+
 # TODO: do not allow creating projects and tasks with names of pet commands (this is handled in bl)
 
-
-
-
-
-# TODO: $SHELL --rcfile <(echo '. /home/dawid/PycharmProjects/pet/projects/new/tmp_bashrc; /home/dawid/PycharmProjects/pet/projects/new/tasks/hello.sh')
-# TODO: is this all we need? (no tmp_bashrc files in pet?)
-
-
-
+# TODO: setup in make.py add cli.remake?
 
 
 # TODO: META: if deploy needs to be done once, maybe at same time create /pet/projects , /pet/old, /pet/shell_profiles ?
@@ -33,17 +24,13 @@ commands = ()
 # TODO: tasks with templates
 # TODO: task aliases with possible -i flag
 
-# TODO: create in place! (PET_FOLDER)
+# TODO: CLEANING: create click.secho error strings templates
 
-# TODO: create click.secho error strings templates
-
-# TODO: META COPYl.13: NO NEED TO REMAKE TMP_BASHRC EVERY FUCKING TIME (just add and del aliases) - creation at CREATION
 # TODO: META: MAKE SOME FUCKING ORDER AT WHICH POINT WHAT FOLDERS AND FILES SHOULD EXIST
-# TODO: META: change tmp_bashrc to pet_bashrc
-
-# TODO: add help to options
 
 # TODO: unlock option for tasks in other shells than sh (other extensions in general)
+
+# TODO: META: catch bl.exceptions and print their insides with fg='red' -> no checking in pet.py, only in bl.py
 
 
 def get_projects():
@@ -91,8 +78,8 @@ if active:
 
 
 @cli.command('init')
-@click.option('--name', '-n', default=None)
-@click.option('--templates', '-t', multiple=True)
+@click.option('--name', '-n', default=None, help="name for project")
+@click.option('--templates', '-t', multiple=True, help="-t template,template... or -t template -t template")
 def create_project(name, templates):
     """creates new project"""
     if not name:
@@ -122,8 +109,8 @@ if active:
 
 
 @cli.command('list')
-@click.option('--old', '-o', is_flag=True)
-@click.option('--tasks', '-t', is_flag=True)
+@click.option('--old', '-o', is_flag=True, help="print projects in archive")
+@click.option('--tasks', '-t', is_flag=True, help="show tree of all tasks in all projects")
 def print_list(old, tasks):
     """lists all projects"""
     if old:
@@ -258,7 +245,7 @@ if not active:
     @cli.command()
     @click.argument('project')
     @click.argument('task')
-    @click.option('-i', is_flag=True)
+    @click.option('-i', is_flag=True, help="interactive")
     @click.argument('args', nargs=-1)
     def run(project, task, i, args=()):
         """runs projects task"""

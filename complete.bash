@@ -5,7 +5,13 @@ _pet()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="clean create edit init list register remove rename restore start stop task"
+    opts="archive clean edit init list register remove rename restore"
+    projects=""
+    if [ -z "$PET_ACTIVE_PROJECT" ]; then
+        opts="${opts} stop task"
+    else
+        opts="${opts} run"
+    fi
     first="${COMP_WORDS[1]}"
     count="${#COMP_WORDS[@]}"
     if [ ${count} == 2 ]; then
