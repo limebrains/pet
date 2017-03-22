@@ -84,28 +84,22 @@ def create_project(name, templates):
     """creates new project"""
     if not name:
         name = os.path.basename(os.getcwd())
-    if name not in get_projects():
-        if len(templates) == 1:
-            if templates[0].count(',') > 0:
-                templates = templates[0].split(',')
-        for template in templates:
-            if template not in get_projects():
-                click.secho("{0} - template not found".format(template), fg='red')
-                break
-        else:
-            bl.create(name, templates)
+    if len(templates) == 1:
+        if templates[0].count(',') > 0:
+            templates = templates[0].split(',')
+    for template in templates:
+        if template not in get_projects():
+            click.secho("{0} - template not found".format(template), fg='red')
+            break
     else:
-        click.secho("{0} - name already taken".format(name), fg='red')
+        bl.create(name, templates)
 
 if active:
     @cli.command()
     @click.argument('name')
     def task(name):
         """creates new task"""
-        if active in get_projects():
-            bl.create_task(active, name)
-        else:
-            click.secho("{0} - project not found".format(active), fg='red')
+        bl.create_task(active, name)
 
 
 @cli.command('list')
@@ -136,36 +130,21 @@ if active:
     @click.argument('task')
     def remove_task(task):
         """removes task"""
-        if active in get_projects():
-            bl.remove_task(active, task)
-        else:
-            click.secho("{0} - project not found".format(active), fg='red')
+        bl.remove_task(active, task)
 
 if not active:
     @cli.command('remove')
     @click.argument('name')
     def remove_project(name):
         """removes project"""
-        if name in get_projects():
-            if name != active:
-                bl.remove_project(name)
-            else:
-                click.secho("{0} - project is active".format(name), fg='red')
-        else:
-            click.secho("{0} - project not found".format(name), fg='red')
+        bl.remove_project(name)
 
 
 @cli.command()
 @click.argument('name')
 def archive(name):
     """removes project"""
-    if name in get_projects():
-        if name != active:
-            bl.archive(name)
-        else:
-            click.secho("{0} - project is active".format(name), fg='red')
-    else:
-        click.secho("{0} - project not found".format(name), fg='red')
+    bl.archive(name)
 
 
 @cli.group()
@@ -193,13 +172,7 @@ if not active:
     @click.argument('new')
     def rename_project(old, new):
         """renames project"""
-        if old in get_projects():
-            if new not in get_projects():
-                bl.rename_project(old, new)
-            else:
-                click.secho("{0} - name already taken".format(new), fg='red')
-        else:
-            click.secho("{0} - project not found".format(old), fg='red')
+        bl.rename_project(old, new)
 
 
 if active:
@@ -208,10 +181,7 @@ if active:
     @click.argument('new')
     def rename_task(old, new):
         """renames task"""
-        if active in get_projects():
-            bl.rename_task(active, old, new)
-        else:
-            click.secho("{0} - (active) project not found".format(old), fg='red')
+        bl.rename_task(active, old, new)
 
 
 if not active:
@@ -219,10 +189,7 @@ if not active:
     @click.argument('name')
     def edit(name):
         """edits project"""
-        if name in get_projects():
-            bl.edit_project(name)
-        else:
-            click.secho("{0} - project not found".format(name), fg='red')
+        bl.edit_project(name)
 
 if active:
     @cli.command()
@@ -230,15 +197,9 @@ if active:
     def edit(name):
         """edits task if given name else active project"""
         if len(name) > 0:
-            if active in get_projects():
-                bl.edit_task(active, name[0])
-            else:
-                click.secho("{0} - (active) project not found".format(active), fg='red')
+            bl.edit_task(active, name[0])
         else:
-            if active in get_projects():
-                bl.edit_project(active)
-            else:
-                click.secho("{0} - (active) project not found".format(name), fg='red')
+            bl.edit_project(active)
 
 # TODO: META combine all active/ not-active into one and sort them
 if not active:
@@ -249,13 +210,10 @@ if not active:
     @click.argument('args', nargs=-1)
     def run(project, task, i, args=()):
         """runs projects task"""
-        if project in get_projects():
-            bl.run_task(project, task, active, i, args)
-        else:
-            click.secho("{0} - project not found".format(project), fg='red')
+        bl.run_task(project, task, active, i, args)
 
 if __name__ == '__main__':
-    bl.get_projects_root_or_create()
+    bl.get_projects_root()
     if os.environ.get('PET_ACTIVE_PROJECT', None):
         active_cli = ActiveCli()
     else:
