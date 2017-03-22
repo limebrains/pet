@@ -4,10 +4,11 @@ from bl import start
 
 
 @click.group(chain=True, invoke_without_command=True)
+@click.option('-l', is_flag=True, help="Project is locked")
 @click.pass_context
-def cli(ctx):
+def cli(ctx, l):
     if ctx.invoked_subcommand is None:
-        start('{0}')
+        start('{0}', with_lock=bool(l))
 '''
 
 new_tasks_file = '''

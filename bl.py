@@ -257,23 +257,34 @@ class ProjectCreator(object):
         complete_add(self.name)
 
 
+def lockable(func):
+    def _lockable(name, with_lock, *args, **kwargs):
+        if with_lock:
+            with ProjectLock(name):
+                func(name, *args, **kwargs)
+        else:
+            func(name, *args, **kwargs)
+    return _lockable
+
+
+@lockable
 def start(name):
     """starts new project"""
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, shell_profiles)):
         create_shell()
-    with ProjectLock(name):
-        project_root = os.path.join(get_projects_root(), name)
-        shell = os.environ.get('SHELL', "")
-        make_rc_file(name, project_root, shell)
-        if shell.find('bash') != -1:
-            Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
-                os.path.join(project_root, 'bashrc'), project_root)]).communicate(input)
-        elif shell.find('zsh') != -1:
-            print('I am doing this!')
-            Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
-                project_root)]).communicate(input)
-        else:
-            raise NameNotFound(ex_isnt_supported.format(shell))
+
+    project_root = os.path.join(get_projects_root(), name)
+    shell = os.environ.get('SHELL', "")
+    make_rc_file(name, project_root, shell)
+    if shell.find('bash') != -1:
+        Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
+            os.path.join(project_root, 'bashrc'), project_root)]).communicate(input)
+    elif shell.find('zsh') != -1:
+        print('I am doing this!')
+        Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
+            project_root)]).communicate(input)
+    else:
+        raise NameNotFound(ex_isnt_supported.format(shell))
 
 
 def create(name, templates=()):
