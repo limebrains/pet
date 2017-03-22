@@ -263,7 +263,7 @@ def start(name):
         make_rc_file(name, project_root, shell)
         if shell.find('bash') != -1:
             Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
-                os.path.join(project_root, 'tmp_bashrc'), project_root)]).communicate(input)
+                os.path.join(project_root, 'bashrc'), project_root)]).communicate(input)
         elif shell.find('zsh') != -1:
             print('I am doing this!')
             Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
@@ -385,6 +385,7 @@ def print_list():
     ]
     if projects:
         return "\n".join(projects)
+    return []
 
 
 def print_old():
