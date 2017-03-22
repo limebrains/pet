@@ -90,14 +90,18 @@ def task_exist(project, name):
 
 
 def complete_add(project):
-    Popen(["/bin/sh", "-c", "sed -i '/projects=/ s/\"$/ {0}\"/' complete.bash".format(project)])
+    Popen(["/bin/sh", "-c", "sed -i '/projects=/ s/\"$/ {0}\"/' {1}".format(project, os.path.join(
+        PET_INSTALL_FOLDER, "complete.bash"))])
 
 
 def complete_remove(project):
-    line_nr = Popen(["/bin/sh", "-c", "grep -n \"projects=\" complete.bash | cut -d \":\" -f 1"],
+    line_nr = Popen(["/bin/sh", "-c", "grep -n \"projects=\" {0} | cut -d \":\" -f 1".format(
+        os.path.join(PET_INSTALL_FOLDER, "complete.bash"))],
                     stdout=PIPE).stdout.read()
-    line_nr = int(line_nr.decode("utf-8")[:-1])
-    Popen(["/bin/sh", "-c", "sed -i '{0}s/{1}//' complete.bash".format(line_nr, " " + project)])
+    if line_nr:
+        line_nr = int(line_nr.decode("utf-8")[:-1])
+        Popen(["/bin/sh", "-c", "sed -i '{0}s/{1}//' {2}".format(
+            line_nr, " " + project, os.path.join(PET_INSTALL_FOLDER, "complete.bash"))])
 
 
 def create_shell():
