@@ -6,7 +6,7 @@ from pet_exceptions import PetException, NameAlreadyTaken, NameNotFound, Project
 from file_templates import new_tasks_file, new_project_py_file, new_task
 
 # TODO: make tasks not only in .sh
-
+# TODO: NOW: edit complete.bash at creation, removal, renaming, archiving
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
