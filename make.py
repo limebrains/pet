@@ -1,5 +1,6 @@
 from subprocess import Popen
 import os
+from bl import create_shell
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -13,6 +14,7 @@ def create_folders():
         os.makedirs(os.path.join(PET_FOLDER, "archive"))
 
 
+# TODO: this is not needed for now
 def get_shell_type():
     if os.environ.get('SHELL', "").find('bash') != -1:
         return "bash"
@@ -27,3 +29,4 @@ def deploy_autocomplete():
 if __name__ == '__main__':
     deploy_autocomplete()
     create_folders()
+    create_shell()

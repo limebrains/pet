@@ -91,20 +91,20 @@ def task_exist(project, name):
 def create_shell():
     shell = os.environ.get('SHELL', "")
     if shell.find('bash') != -1:
-        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
+        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
             if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
-                shell_profiles.write("source ~/.bashrc\n")
+                shell_profiles_file.write("source ~/.bashrc\n")
             if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
-                shell_profiles.write("source ~/.profile\n")
+                shell_profiles_file.write("source ~/.profile\n")
             if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
-                shell_profiles.write("source ~/.bash_profile\n")
+                shell_profiles_file.write("source ~/.bash_profile\n")
     elif shell.find('zsh') != -1:
         if os.environ.get('ZDOTDIR', ""):
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
-                shell_profiles.write("source $ZDOTDIR/.zshrc\n")
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+                shell_profiles_file.write("source $ZDOTDIR/.zshrc\n")
         else:
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles:
-                shell_profiles.write("source $HOME/.zshrc\n")
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+                shell_profiles_file.write("source $HOME/.zshrc\n")
     else:
         raise NameNotFound(ex_isnt_supported.format(shell))
 
@@ -151,10 +151,8 @@ class TaskExec(object):
                     run_path, self.project_root)]).communicate(input)
                 os.remove(run_path)
             elif self.shell.find('zsh') != -1:
-                # TODO: here it DOESN't work
+                # TODO: find a way to make interactive tasks in zsh
                 print("it doesn't work in zsh")
-                Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
-                    self.project_root)]).communicate(input)
             else:
                 raise NameNotFound(ex_isnt_supported.format(self.shell))
         else:
