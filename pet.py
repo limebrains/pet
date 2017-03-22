@@ -8,6 +8,7 @@ from pet_exceptions import PetException
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', False)
 
+# TODO: correct deploy.sh
 # TODO: interactive tasks in ZSH
 # TODO: tasks with templates
 # TODO: tests
@@ -102,7 +103,7 @@ def archive(name):
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
-@cli.group()
+@cli.command()
 @click.argument('name')
 def restore(name):
     """restores project from archive"""

@@ -12,6 +12,7 @@ _pet()
     else
         opts="${opts} run"
     fi
+    opts="${opts}${projects}"
     first="${COMP_WORDS[1]}"
     count="${#COMP_WORDS[@]}"
     if [ ${count} == 2 ]; then

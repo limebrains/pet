@@ -6,7 +6,7 @@ from pet_exceptions import PetException, NameAlreadyTaken, NameNotFound, Project
 from file_templates import new_tasks_file, new_project_py_file, new_task
 
 # TODO: make tasks not only in .sh
-# TODO: NOW: edit complete.bash at creation, removal, renaming, archiving
+# TODO: NOW: edit complete.bash at restore, removal, renaming, archiving
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
@@ -16,6 +16,7 @@ zshrc = ".zshrc"
 ex_project_not_found = "{0} - project not found"
 ex_project_is_active = "{0} - project is active"
 ex_project_exists = "{0} - name already taken"
+ex_project_in_archive = "{0} - name already taken in archive"
 ex_task_not_found = "{0} - task not found"
 ex_task_already_exists = "{0}- task already exists"
 ex_isnt_supported = "{0} - isn't supported"
@@ -36,8 +37,8 @@ def get_projects_root():
 
 
 def get_archive_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "old")):
-        return os.path.join(PET_FOLDER, "old")
+    if os.path.exists(os.path.join(PET_FOLDER, "archive")):
+        return os.path.join(PET_FOLDER, "archive")
 
 
 def get_shell_as_type():
@@ -86,6 +87,17 @@ def project_exist(name):
 def task_exist(project, name):
     """checks existence of task"""
     return os.path.exists(os.path.join(get_projects_root(), project, "tasks", name + ".sh"))
+
+
+def complete_add(project):
+    Popen(["/bin/sh", "-c", "sed -i '/projects=/ s/\"$/ {0}\"/' complete.bash".format(project)])
+
+
+def complete_remove(project):
+    line_nr = Popen(["/bin/sh", "-c", "grep -n \"projects=\" complete.bash | cut -d \":\" -f 1"],
+                    stdout=PIPE).stdout.read()
+    line_nr = int(line_nr.decode("utf-8")[:-1])
+    Popen(["/bin/sh", "-c", "sed -i '{0}s/{1}//' complete.bash".format(line_nr, " " + project)])
 
 
 def create_shell():
@@ -238,6 +250,7 @@ class ProjectCreator(object):
         self.create_start()
         self.create_stop()
         self.edit()
+        complete_add(self.name)
 
 
 def start(name):
@@ -269,12 +282,13 @@ def register():
     folder = os.getcwd()
     name = os.path.basename(folder)
     if not project_exist(name):
-        if (os.path.exists(os.path.join(folder, name + ".py")) and
-                os.path.exists(os.path.join(folder, "start.sh")) and
-                os.path.exists(os.path.join(folder, "stop.sh")) and
-                os.path.exists(os.path.join(folder, "tasks.py")) and
-                os.path.exists(os.path.join(folder, "tasks"))):
+        if (os.path.isfile(os.path.join(folder, name + ".py")) and
+                os.path.isfile(os.path.join(folder, "start.sh")) and
+                os.path.isfile(os.path.join(folder, "stop.sh")) and
+                os.path.isfile(os.path.join(folder, "tasks.py")) and
+                os.path.isdir(os.path.join(folder, "tasks"))):
             os.symlink(folder, os.path.join(get_projects_root(), name))
+            complete_add(name)
         else:
             raise PetException("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
     else:
@@ -289,6 +303,8 @@ def rename_project(old, new):
     if os.path.exists(os.path.join(projects_root, new)):
         raise NameAlreadyTaken(ex_project_exists.format(new))
     os.rename(os.path.join(projects_root, old), os.path.join(projects_root, new))
+    complete_add(new)
+    complete_remove(old)
 
 
 def edit_project(name):
@@ -315,6 +331,7 @@ def remove_project(project):
                 os.remove(project_root)
             else:
                 shutil.rmtree(project_root)
+            complete_remove(project)
         else:
             raise ProjectActivated(ex_project_is_active.format(project))
     else:
@@ -326,8 +343,12 @@ def archive(project):
     project_root = os.path.join(get_projects_root(), project)
     if os.path.exists(project_root):
         if not os.path.exists(os.path.join(project_root, "_lock")):
-            archive_root = get_archive_root()[0]
-            shutil.move(project_root, os.path.join(archive_root, project))
+            if project not in print_old():
+                archive_root = get_archive_root()
+                shutil.move(project_root, os.path.join(archive_root, project))
+                complete_remove(project)
+            else:
+                raise NameAlreadyTaken(ex_project_in_archive.format(project))
         else:
             raise ProjectActivated(ex_project_is_active.format(project))
     else:
@@ -337,7 +358,11 @@ def archive(project):
 def restore(name):
     """restores project from archive"""
     if os.path.exists(os.path.join(get_archive_root(), name)):
-        shutil.move(os.path.join(get_archive_root(), name), os.path.join(get_projects_root(), name))
+        if name not in print_list():
+            shutil.move(os.path.join(get_archive_root(), name), os.path.join(get_projects_root(), name))
+            complete_add(name)
+        else:
+            raise NameAlreadyTaken(ex_project_exists.format(name))
     else:
         raise NameNotFound("{0} - project not found in {1} folder".format(name, get_archive_root()))
 
@@ -364,11 +389,11 @@ def print_list():
 
 def print_old():
     """lists archived projects"""
-    projects_root = get_archive_root()
+    archive_root = get_archive_root()
     projects = [
         project
-        for project in os.listdir(projects_root[0])
-        if os.path.isdir(os.path.join(projects_root[0], project))
+        for project in os.listdir(archive_root)
+        if os.path.isdir(os.path.join(archive_root, project))
     ]
     if projects:
         return "\n".join(projects)
