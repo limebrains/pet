@@ -11,6 +11,7 @@ from subprocess import (
 # Third party
 
 # Own
+
 from file_templates import (
     new_project_py_file,
     new_task,
@@ -51,7 +52,18 @@ EX_SHELL_NOT_SUPPORTED = "{0} - isn't supported"
 class GeneralShellMixin(object):
 
     def __init__(self):
-        pass
+        self.rc_filename = ""
+
+    def get_rc_filename(self):
+        return self.rc_filename
+
+    def get_rc_filepath(self, project_root):
+        if os.path.isfile(os.path.join(project_root, self.rc_filename)):
+            return os.path.join(project_root, self.rc_filename)
+
+    def get_and_check_rc_filename(self, project_root):
+        if os.path.isfile(os.path.join(project_root, self.rc_filename)):
+            return self.rc_filename
 
 
 class Bash(GeneralShellMixin):
@@ -100,7 +112,6 @@ def get_archive_root():
 
 
 # TODO: STAY end
-
 
 def get_shell_as_type():
     if os.environ.get('SHELL', "").find('bash') != -1:
