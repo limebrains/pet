@@ -6,7 +6,6 @@ from pet_exceptions import PetException, NameAlreadyTaken, NameNotFound, Project
 from file_templates import new_tasks_file, new_project_py_file, new_task
 
 # TODO: make tasks not only in .sh
-# TODO: NOW: edit complete.bash at restore, removal, renaming, archiving
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
@@ -131,8 +130,6 @@ class ProjectLock(object):
 
         if not os.path.exists(os.path.join(get_projects_root(), name)):
             raise NameNotFound(ex_project_not_found.format(name))
-        if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
-            raise ProjectActivated(ex_project_is_active.format(name))
         self.filepath = os.path.join(get_projects_root(), name, "_lock")
 
     def __enter__(self):
@@ -259,6 +256,8 @@ class ProjectCreator(object):
 
 def lockable(func):
     def _lockable(name, with_lock, *args, **kwargs):
+        if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
+            raise ProjectActivated(ex_project_is_active.format(name))
         if with_lock:
             with ProjectLock(name):
                 func(name, *args, **kwargs)
@@ -272,7 +271,6 @@ def start(name):
     """starts new project"""
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, shell_profiles)):
         create_shell()
-
     project_root = os.path.join(get_projects_root(), name)
     shell = os.environ.get('SHELL', "")
     make_rc_file(name, project_root, shell)

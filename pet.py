@@ -12,6 +12,8 @@ active = os.environ.get('PET_ACTIVE_PROJECT', False)
 # TODO: interactive tasks in ZSH
 # TODO: tasks with templates
 # TODO: tests
+# TODO: in make add #!venv in pet
+# TODO: should we allow to lock ONLY new instances of project or inform about existing ones?
 
 
 def get_projects():
