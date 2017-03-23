@@ -7,6 +7,10 @@ from file_templates import new_tasks_file, new_project_py_file, new_task
 
 # TODO: make tasks not only in .sh
 
+
+# TODO: templates with tasks and different instance than projects themself
+
+
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 commands = ("pet", "archive", "clean", "edit", "init", "list", "register", "remove", "rename", "restore", "stop", "task", "run")
@@ -16,6 +20,7 @@ ex_project_not_found = "{0} - project not found"
 ex_project_is_active = "{0} - project is active"
 ex_project_exists = "{0} - name already taken"
 ex_project_in_archive = "{0} - name already taken in archive"
+ex_template_not_found = "{0} - template not found"
 ex_task_not_found = "{0} - task not found"
 ex_task_already_exists = "{0}- task already exists"
 ex_isnt_supported = "{0} - isn't supported"
@@ -33,6 +38,11 @@ def get_pet_folder():
 def get_projects_root():
     if os.path.exists(os.path.join(PET_FOLDER, "projects")):
         return os.path.join(PET_FOLDER, "projects")
+
+
+def get_templates_root():
+    if os.path.exists(os.path.join(PET_FOLDER, "templates")):
+        return os.path.join(PET_FOLDER, "templates")
 
 
 def get_archive_root():
@@ -81,6 +91,11 @@ def edit_file(path):
 def project_exist(name):
     """checks existence of project"""
     return os.path.exists(os.path.join(get_projects_root(), name))
+
+
+def template_exist(name):
+    """checks existence of project"""
+    return os.path.exists(os.path.join(get_templates_root(), name))
 
 
 def task_exist(project, name):
@@ -181,6 +196,7 @@ class ProjectCreator(object):
 
     def __init__(self, name, templates=()):
         self.projects_root = get_projects_root()
+        self.templates_root = get_templates_root()
         self.name = name
         self.project_root = os.path.join(self.projects_root, self.name)
         self.templates = templates
@@ -195,8 +211,8 @@ class ProjectCreator(object):
 
     def check_templates(self):
         for template in self.templates:
-            if not project_exist(template):
-                raise NameNotFound(ex_project_not_found.format(template))
+            if not template_exist(template):
+                raise NameNotFound(ex_template_not_found.format(template))
 
     def create_dirs(self):
         if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, shell_profiles)):
@@ -215,13 +231,15 @@ class ProjectCreator(object):
         with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
             tasks_alias_file.write("# aliases for your tasks\n")
 
+    # TODO: create_start and stop are redundant
+
     def create_start(self):
         with open(os.path.join(self.project_root, "start.sh"), mode='w') as start_file:
             if self.templates:
                 start_file.write("# TEMPLATES\n")
                 for template in self.templates:
                     start_file.write("# from template: {0}\n".format(template))
-                    template_start_file = open(os.path.join(self.projects_root, template, "start.sh"))
+                    template_start_file = open(os.path.join(self.templates_root, template, "start.sh"))
                     start_file.write(template_start_file.read())
                     start_file.write("\n")
                 start_file.write("# check if correctly imported templates\n")
@@ -234,7 +252,7 @@ class ProjectCreator(object):
                 stop_file.write("# TEMPLATES\n")
                 for template in self.templates:
                     stop_file.write("# from template: {0}\n".format(template))
-                    template_stop_file = open(os.path.join(self.projects_root, template, "stop.sh"))
+                    template_stop_file = open(os.path.join(self.templates_root, template, "stop.sh"))
                     stop_file.write(template_stop_file.read())
                     stop_file.write("\n")
                 stop_file.write("# check if correctly imported templates\n")
