@@ -26,7 +26,7 @@ from pet_exceptions import (
 )
 
 
-# TODO: templates with tasks and different instance than projects themself
+# TODO: templates: tasks
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -71,7 +71,7 @@ class GeneralShellMixin(object):
 
     def task_exec(self, project_name, task_name, interactive, args=()):
         tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
-        popen_args = [os.path.join(tasks_root, glob.glob(os.path.join(tasks_root, task_name + '.*'))[0])]
+        popen_args = [os.path.join(tasks_root, get_file_fullname(tasks_root, task_name))]
         popen_args.extend(args)
         Popen(popen_args)
 
@@ -100,10 +100,10 @@ class Bash(GeneralShellMixin):
         if interactive:
             self.make_rc_file(project_name)
             project_root = os.path.join(get_projects_root(), project_name)
-            # TODO: change /bin/bash for usr bin env bash
+            # TODO: change /bin/bash for usr bin env bash, maybe with Popen -> which usrbin bash -> cut
             Popen(["/bin/bash", "-c", "$SHELL --rcfile <(echo '. {0}; {1} {2}')\n$SHELL {3}/stop.sh".format(
                 os.path.join(project_root, self.get_rc_filename()),
-                os.path.join(project_root, "tasks", glob.glob(os.path.join(project_root, "tasks", task_name + '.*'))[0]),
+                os.path.join(project_root, "tasks", get_file_fullname(project_root, task_name)),
                 " ".join(args),
                 project_root)]).communicate(input)
         else:
@@ -148,6 +148,14 @@ def get_shell():
     else:
         raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
     return shell
+
+
+def get_file_fullname(searching_root, file_name):
+    return glob.glob(os.path.join(searching_root, file_name + '.*'))[0]
+
+
+def get_file_fullname_and_path(searching_root, file_name):
+    return os.path.join(searching_root, glob.glob(os.path.join(searching_root, file_name + '.*'))[0])
 
 
 def get_pet_install_folder():
@@ -461,15 +469,10 @@ def create_task(project_name, task_name):
         raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
-    # TODO: .sh problem here
-    # TODO: .sh problem here
-    # TODO: .sh problem here
-    # TODO: .sh problem here
-    # glob.glob(os.path.join(tasks_root, task + '.*'))[0]
-    Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(os.path.join(project_root, "tasks",
-                                                                         task_name + ".sh"))]).communicate(input)
-    edit_file(os.path.join(project_root, "tasks", task_name + ".sh"))
-    os.chmod(os.path.join(project_root, "tasks", task_name + ".sh"), 0o755)
+    task_file_path = get_file_fullname_and_path(project_root, task_name)
+    Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)]).communicate(input)
+    edit_file(task_file_path)
+    os.chmod(task_file_path, 0o755)
     with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
         tasks_file.write(new_task_for_tasks_sh_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
@@ -482,20 +485,20 @@ def edit_task(project_name, task_name):
     if not task_exist(project_name, task_name):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(task_name))
 
-    # TODO: .sh problem here
-    edit_file(os.path.join(get_projects_root(), project_name, "tasks", task_name + ".sh"))
+    edit_file(get_file_fullname_and_path(os.path.join(get_projects_root(), project_name, "tasks"), task_name))
 
 
 def rename_task(project_name, old_task_name, new_task_name):
     """renames task"""
-    project_tasks = os.path.join(get_projects_root(), project_name, "tasks")
+    tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
     if not task_exist(project_name, old_task_name):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(old_task_name))
     if task_exist(project_name, new_task_name):
         raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(new_task_name))
-    # TODO: .sh problem here
-    # TODO: .sh problem here
-    os.rename(os.path.join(project_tasks, old_task_name + ".sh"), os.path.join(project_tasks, new_task_name + ".sh"))
+
+    old_task_full_path = get_file_fullname_and_path(tasks_root, old_task_name)
+    task_extension = os.path.splitext(old_task_full_path)[1]
+    os.rename(old_task_full_path, os.path.join(tasks_root, new_task_name + task_extension))
 
 
 def run_task(project_name, task_name, active_project_name, interactive, args=()):
@@ -523,5 +526,4 @@ def remove_task(project_name, task_name):
     Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
         str(num-6), str(num+1), os.path.join(project_root, "tasks.py"))])
     Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task_name, os.path.join(project_root, "tasks.sh"))])
-    # TODO: .sh problem here
-    os.remove(os.path.join(project_root, "tasks", task_name + ".sh"))
+    os.remove(get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name))
