@@ -4,8 +4,7 @@ import os
 # Third party
 
 # Own
-
-from bl import create_shell
+from bl import get_shell
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -25,4 +24,4 @@ def create_folders():
 
 if __name__ == '__main__':
     create_folders()
-    create_shell()
+    get_shell().create_shell_profiles()

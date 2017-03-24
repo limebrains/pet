@@ -1,4 +1,6 @@
 # Python
+import functools
+import glob
 import shutil
 import signal
 import os
@@ -11,7 +13,6 @@ from subprocess import (
 # Third party
 
 # Own
-
 from file_templates import (
     new_project_py_file,
     new_task,
@@ -25,9 +26,12 @@ from pet_exceptions import (
 )
 
 # TODO: achieve that by finding files in project task folder rather than .sh files
+# TODO: print(glob.glob(os.path.join(get_projects_root(), "new", "tasks", "hello.*")))
 # TODO: make tasks not only in .sh
+# TODO: find # TODO: .sh problem here
 
 # TODO: os.path.splitext()[0]
+# TODO: glob for finding files with wildcard
 # TODO: templates with tasks and different instance than projects themself
 
 
@@ -45,9 +49,10 @@ EX_TEMPLATE_NOT_FOUND = "{0} - template not found"
 EX_TASK_NOT_FOUND = "{0} - task not found"
 EX_TASK_ALREADY_EXISTS = "{0}- task already exists"
 EX_SHELL_NOT_SUPPORTED = "{0} - isn't supported"
+EX_NO_RC_FILE_FOUND = "no rc file in {0}"
 
 
-# TODO: 23rd V
+# TODO: 23rd 24th V
 class GeneralShellMixin(object):
 
     def __init__(self):
@@ -56,13 +61,26 @@ class GeneralShellMixin(object):
     def get_rc_filename(self):
         return self.rc_filename
 
-    def get_rc_filepath(self, project_root):
-        if os.path.isfile(os.path.join(project_root, self.rc_filename)):
-            return os.path.join(project_root, self.rc_filename)
+    def make_rc_file(self, project):
+        project_root = os.path.join(get_projects_root(), project)
+        contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\n" \
+                   "PS1=\"[{1}] $PS1\"\nsource {3}\n".format(PET_INSTALL_FOLDER, project, project_root,
+                                                             os.path.join(project_root, "tasks.sh"))
+        rc = os.path.join(project_root, self.get_rc_filename())
+        with open(rc, mode='w') as rc_file:
+            rc_file.write(contents)
 
-    def get_and_check_rc_filename(self, project_root):
-        if os.path.isfile(os.path.join(project_root, self.rc_filename)):
-            return self.rc_filename
+    def start(self, project_root):
+        pass
+
+    def create_shell_profiles(self):
+        pass
+
+    def task_exec(self, project, task, interactive, args=()):
+        tasks_root = os.path.join(get_projects_root(), project, "tasks")
+        popen_args = [os.path.join(tasks_root, glob.glob(os.path.join(tasks_root, task + '.*'))[0])]
+        popen_args.extend(args)
+        Popen(popen_args)
 
 
 class Bash(GeneralShellMixin):
@@ -71,6 +89,30 @@ class Bash(GeneralShellMixin):
         GeneralShellMixin.__init__(self)
         self.rc_filename = BASH_RC_FILENAME
 
+    def start(self, project_root):
+        Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
+            os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate(input)
+
+    def create_shell_profiles(self):
+        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
+                shell_profiles_file.write("source ~/.bashrc\n")
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
+                shell_profiles_file.write("source ~/.profile\n")
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
+                shell_profiles_file.write("source ~/.bash_profile\n")
+
+    def task_exec(self, project, task, interactive, args=()):
+        if interactive:
+            project_root = os.path.join(get_projects_root(), project)
+            # TODO: change /bin/bash for usr bin env bash
+            Popen(["/bin/bash", "-c", "$SHELL --rcfile <(echo '. {0}; {1}')\n$SHELL {2}/stop.sh".format(
+                os.path.join(project_root, self.get_rc_filename()),
+                os.path.join(project_root, "tasks", glob.glob(os.path.join(project_root, "tasks", task + '.*'))[0]),
+                project_root)]).communicate(input)
+        else:
+            GeneralShellMixin.task_exec(self, project, task, interactive, args)
+
 
 class Zsh(GeneralShellMixin):
 
@@ -78,13 +120,37 @@ class Zsh(GeneralShellMixin):
         GeneralShellMixin.__init__(self)
         self.rc_filename = ZSH_RC_FILENAME
 
+    def start(self, project_root):
+        print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
+        Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
+            project_root)]).communicate(input)
 
-if os.environ.get('SHELL', "").find('bash') != -1:
-    SHELL = Bash()
-elif os.environ.get('SHELL', "").find('zsh') != -1:
-    SHELL = Zsh()
+    def create_shell_profiles(self):
+        if os.environ.get('ZDOTDIR', ""):
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+                shell_profiles_file.write("source $ZDOTDIR/.zshrc\n")
+        else:
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+                shell_profiles_file.write("source $HOME/.zshrc\n")
 
-# TODO: STAYS
+    def task_exec(self, project, task, interactive, args=()):
+        if interactive:
+            # TODO: find a way to make interactive tasks in zsh
+            print("it doesn't work in zsh")
+        else:
+            GeneralShellMixin.task_exec(self, project, task, interactive, args)
+
+
+@functools.lru_cache()
+def get_shell():
+    shell_name = os.environ.get('SHELL', '')
+    if 'bash' in shell_name:
+        shell = Bash()
+    elif 'zsh' in shell_name:
+        shell = Zsh()
+    else:
+        raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+    return shell
 
 
 def get_pet_install_folder():
@@ -101,58 +167,13 @@ def get_projects_root():
 
 
 def get_templates_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
-        return os.path.join(PET_FOLDER, "templates", "projects")
-
-
-def get_templates_tasks_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
-        return os.path.join(PET_FOLDER, "templates", "tasks")
+    if os.path.exists(os.path.join(PET_FOLDER, "templates")):
+        return os.path.join(PET_FOLDER, "templates")
 
 
 def get_archive_root():
     if os.path.exists(os.path.join(PET_FOLDER, "archive")):
         return os.path.join(PET_FOLDER, "archive")
-
-
-# TODO: STAY end
-# TODO: DEL
-
-
-def get_shell_as_type():
-    if os.environ.get('SHELL', "").find('bash') != -1:
-        return BASH_RC_FILENAME
-    elif os.environ.get('SHELL', "").find('zsh') != -1:
-        return ZSH_RC_FILENAME
-
-
-def get_rc_file(project_root):
-    if os.path.isfile(os.path.join(project_root, BASH_RC_FILENAME)):
-        return os.path.join(project_root, BASH_RC_FILENAME)
-    elif os.path.isfile(os.path.join(project_root, ZSH_RC_FILENAME)):
-        return os.path.join(project_root, ZSH_RC_FILENAME)
-
-
-def get_rc_type(project_root):
-    if os.environ.get('SHELL', "").find('bash') != -1 and os.path.isfile(os.path.join(project_root, BASH_RC_FILENAME)):
-        return BASH_RC_FILENAME
-    elif os.environ.get('SHELL', "").find('zsh') != -1 and os.path.isfile(os.path.join(project_root, ZSH_RC_FILENAME)):
-        return ZSH_RC_FILENAME
-
-
-def make_rc_file(name, project_root, shell):
-    contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\nPS1=\"[{1}] $PS1\"\n" \
-               "source {3}\n".format(PET_INSTALL_FOLDER, name, project_root, os.path.join(project_root, "tasks.sh"))
-    rc_type = get_shell_as_type()
-    if not rc_type:
-        raise NameNotFound("{0} - isn't supported or correct file isn't existing".format(shell))
-
-    rc = os.path.join(project_root, rc_type)
-    with open(rc, mode='w') as rcfile:
-        rcfile.write(contents)
-
-# print(os.listdir(os.path.join(get_projects_root(), "new", "tasks")))
-# TODO: DELETE ENDS
 
 
 def edit_file(path):
@@ -170,15 +191,9 @@ def template_exist(name):
     return os.path.exists(os.path.join(get_templates_root(), name))
 
 
-# TODO: check FILE!
-def template_task_exist(name):
-    """checks existence of project"""
-    return os.path.exists(os.path.join(get_templates_tasks_root(), name))
-
-
 def task_exist(project, name):
     """checks existence of task"""
-    return os.path.exists(os.path.join(get_projects_root(), project, "tasks", name + ".sh"))
+    return name in print_tasks(project)
 
 
 def complete_add(project):
@@ -196,27 +211,6 @@ def complete_remove(project):
             line_nr, " " + project, os.path.join(PET_INSTALL_FOLDER, "complete.bash"))])
 
 
-def create_shell():
-    shell = os.environ.get('SHELL', "")
-    if shell.find('bash') != -1:
-        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
-                shell_profiles_file.write("source ~/.bashrc\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
-                shell_profiles_file.write("source ~/.profile\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
-                shell_profiles_file.write("source ~/.bash_profile\n")
-    elif shell.find('zsh') != -1:
-        if os.environ.get('ZDOTDIR', ""):
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
-                shell_profiles_file.write("source $ZDOTDIR/.zshrc\n")
-        else:
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
-                shell_profiles_file.write("source $HOME/.zshrc\n")
-    else:
-        raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(shell))
-
-
 class ProjectLock(object):
 
     def __init__(self, name):
@@ -231,44 +225,6 @@ class ProjectLock(object):
     def __exit__(self, *args):
         self.open_file.close()
         os.remove(self.filepath)
-
-
-class TaskExec(object):
-
-    def __init__(self, project, task, shell, interactive, args=()):
-
-        self.project = project
-        self.task = task
-        self.project_root = os.path.join(get_projects_root(), project)
-        self.args = args
-        self.interactive = interactive
-        self.shell = shell
-
-    def __enter__(self):
-        if self.interactive:
-            if self.shell.find('bash') != -1:
-                # TODO: refactor V use temp file or run it directly in BASH -c
-                run_path = os.path.join(self.project_root, 'run.bash')
-                with open(run_path, mode='w') as run:
-                    run.write("#!/usr/bin/env bash\n$SHELL --rcfile <(echo '. {0}; {1}')\n".format(
-                        os.path.join(self.project_root, BASH_RC_FILENAME),
-                        os.path.join(self.project_root, "tasks", self.task + ".sh")))
-                os.chmod(run_path, 0o755)
-                Popen(["/bin/sh", "-c", "{0}\n$SHELL {1}/stop.sh".format(
-                    run_path, self.project_root)]).communicate(input)
-                os.remove(run_path)
-            elif self.shell.find('zsh') != -1:
-                # TODO: find a way to make interactive tasks in zsh
-                print("it doesn't work in zsh")
-            else:
-                raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(self.shell))
-        else:
-            popen_args = [os.path.join(self.project_root, "tasks", self.task + ".sh")]
-            popen_args.extend(self.args)
-            Popen(popen_args)
-
-    def __exit__(self, *args):
-        pass
 
 
 class ProjectCreator(object):
@@ -295,10 +251,10 @@ class ProjectCreator(object):
 
     def create_dirs(self):
         if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
-            create_shell()
+            get_shell().create_shell_profiles()
         if not os.path.exists(os.path.join(self.project_root, "tasks")):
             os.makedirs(os.path.join(self.project_root, "tasks"))
-        make_rc_file(self.name, self.project_root, os.environ.get('SHELL', ""))
+        get_shell().make_rc_file(self.name)
 
     def create_additional_files(self):
         with open(os.path.join(self.project_root, self.name + ".py"), mode='w') as project_file:
@@ -367,19 +323,10 @@ def lockable(func):
 def start(name):
     """starts new project"""
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
-        create_shell()
+        get_shell().create_shell_profiles()
     project_root = os.path.join(get_projects_root(), name)
-    shell = os.environ.get('SHELL', "")
-    make_rc_file(name, project_root, shell)
-    if shell.find('bash') != -1:
-        Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
-            os.path.join(project_root, 'bashrc'), project_root)]).communicate(input)
-    elif shell.find('zsh') != -1:
-        print('I am doing this!')
-        Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
-            project_root)]).communicate(input)
-    else:
-        raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(shell))
+    get_shell().make_rc_file(name)
+    get_shell().start(project_root)
 
 
 def create(name, templates=()):
@@ -503,12 +450,9 @@ def print_old():
 
 def print_tasks(name):
     """lists tasks in project"""
-    projects_root = get_projects_root()
-    tasks = [
-        # TODO: refactor V use filename
-        task[:-3]
-        for task in os.listdir(os.path.join(projects_root, name, "tasks"))
-    ]
+    projects_tasks_root = os.path.join(get_projects_root(), name, "tasks")
+    tasks = [os.path.splitext(task)[0]
+             for task in os.listdir(projects_tasks_root)]
     return "\n".join(tasks)
 
 
@@ -522,6 +466,10 @@ def create_task(project, name):
         raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(name))
 
     project_root = os.path.join(get_projects_root(), project)
+    # TODO: .sh problem here
+    # TODO: .sh problem here
+    # TODO: .sh problem here
+    # TODO: .sh problem here
     Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(os.path.join(project_root, "tasks",
                                                                          name + ".sh"))]).communicate(input)
     edit_file(os.path.join(project_root, "tasks", name + ".sh"))
@@ -538,28 +486,33 @@ def edit_task(project, task):
     if not task_exist(project, task):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(task))
 
+    # TODO: .sh problem here
     edit_file(os.path.join(get_projects_root(), project, "tasks", task + ".sh"))
 
 
 def rename_task(project, old, new):
     """renames task"""
     project_tasks = os.path.join(get_projects_root(), project, "tasks")
-    if not os.path.isfile(os.path.join(project_tasks, old + ".sh")):
+    if not task_exist(project, name=old):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(old))
-    if os.path.isfile(os.path.join(project_tasks, new + ".sh")):
+    if task_exist(project, name=new):
         raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(new))
+    # TODO: .sh problem here
+    # TODO: .sh problem here
     os.rename(os.path.join(project_tasks, old + ".sh"), os.path.join(project_tasks, new + ".sh"))
 
 
+# TODO: 24th DOES IT EVEN MAKES SENSE?
 def run_task(project, task, active, interactive, args=()):
     """executes task in correct project"""
     if not task_exist(project, task):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(task))
 
+    # TODO: .sh problem here
     popen_args = [os.path.join(get_projects_root(), project, "tasks", task + ".sh")]
     popen_args.extend(list(args))
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
-        create_shell()
+        get_shell().create_shell_profiles()
     if active == project:
         Popen(popen_args)
     else:
@@ -568,14 +521,9 @@ def run_task(project, task, active, interactive, args=()):
         project_root = os.path.join(get_projects_root(), project)
         if not os.path.exists(os.path.join(project_root, BASH_RC_FILENAME)) and \
                 not os.path.exists(os.path.join(project_root, ZSH_RC_FILENAME)):
-            make_rc_file(project, project_root, os.environ.get('SHELL', ""))
+            get_shell().make_rc_file(project)
         with ProjectLock(name=project):
-            rc_type = get_rc_type(project_root)
-            if rc_type:
-                # TODO: 23rd Kappa
-                # TODO: refactor V change it to normal class
-                with TaskExec(project, task, rc_type, interactive, list(args)):
-                    pass
+            get_shell().task_exec(project, task, interactive, args)
 
 
 def remove_task(project, task):
@@ -590,4 +538,5 @@ def remove_task(project, task):
     Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
         str(num-6), str(num+1), os.path.join(project_root, "tasks.py"))])
     Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task, os.path.join(project_root, "tasks.sh"))])
+    # TODO: .sh problem here
     os.remove(os.path.join(project_root, "tasks", task + ".sh"))
