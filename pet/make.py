@@ -17,8 +17,10 @@ def create_folders():
         os.makedirs(os.path.join(PET_FOLDER, "projects"))
     if not os.path.exists(os.path.join(PET_FOLDER, "archive")):
         os.makedirs(os.path.join(PET_FOLDER, "archive"))
-    if not os.path.exists(os.path.join(PET_FOLDER, "templates")):
-        os.makedirs(os.path.join(PET_FOLDER, "templates"))
+    if not os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
+        os.makedirs(os.path.join(PET_FOLDER, "templates", "projects"))
+    if not os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
+        os.makedirs(os.path.join(PET_FOLDER, "templates", "tasks"))
 
 
 if __name__ == '__main__':

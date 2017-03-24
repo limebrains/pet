@@ -27,6 +27,7 @@ from pet_exceptions import (
 # TODO: achieve that by finding files in project task folder rather than .sh files
 # TODO: make tasks not only in .sh
 
+# TODO: os.path.splitext()[0]
 # TODO: templates with tasks and different instance than projects themself
 
 
@@ -100,8 +101,13 @@ def get_projects_root():
 
 
 def get_templates_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "templates")):
-        return os.path.join(PET_FOLDER, "templates")
+    if os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
+        return os.path.join(PET_FOLDER, "templates", "projects")
+
+
+def get_templates_tasks_root():
+    if os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
+        return os.path.join(PET_FOLDER, "templates", "tasks")
 
 
 def get_archive_root():
@@ -110,6 +116,8 @@ def get_archive_root():
 
 
 # TODO: STAY end
+# TODO: DEL
+
 
 def get_shell_as_type():
     if os.environ.get('SHELL', "").find('bash') != -1:
@@ -118,7 +126,6 @@ def get_shell_as_type():
         return ZSH_RC_FILENAME
 
 
-# TODO: DEL
 def get_rc_file(project_root):
     if os.path.isfile(os.path.join(project_root, BASH_RC_FILENAME)):
         return os.path.join(project_root, BASH_RC_FILENAME)
@@ -144,6 +151,9 @@ def make_rc_file(name, project_root, shell):
     with open(rc, mode='w') as rcfile:
         rcfile.write(contents)
 
+# print(os.listdir(os.path.join(get_projects_root(), "new", "tasks")))
+# TODO: DELETE ENDS
+
 
 def edit_file(path):
     """edits file using $EDITOR"""
@@ -158,6 +168,12 @@ def project_exist(name):
 def template_exist(name):
     """checks existence of project"""
     return os.path.exists(os.path.join(get_templates_root(), name))
+
+
+# TODO: check FILE!
+def template_task_exist(name):
+    """checks existence of project"""
+    return os.path.exists(os.path.join(get_templates_tasks_root(), name))
 
 
 def task_exist(project, name):
@@ -335,17 +351,15 @@ class ProjectCreator(object):
         complete_add(self.name)
 
 
-def lockable(check_only=False):
-    def _lockable(func):
-        def __lockable(name, check_only=check_only, *args, **kwargs):
-            if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
-                raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
-            if not check_only:
-                with ProjectLock(name):
-                    return func(name, *args, **kwargs)
-            else:
-                return func(name, *args, **kwargs)
-        return __lockable
+def lockable(func):
+    def _lockable(name, check_only=False, *args, **kwargs):
+        if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
+            raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
+        if not check_only:
+            with ProjectLock(name):
+                func(name, *args, **kwargs)
+        else:
+            func(name, *args, **kwargs)
     return _lockable
 
 

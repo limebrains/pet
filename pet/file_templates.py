@@ -5,12 +5,12 @@ from pet_exceptions import PetException
 
 
 @click.group(chain=True, invoke_without_command=True)
-@click.option('-l', is_flag=True, help="Project is locked")
+@click.option('-l', is_flag=True, help="Lock project")
 @click.pass_context
 def cli(ctx, l):
     if ctx.invoked_subcommand is None:
         try:
-            start('{0}', with_lock=bool(l))
+            start('{0}', check_only=not bool(l))
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''
