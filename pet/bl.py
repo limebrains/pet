@@ -46,110 +46,6 @@ EX_SHELL_NOT_SUPPORTED = "{0} - isn't supported"
 EX_NO_RC_FILE_FOUND = "no rc file in {0}"
 
 
-class GeneralShellMixin(object):
-
-    def __init__(self):
-        self.rc_filename = ""
-
-    def get_rc_filename(self):
-        return self.rc_filename
-
-    def make_rc_file(self, project_name):
-        project_root = os.path.join(get_projects_root(), project_name)
-        contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\n" \
-                   "PS1=\"[{1}] $PS1\"\nsource {3}\n".format(PET_INSTALL_FOLDER, project_name, project_root,
-                                                             os.path.join(project_root, "tasks.sh"))
-        rc = os.path.join(project_root, self.get_rc_filename())
-        with open(rc, mode='w') as rc_file:
-            rc_file.write(contents)
-
-    def start(self, project_root):
-        pass
-
-    def create_shell_profiles(self):
-        pass
-
-    def task_exec(self, project_name, task_name, interactive, args=()):
-        tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
-        popen_args = [os.path.join(tasks_root, get_file_fullname(tasks_root, task_name))]
-        popen_args.extend(args)
-        Popen(popen_args)
-
-
-class Bash(GeneralShellMixin):
-
-    def __init__(self):
-        GeneralShellMixin.__init__(self)
-        self.rc_filename = BASH_RC_FILENAME
-
-    def start(self, project_root):
-        Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
-            os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate(input)
-
-    def create_shell_profiles(self):
-        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
-                shell_profiles_file.write("source ~/.bashrc\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
-                shell_profiles_file.write("source ~/.profile\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
-                shell_profiles_file.write("source ~/.bash_profile\n")
-
-    # @lockable(check_only=True)
-    def task_exec(self, project_name, task_name, interactive, args=()):
-        if interactive:
-            self.make_rc_file(project_name)
-            project_root = os.path.join(get_projects_root(), project_name)
-            # TODO: change /bin/bash for usr bin env bash, maybe with Popen -> which usrbin bash -> cut
-            Popen(["/bin/bash", "-c", "$SHELL --rcfile <(echo '. {0}; {1} {2}')\n$SHELL {3}/stop.sh".format(
-                os.path.join(project_root, self.get_rc_filename()),
-                os.path.join(project_root, "tasks", get_file_fullname(project_root, task_name)),
-                " ".join(args),
-                project_root)]).communicate(input)
-        else:
-            GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
-
-
-class Zsh(GeneralShellMixin):
-
-    def __init__(self):
-        GeneralShellMixin.__init__(self)
-        self.rc_filename = ZSH_RC_FILENAME
-
-    def start(self, project_root):
-        print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
-        Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
-            project_root)]).communicate(input)
-
-    def create_shell_profiles(self):
-        if os.environ.get('ZDOTDIR', ""):
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
-                shell_profiles_file.write("source $ZDOTDIR/.zshrc\n")
-        else:
-            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
-                shell_profiles_file.write("source $HOME/.zshrc\n")
-
-    # @lockable(check_only=True)
-    def task_exec(self, project_name, task_name, interactive, args=()):
-        if interactive:
-            # TODO: find a way to make interactive tasks in zsh
-            print("it doesn't work in zsh")
-        else:
-            GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
-
-
-@functools.lru_cache()
-def get_shell():
-    shell_name = os.environ.get('SHELL', '')
-    if 'bash' in shell_name:
-        shell = Bash()
-    elif 'zsh' in shell_name:
-        shell = Zsh()
-    else:
-        raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
-    return shell
-
-
 def get_file_fullname(searching_root, file_name):
     return glob.glob(os.path.join(searching_root, file_name + '.*'))[0]
 
@@ -214,6 +110,142 @@ def complete_remove(project_name):
         line_nr = int(line_nr.decode("utf-8")[:-1])
         Popen(["/bin/sh", "-c", "sed -i '{0}s/{1}//' {2}".format(
             line_nr, " " + project_name, os.path.join(PET_INSTALL_FOLDER, "complete.bash"))])
+
+
+def lockable(check_only=False):
+    def _lockable(func, *args, **kwargs):
+        def __lockable(self=None, project_name='', *args, **kwargs):
+            if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
+                raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(project_name))
+            if not check_only:
+                with ProjectLock(project_name):
+                    if self:
+                        return func(self, project_name, *args, **kwargs)
+                    else:
+                        return func(project_name, *args, **kwargs)
+            else:
+                if self:
+                    return func(self, project_name, *args, **kwargs)
+                else:
+                    return func(project_name, *args, **kwargs)
+        return __lockable
+    return _lockable
+
+# # WITH THIS STARTING PROJECT WORKS
+# def lockable(func):
+#     def _lockable(name, check_only=False, *args, **kwargs):
+#         if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
+#             raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
+#         if not check_only:
+#             with ProjectLock(name):
+#                 func(name, *args, **kwargs)
+#         else:
+#             func(name, *args, **kwargs)
+#     return _lockable
+
+
+class GeneralShellMixin(object):
+
+    def __init__(self):
+        self.rc_filename = ""
+
+    def get_rc_filename(self):
+        return self.rc_filename
+
+    def make_rc_file(self, project_name):
+        project_root = os.path.join(get_projects_root(), project_name)
+        contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\n" \
+                   "PS1=\"[{1}] $PS1\"\nsource {3}\n".format(PET_INSTALL_FOLDER, project_name, project_root,
+                                                             os.path.join(project_root, "tasks.sh"))
+        rc = os.path.join(project_root, self.get_rc_filename())
+        with open(rc, mode='w') as rc_file:
+            rc_file.write(contents)
+
+    def start(self, project_root):
+        pass
+
+    def create_shell_profiles(self):
+        pass
+
+    def task_exec(self, project_name, task_name, interactive, args=()):
+        tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
+        popen_args = [os.path.join(tasks_root, get_file_fullname(tasks_root, task_name))]
+        popen_args.extend(args)
+        Popen(popen_args)
+
+
+class Bash(GeneralShellMixin):
+
+    def __init__(self):
+        GeneralShellMixin.__init__(self)
+        self.rc_filename = BASH_RC_FILENAME
+
+    def start(self, project_root):
+        Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
+            os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate(input)
+
+    def create_shell_profiles(self):
+        with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
+                shell_profiles_file.write("source ~/.bashrc\n")
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
+                shell_profiles_file.write("source ~/.profile\n")
+            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
+                shell_profiles_file.write("source ~/.bash_profile\n")
+
+    @lockable(check_only=True)
+    def task_exec(self, project_name, task_name, interactive, args=()):
+        if interactive:
+            self.make_rc_file(project_name)
+            project_root = os.path.join(get_projects_root(), project_name)
+            # TODO: change /bin/bash for usr bin env bash, maybe with Popen -> which usrbin bash -> cut
+            Popen(["/bin/bash", "-c", "$SHELL --rcfile <(echo '. {0}; {1} {2}')\n$SHELL {3}/stop.sh".format(
+                os.path.join(project_root, self.get_rc_filename()),
+                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                " ".join(args),
+                project_root)]).communicate(input)
+        else:
+            GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
+
+
+class Zsh(GeneralShellMixin):
+
+    def __init__(self):
+        GeneralShellMixin.__init__(self)
+        self.rc_filename = ZSH_RC_FILENAME
+
+    def start(self, project_root):
+        print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
+        Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
+            project_root)]).communicate(input)
+
+    def create_shell_profiles(self):
+        if os.environ.get('ZDOTDIR', ""):
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+                shell_profiles_file.write("source $ZDOTDIR/.zshrc\n")
+        else:
+            with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
+                shell_profiles_file.write("source $HOME/.zshrc\n")
+
+    # @lockable(check_only=True)
+    def task_exec(self, project_name, task_name, interactive, args=()):
+        if interactive:
+            # TODO: find a way to make interactive tasks in zsh
+            print("it doesn't work in zsh")
+        else:
+            GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
+
+
+@functools.lru_cache()
+def get_shell():
+    shell_name = os.environ.get('SHELL', '')
+    if 'bash' in shell_name:
+        shell = Bash()
+    elif 'zsh' in shell_name:
+        shell = Zsh()
+    else:
+        raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+    return shell
 
 
 class ProjectLock(object):
@@ -301,33 +333,7 @@ class ProjectCreator(object):
         complete_add(self.project_name)
 
 
-# def lockable(check_only=False):
-#     def _lockable(func):
-#         def __lockable(name, check_only=check_only, *args, **kwargs):
-#             if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
-#                 raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
-#             if not check_only:
-#                 with ProjectLock(name):
-#                     return func(name, *args, **kwargs)
-#             else:
-#                 return func(name, *args, **kwargs)
-#         return __lockable
-#     return _lockable
-
-# WITH THIS STARTING PROJECT WORKS
-def lockable(func):
-    def _lockable(name, check_only=False, *args, **kwargs):
-        if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
-            raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
-        if not check_only:
-            with ProjectLock(name):
-                func(name, *args, **kwargs)
-        else:
-            func(name, *args, **kwargs)
-    return _lockable
-
-
-@lockable
+@lockable()
 def start(project_name):
     """starts new project"""
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
@@ -387,7 +393,7 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-# @lockable(check_only=True)
+@lockable(check_only=True)
 def remove_project(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
@@ -401,7 +407,7 @@ def remove_project(project_name):
     complete_remove(project_name)
 
 
-# @lockable(check_only=True)
+@lockable(check_only=True)
 def archive(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
@@ -507,11 +513,7 @@ def run_task(project_name, task_name, active_project_name, interactive, args=())
         raise NameNotFound(EX_TASK_NOT_FOUND.format(task_name))
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
         get_shell().create_shell_profiles()
-    if active_project_name == project_name:
-        get_shell().task_exec(project_name, task_name, interactive, args)
-    else:
-        with ProjectLock(project_name):
-            get_shell().task_exec(project_name, task_name, interactive, args)
+    get_shell().task_exec(project_name, task_name, interactive, args)
 
 
 def remove_task(project_name, task_name):
