@@ -6,11 +6,9 @@ import os
 
 # Own
 
-
 import bl
 from pet_exceptions import PetException
 
-# TODO: META: (?) put executable files into folder /pet/pet/ /pet/tests/
 
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', False)

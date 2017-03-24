@@ -24,8 +24,8 @@ from pet_exceptions import (
     ProjectActivated,
 )
 
+# TODO: achieve that by finding files in project task folder rather than .sh files
 # TODO: make tasks not only in .sh
-
 
 # TODO: templates with tasks and different instance than projects themself
 
@@ -33,10 +33,8 @@ from pet_exceptions import (
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 COMMANDS = "pet archive clean edit init list register remove rename restore stop task run".split()
-# TODO: DELETE ?
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
-# TODO: DELETE END
 SHELL_PROFILES_FILENAME = "shell_profiles"
 EX_PROJECT_NOT_FOUND = "{0} - project not found"
 EX_PROJECT_IS_ACTIVE = "{0} - project is active"
@@ -233,6 +231,7 @@ class TaskExec(object):
     def __enter__(self):
         if self.interactive:
             if self.shell.find('bash') != -1:
+                # TODO: refactor V use temp file or run it directly in BASH -c
                 run_path = os.path.join(self.project_root, 'run.bash')
                 with open(run_path, mode='w') as run:
                     run.write("#!/usr/bin/env bash\n$SHELL --rcfile <(echo '. {0}; {1}')\n".format(
@@ -281,16 +280,16 @@ class ProjectCreator(object):
     def create_dirs(self):
         if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
             create_shell()
-        if not os.path.exists(self.project_root):
-            os.makedirs(self.project_root)
         if not os.path.exists(os.path.join(self.project_root, "tasks")):
             os.makedirs(os.path.join(self.project_root, "tasks"))
         make_rc_file(self.name, self.project_root, os.environ.get('SHELL', ""))
 
     def create_additional_files(self):
         with open(os.path.join(self.project_root, self.name + ".py"), mode='w') as project_file:
+            # TODO: refactor V new project template
             project_file.write(new_project_py_file.format(self.name))
         with open(os.path.join(self.project_root, "tasks.py"), mode='w') as tasks_file:
+            # TODO: refactor V task file template?
             tasks_file.write(new_tasks_file)
         with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
             tasks_alias_file.write("# aliases for your tasks\n")
@@ -336,15 +335,17 @@ class ProjectCreator(object):
         complete_add(self.name)
 
 
-def lockable(func):
-    def _lockable(name, with_lock, *args, **kwargs):
-        if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
-            raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
-        if with_lock:
-            with ProjectLock(name):
-                func(name, *args, **kwargs)
-        else:
-            func(name, *args, **kwargs)
+def lockable(check_only=False):
+    def _lockable(func):
+        def __lockable(name, check_only=check_only, *args, **kwargs):
+            if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
+                raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
+            if not check_only:
+                with ProjectLock(name):
+                    return func(name, *args, **kwargs)
+            else:
+                return func(name, *args, **kwargs)
+        return __lockable
     return _lockable
 
 
@@ -387,7 +388,7 @@ def register():
         raise PetException("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
 
     os.symlink(folder, os.path.join(get_projects_root(), name))
-    complete_add(name)
+    complete_add(project=name)
 
 
 def rename_project(old, new):
@@ -398,8 +399,8 @@ def rename_project(old, new):
     if os.path.exists(os.path.join(projects_root, new)):
         raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(new))
     os.rename(os.path.join(projects_root, old), os.path.join(projects_root, new))
-    complete_add(new)
-    complete_remove(old)
+    complete_add(project=new)
+    complete_remove(project=old)
 
 
 def edit_project(name):
@@ -417,6 +418,7 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
+# TODO: lockable
 def remove_project(project):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project)
@@ -429,7 +431,7 @@ def remove_project(project):
         os.remove(project_root)
     else:
         shutil.rmtree(project_root)
-    complete_remove(project)
+    complete_remove(project=project)
 
 
 def archive(project):
@@ -444,7 +446,7 @@ def archive(project):
 
     archive_root = get_archive_root()
     shutil.move(project_root, os.path.join(archive_root, project))
-    complete_remove(project)
+    complete_remove(project=project)
 
 
 def restore(name):
@@ -455,7 +457,7 @@ def restore(name):
         raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(name))
 
     shutil.move(os.path.join(get_archive_root(), name), os.path.join(get_projects_root(), name))
-    complete_add(name)
+    complete_add(project=name)
 
 
 def clean():
@@ -489,12 +491,15 @@ def print_tasks(name):
     """lists tasks in project"""
     projects_root = get_projects_root()
     tasks = [
+        # TODO: refactor V use filename
         task[:-3]
         for task in os.listdir(os.path.join(projects_root, name, "tasks"))
     ]
     return "\n".join(tasks)
 
 
+# TODO: refactor everything connected to tasks to check for files (only one file with name) not for name.sh
+# TODO: take either name -> script.[default], either name.extension
 def create_task(project, name):
     """creates task"""
     if not project_exist(project):
@@ -554,6 +559,7 @@ def run_task(project, task, active, interactive, args=()):
             rc_type = get_rc_type(project_root)
             if rc_type:
                 # TODO: 23rd Kappa
+                # TODO: refactor V change it to normal class
                 with TaskExec(project, task, rc_type, interactive, list(args)):
                     pass
 
