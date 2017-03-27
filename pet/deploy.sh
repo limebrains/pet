@@ -11,7 +11,7 @@ if [ $(echo "$SHELL" | grep "bash") ]; then
     if [ "$bash_completions" == "$HOME/.bash_completion" ]; then
             echo ". $DIR/complete.bash" >> "$bash_completions"
         else
-            echo ". $DIR/complete.bash" > "$bash_completions/prm"
+            echo ". $DIR/complete.bash" > "$bash_completions/pet"
     fi
 
 

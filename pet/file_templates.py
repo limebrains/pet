@@ -29,7 +29,7 @@ new_task_for_tasks_sh_template = '''
 @click.option('-i', is_flag=True)
 def {0}(i, active="", args=()):
     try:
-        run_task("{1}", "{2}", active_project_name, i, args)
+        run_task("{1}", "{2}", i, args)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''

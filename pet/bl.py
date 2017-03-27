@@ -465,7 +465,7 @@ def create_task(project_name, task_name):
         raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
-    task_file_path = get_file_fullname_and_path(project_root, task_name)
+    task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
     Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)]).communicate(input)
     edit_file(task_file_path)
     os.chmod(task_file_path, 0o755)
