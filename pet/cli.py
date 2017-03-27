@@ -108,9 +108,9 @@ def print_list(old, tasks, tree):
 @cli.command()
 @click.argument('name')
 def archive(name):
-    """removes project"""
+    """archives project"""
     try:
-        bl.archive(name)
+        bl.archive(project_name=name)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
@@ -198,7 +198,7 @@ else:
     def remove_project(name):
         """removes project"""
         try:
-            bl.remove_project(name)
+            bl.remove_project(project_name=name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 

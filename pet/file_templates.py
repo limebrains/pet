@@ -10,7 +10,7 @@ from pet_exceptions import PetException
 def cli(ctx, l):
     if ctx.invoked_subcommand is None:
         try:
-            start('{0}', check_only=not bool(l))
+            start(project_name='{0}', lock=bool(l))
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''

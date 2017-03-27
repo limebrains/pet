@@ -26,6 +26,7 @@ from pet_exceptions import (
 )
 
 
+# TODO: you can remove/ archive active project out of other tab
 # TODO: templates: tasks
 
 
@@ -112,12 +113,13 @@ def complete_remove(project_name):
             line_nr, " " + project_name, os.path.join(PET_INSTALL_FOLDER, "complete.bash"))])
 
 
-def lockable(check_only=False):
+def lockable(check_only=True):
     def _lockable(func, *args, **kwargs):
         def __lockable(self=None, project_name='', *args, **kwargs):
+            lock = kwargs.pop('lock', None)
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
                 raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(project_name))
-            if not check_only:
+            if not check_only or lock:
                 with ProjectLock(project_name):
                     if self:
                         return func(self, project_name, *args, **kwargs)
@@ -130,18 +132,6 @@ def lockable(check_only=False):
                     return func(project_name, *args, **kwargs)
         return __lockable
     return _lockable
-
-# # WITH THIS STARTING PROJECT WORKS
-# def lockable(func):
-#     def _lockable(name, check_only=False, *args, **kwargs):
-#         if os.path.isfile(os.path.join(get_projects_root(), name, "_lock")):
-#             raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(name))
-#         if not check_only:
-#             with ProjectLock(name):
-#                 func(name, *args, **kwargs)
-#         else:
-#             func(name, *args, **kwargs)
-#     return _lockable
 
 
 class GeneralShellMixin(object):
@@ -193,7 +183,7 @@ class Bash(GeneralShellMixin):
             if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
                 shell_profiles_file.write("source ~/.bash_profile\n")
 
-    @lockable(check_only=True)
+    @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         if interactive:
             self.make_rc_file(project_name)
@@ -227,7 +217,7 @@ class Zsh(GeneralShellMixin):
             with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
                 shell_profiles_file.write("source $HOME/.zshrc\n")
 
-    # @lockable(check_only=True)
+    @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         if interactive:
             # TODO: find a way to make interactive tasks in zsh
@@ -393,7 +383,7 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-@lockable(check_only=True)
+@lockable()
 def remove_project(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
@@ -407,7 +397,7 @@ def remove_project(project_name):
     complete_remove(project_name)
 
 
-@lockable(check_only=True)
+@lockable()
 def archive(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
@@ -507,7 +497,7 @@ def rename_task(project_name, old_task_name, new_task_name):
     os.rename(old_task_full_path, os.path.join(tasks_root, new_task_name + task_extension))
 
 
-def run_task(project_name, task_name, active_project_name, interactive, args=()):
+def run_task(project_name, task_name, interactive, args=()):
     """executes task in correct project"""
     if not task_exist(project_name, task_name):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(task_name))
