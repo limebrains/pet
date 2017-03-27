@@ -1,5 +1,5 @@
-# Python
 import functools
+import logging
 import glob
 import shutil
 import signal
@@ -10,9 +10,7 @@ from subprocess import (
     Popen,
 )
 
-# Third party
 
-# Own
 from file_templates import (
     new_project_py_file_template,
     new_task_for_tasks_sh_template,
@@ -23,11 +21,14 @@ from pet_exceptions import (
     NameNotFound,
     PetException,
     ProjectActivated,
+    ShellNotRecognized,
 )
 
 
-# TODO: 27th you can remove/ archive active project out of other tab
-# TODO: templates: tasks
+log = logging.getLogger(__file__)
+
+# TODO: templates: tasks - but how should it work?
+# TODO: rewrite logging into yields
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -38,6 +39,7 @@ ZSH_RC_FILENAME = ".zshrc"
 SHELL_PROFILES_FILENAME = "shell_profiles"
 EX_PROJECT_NOT_FOUND = "{0} - project not found"
 EX_PROJECT_IS_ACTIVE = "{0} - project is active"
+EX_PROJECT_IS_LOCKED = "{0} - project is locked"
 EX_PROJECT_EXISTS = "{0} - name already taken"
 EX_PROJECT_IN_ARCHIVE = "{0} - name already taken in archive"
 EX_TEMPLATE_NOT_FOUND = "{0} - template not found"
@@ -116,13 +118,39 @@ def complete_remove(project_name):
             line_nr, " " + project_name, os.path.join(PET_INSTALL_FOLDER, "complete.bash"))])
 
 
-def lockable(check_only=True):
+def add_to_active_projects(project_name):
+    Popen(["/bin/sh", "-c", "echo '{0}' >> {1}".format(
+        project_name, os.path.join(PET_INSTALL_FOLDER, "active_projects"))])
+
+
+def remove_from_active_projects(project_name):
+    line_nr = check_in_active_projects(project_name)
+    if line_nr:
+        Popen(["/bin/sh", "-c", "sed -i -e \"{0}d\" {1}".format(
+            line_nr.split('\n')[0], os.path.join(get_pet_install_folder(), "active_projects"))])
+
+
+def check_in_active_projects(project_name):
+    return (Popen(["/bin/sh", "-c", "grep -n ^{0}$ {1} | cut -d \":\" -f 1".format(
+        project_name, os.path.join(get_pet_install_folder(), "active_projects"))],
+                  stdout=PIPE).stdout.read()).decode("utf-8")[:-1]
+
+
+def lockable(check_only=True, check_active=False, *args, **kwargs):
     def _lockable(func, *args, **kwargs):
-        def __lockable(self=None, project_name='', *args, **kwargs):
-            lock = kwargs.pop('lock', None)
+        def __lockable(self=None, project_name='', check_only=check_only *args, **kwargs):
+            if check_only and kwargs.pop('lock'):
+                check_only = False
+            # WTF?! why without line below in both (lock true/false) cases lock is passed?
+            kwargs.pop('lock')
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
-                raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(project_name))
-            if not check_only or lock:
+                raise ProjectActivated(EX_PROJECT_IS_LOCKED.format(project_name))
+            if check_active:
+                if check_in_active_projects(project_name):
+                    raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(project_name))
+            if not check_only:
+                if check_in_active_projects(project_name):
+                    log.warning(EX_PROJECT_IS_ACTIVE.format(project_name))
                 with ProjectLock(project_name):
                     if self:
                         return func(self, project_name, *args, **kwargs)
@@ -154,11 +182,11 @@ class GeneralShellMixin(object):
         with open(rc, mode='w') as rc_file:
             rc_file.write(contents)
 
-    def start(self, project_root):
-        pass
+    def start(self, project_root, project_name):
+        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
 
     def create_shell_profiles(self):
-        pass
+        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
 
     def task_exec(self, project_name, task_name, interactive, args=()):
         tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
@@ -173,9 +201,11 @@ class Bash(GeneralShellMixin):
         GeneralShellMixin.__init__(self)
         self.rc_filename = BASH_RC_FILENAME
 
-    def start(self, project_root):
+    def start(self, project_root, project_name):
+        add_to_active_projects(project_name)
         Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}\n$SHELL {1}/stop.sh".format(
             os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate(input)
+        remove_from_active_projects(project_name)
 
     def create_shell_profiles(self):
         with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
@@ -189,6 +219,7 @@ class Bash(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         if interactive:
+            add_to_active_projects(project_name)
             self.make_rc_file(project_name)
             project_root = os.path.join(get_projects_root(), project_name)
             # TODO: change /bin/bash for usr bin env bash, maybe with Popen -> which usrbin bash -> cut
@@ -197,6 +228,7 @@ class Bash(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args),
                 project_root)]).communicate(input)
+            remove_from_active_projects(project_name)
         else:
             GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
 
@@ -207,10 +239,12 @@ class Zsh(GeneralShellMixin):
         GeneralShellMixin.__init__(self)
         self.rc_filename = ZSH_RC_FILENAME
 
-    def start(self, project_root):
+    def start(self, project_root, project_name):
+        add_to_active_projects(project_name)
         print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
         Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL\n$SHELL {0}/stop.sh".format(
             project_root)]).communicate(input)
+        remove_from_active_projects(project_name)
 
     def create_shell_profiles(self):
         if os.environ.get('ZDOTDIR', ""):
@@ -223,8 +257,10 @@ class Zsh(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         if interactive:
+            add_to_active_projects(project_name)
             # TODO: find a way to make interactive tasks in zsh
             print("it doesn't work in zsh")
+            remove_from_active_projects(project_name)
         else:
             GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
 
@@ -237,7 +273,7 @@ def get_shell():
     elif 'zsh' in shell_name:
         shell = Zsh()
     else:
-        raise NameNotFound(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
     return shell
 
 
@@ -333,7 +369,7 @@ def start(project_name):
         get_shell().create_shell_profiles()
     project_root = os.path.join(get_projects_root(), project_name)
     get_shell().make_rc_file(project_name)
-    get_shell().start(project_root)
+    get_shell().start(project_root, project_name)
 
 
 def create(project_name, templates=()):
@@ -386,7 +422,7 @@ def stop():
     os.kill(os.getppid(), signal.SIGKILL)
 
 
-@lockable()
+@lockable(check_active=True)
 def remove_project(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
@@ -400,7 +436,7 @@ def remove_project(project_name):
     complete_remove(project_name)
 
 
-@lockable()
+@lockable(check_active=True)
 def archive(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
@@ -427,6 +463,7 @@ def restore(project_name):
 
 def clean():
     """unlocks all projects"""
+    Popen(["/bin/sh", "-c", "echo '' > {0}".format(os.path.join(get_pet_install_folder(), "active_projects"))])
     projects_root = get_projects_root()
     for dirname in os.listdir(projects_root):
         if os.path.exists(os.path.join(projects_root, dirname, "_lock")):

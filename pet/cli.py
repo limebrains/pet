@@ -1,9 +1,7 @@
 import click
 import os
 
-# Third party
 
-# Own
 import bl
 from pet_exceptions import PetException
 
@@ -17,8 +15,6 @@ active = os.environ.get('PET_ACTIVE_PROJECT', default='')
 # TODO: tasks with templates
 # TODO: tests
 # TODO: in setup add #!venv/python in pet // entry_points
-
-# TODO: 27th should we allow to lock ONLY new instances of project or inform about existing ones?
 
 
 def get_projects():
