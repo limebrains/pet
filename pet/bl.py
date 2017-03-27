@@ -95,6 +95,8 @@ def template_exist(template_name):
 
 def task_exist(project_name, task_name):
     """checks existence of task"""
+    if '.' in task_name:
+        task_name = os.path.splitext(task_name)[0]
     return task_name in print_tasks(project_name)
 
 
@@ -468,16 +470,17 @@ def create_task(project_name, task_name):
     if '.' in task_name:
         task_file_path = os.path.join(project_root, "tasks", task_name)
         task_name = os.path.splitext(task_name)[0]
+        Popen(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
     else:
         task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
-        Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)]).communicate(input)
-    os.chmod(task_file_path, 0o755)
+        Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
     edit_file(task_file_path)
+    os.chmod(task_file_path, 0o755)
     with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
         tasks_file.write(new_task_for_tasks_sh_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
         tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
-    print("alias available during next boot of project")
+    raise PetException("alias available during next boot of project")
 
 
 def edit_task(project_name, task_name):
