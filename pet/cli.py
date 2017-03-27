@@ -1,4 +1,3 @@
-# Python
 import click
 import os
 
@@ -10,14 +9,16 @@ from pet_exceptions import PetException
 
 
 cli = click.Group()
-active = os.environ.get('PET_ACTIVE_PROJECT', '')
+active = os.environ.get('PET_ACTIVE_PROJECT', default='')
 
-# TODO: correct deploy.sh
+# TODO: collapse deploy.sh and make.py into one with better name
+# TODO: correct (check if working on Mac - after collapsing ^) deploy.sh
 # TODO: interactive tasks in ZSH
 # TODO: tasks with templates
 # TODO: tests
-# TODO: in make add #!venv/python in pet
-# TODO: should we allow to lock ONLY new instances of project or inform about existing ones?
+# TODO: in setup add #!venv/python in pet // entry_points
+
+# TODO: 27th should we allow to lock ONLY new instances of project or inform about existing ones?
 
 
 def get_projects():
@@ -227,12 +228,12 @@ else:
     @cli.command()
     @click.argument('project')
     @click.argument('task')
-    @click.option('-i', is_flag=True, help="interactive")
+    @click.option('-i', '--interactive', is_flag=True)
     @click.argument('args', nargs=-1)
-    def run(project, task, i, args=()):
+    def run(project, task, interactive, args=()):
         """runs projects task"""
         try:
-            bl.run_task(project, task, i, args)
+            bl.run_task(project, task, interactive, args)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 

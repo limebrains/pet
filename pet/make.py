@@ -1,4 +1,3 @@
-# Python
 import os
 
 # Third party
@@ -12,14 +11,10 @@ PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), 
 
 
 def create_folders():
-    if not os.path.exists(os.path.join(PET_FOLDER, "projects")):
-        os.makedirs(os.path.join(PET_FOLDER, "projects"))
-    if not os.path.exists(os.path.join(PET_FOLDER, "archive")):
-        os.makedirs(os.path.join(PET_FOLDER, "archive"))
-    if not os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
-        os.makedirs(os.path.join(PET_FOLDER, "templates", "projects"))
-    if not os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
-        os.makedirs(os.path.join(PET_FOLDER, "templates", "tasks"))
+    os.makedirs(os.path.join(PET_FOLDER, "projects"))
+    os.makedirs(os.path.join(PET_FOLDER, "archive"))
+    os.makedirs(os.path.join(PET_FOLDER, "templates", "projects"))
+    os.makedirs(os.path.join(PET_FOLDER, "templates", "tasks"))
 
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ from pet_exceptions import (
 )
 
 
-# TODO: you can remove/ archive active project out of other tab
+# TODO: 27th you can remove/ archive active project out of other tab
 # TODO: templates: tasks
 
 
@@ -45,6 +45,7 @@ EX_TASK_NOT_FOUND = "{0} - task not found"
 EX_TASK_ALREADY_EXISTS = "{0}- task already exists"
 EX_SHELL_NOT_SUPPORTED = "{0} - isn't supported"
 EX_NO_RC_FILE_FOUND = "no rc file in {0}"
+EXECUTABLE_RIGHTS = 0o755
 
 
 def get_file_fullname(searching_root, file_name):
@@ -475,7 +476,7 @@ def create_task(project_name, task_name):
         task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
         Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
     edit_file(task_file_path)
-    os.chmod(task_file_path, 0o755)
+    os.chmod(task_file_path, EXECUTABLE_RIGHTS)
     with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
         tasks_file.write(new_task_for_tasks_sh_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
