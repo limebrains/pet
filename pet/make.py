@@ -1,5 +1,10 @@
+# Python
 import os
-from bl import create_shell
+
+# Third party
+
+# Own
+from bl import get_shell
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -11,10 +16,12 @@ def create_folders():
         os.makedirs(os.path.join(PET_FOLDER, "projects"))
     if not os.path.exists(os.path.join(PET_FOLDER, "archive")):
         os.makedirs(os.path.join(PET_FOLDER, "archive"))
-    if not os.path.exists(os.path.join(PET_FOLDER, "templates")):
-        os.makedirs(os.path.join(PET_FOLDER, "templates"))
+    if not os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
+        os.makedirs(os.path.join(PET_FOLDER, "templates", "projects"))
+    if not os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
+        os.makedirs(os.path.join(PET_FOLDER, "templates", "tasks"))
 
 
 if __name__ == '__main__':
     create_folders()
-    create_shell()
+    get_shell().create_shell_profiles()

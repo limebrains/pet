@@ -1,18 +1,22 @@
+# Python
 import click
-import bl
 import os
+
+# Third party
+
+# Own
+import bl
 from pet_exceptions import PetException
 
-# TODO: META: (?) put executable files into folder /pet/pet/ /pet/tests/
 
 cli = click.Group()
-active = os.environ.get('PET_ACTIVE_PROJECT', False)
+active = os.environ.get('PET_ACTIVE_PROJECT', '')
 
 # TODO: correct deploy.sh
 # TODO: interactive tasks in ZSH
 # TODO: tasks with templates
 # TODO: tests
-# TODO: in make add #!venv in pet
+# TODO: in make add #!venv/python in pet
 # TODO: should we allow to lock ONLY new instances of project or inform about existing ones?
 
 
@@ -74,9 +78,13 @@ def create_project(name, templates):
 
 @cli.command('list')
 @click.option('--old', '-o', is_flag=True, help="print projects in archive")
-@click.option('--tasks', '-t', is_flag=True, help="show tree of all tasks in all projects")
-def print_list(old, tasks):
+@click.option('--tasks', '-t', is_flag=True, help="show tasks in active project")
+@click.option('--tree', is_flag=True, help="show tree of all tasks in projects")
+def print_list(old, tasks, tree):
     """lists all projects"""
+    if [old, tree, tasks].count(True) > 1:
+        click.secho("Only one flag at a time! I am not Mt Everest", fg='red')
+        return 1
     if old:
         projects = bl.print_old()
         if projects:
@@ -87,8 +95,10 @@ def print_list(old, tasks):
             if tasks_list:
                 click.echo(tasks_list)
         else:
-            # TODO: Tree projects -|-tasks
-            click.secho("showing tree not implemented yet", fg='red')
+            click.secho("No project activated", fg='red')
+    elif tree:
+        # TODO: Tree projects -|-tasks
+        click.secho("Not implemented yet", fg='magenta')
     else:
         projects = bl.print_list()
         if projects:
@@ -98,9 +108,9 @@ def print_list(old, tasks):
 @cli.command()
 @click.argument('name')
 def archive(name):
-    """removes project"""
+    """archives project"""
     try:
-        bl.archive(name)
+        bl.archive(project_name=name)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
@@ -188,7 +198,7 @@ else:
     def remove_project(name):
         """removes project"""
         try:
-            bl.remove_project(name)
+            bl.remove_project(project_name=name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
@@ -222,7 +232,7 @@ else:
     def run(project, task, i, args=()):
         """runs projects task"""
         try:
-            bl.run_task(project, task, active, i, args)
+            bl.run_task(project, task, "", i, args)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
