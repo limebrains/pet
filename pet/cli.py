@@ -232,7 +232,7 @@ else:
     def run(project, task, i, args=()):
         """runs projects task"""
         try:
-            bl.run_task(project, task, "", i, args)
+            bl.run_task(project, task, i, args)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 

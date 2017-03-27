@@ -465,10 +465,14 @@ def create_task(project_name, task_name):
         raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
-    task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
-    Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)]).communicate(input)
-    edit_file(task_file_path)
+    if '.' in task_name:
+        task_file_path = os.path.join(project_root, "tasks", task_name)
+        task_name = os.path.splitext(task_name)[0]
+    else:
+        task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
+        Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)]).communicate(input)
     os.chmod(task_file_path, 0o755)
+    edit_file(task_file_path)
     with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
         tasks_file.write(new_task_for_tasks_sh_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:

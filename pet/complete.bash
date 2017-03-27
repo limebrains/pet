@@ -6,10 +6,9 @@ _pet()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     opts="archive clean edit init list register remove rename restore"
-    projects=" new"
+    projects=""
     if [ -z "$PET_ACTIVE_PROJECT" ]; then
         opts="${opts} run"
-        #             p->t
     else
         opts="${opts} stop task"
     fi
