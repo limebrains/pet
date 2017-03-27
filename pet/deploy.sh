@@ -8,6 +8,10 @@ if [ $(echo "$SHELL" | grep "bash") ]; then
             bash_completions="$HOME/.bash_completion"
     fi
 
+    if [ -d "$(brew --prefix)/etc/bash_completion.d/" ]; then
+        bash_completions="$(brew --prefix)/etc/bash_completion.d"
+    fi
+
     if [ "$bash_completions" == "$HOME/.bash_completion" ]; then
             echo ". $DIR/complete.bash" >> "$bash_completions"
         else

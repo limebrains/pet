@@ -1,7 +1,7 @@
 new_project_py_file_template = '''
 import click
-from bl import start
-from pet_exceptions import PetException
+from pet.bl import start
+from pet.pet_exceptions import PetException
 
 
 @click.group(chain=True, invoke_without_command=True)
@@ -17,8 +17,8 @@ def cli(ctx, l):
 
 new_tasks_sh_file_template = '''
 import click
-from bl import print_tasks, run_task
-from pet_exceptions import PetException
+from pet.bl import print_tasks, run_task
+from pet.pet_exceptions import PetException
 '''
 
 new_task_for_tasks_sh_template = '''

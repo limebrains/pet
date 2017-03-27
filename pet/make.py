@@ -21,7 +21,10 @@ def create_active_projects_file():
     Popen(["/bin/sh", "-c", "touch {0}".format(os.path.join(PET_INSTALL_FOLDER, "active_projects"))])
 
 
-if __name__ == '__main__':
+def main():
     create_folders()
     get_shell().create_shell_profiles()
     create_active_projects_file()
+
+if __name__ == '__main__':
+    main()

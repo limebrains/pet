@@ -1,10 +1,8 @@
 import click
 import os
 
-
-import bl
-from pet_exceptions import PetException
-
+from pet import bl
+from pet.pet_exceptions import PetException
 
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', default='')
@@ -71,6 +69,13 @@ def create_project(name, templates):
         bl.create(name, templates)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
+        '''
+        TODO: | pythonicninja
+              |  ~/PycharmProjects/pet   (master)
+              | => pet init
+              NameAlreadyTaken: pet - there is pet command with this name
+        inform about possibility to add custom name via -n
+        '''
 
 
 @cli.command('list')
@@ -234,7 +239,7 @@ else:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
-if __name__ == '__main__':
+def main():
     bl.get_projects_root()
     if os.environ.get('PET_ACTIVE_PROJECT', None):
         active_cli = ActiveCli()
@@ -243,3 +248,6 @@ if __name__ == '__main__':
     projects_cli = ProjectCli()
     multi_cli = click.CommandCollection(sources=[cli, active_cli, projects_cli])
     multi_cli()
+
+if __name__ == '__main__':
+    main()

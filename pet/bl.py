@@ -142,10 +142,7 @@ def check_in_active_projects(project_name):
 def lockable(check_only=True, check_active=False, *args, **kwargs):
     def _lockable(func, *args, **kwargs):
         def __lockable(self=None, project_name='', check_only=check_only *args, **kwargs):
-            if check_only and kwargs.pop('lock'):
-                check_only = False
-            # WTF?! why without line below in both (lock true/false) cases lock is passed?
-            kwargs.pop('lock')
+            check_only = not kwargs.pop('lock', (not check_only))
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
                 raise ProjectActivated(EX_PROJECT_IS_LOCKED.format(project_name))
             if check_active:
