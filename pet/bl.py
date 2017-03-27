@@ -11,12 +11,12 @@ from subprocess import (
 )
 
 
-from file_templates import (
+from pet.file_templates import (
     new_project_py_file_template,
     new_task_for_tasks_sh_template,
     new_tasks_sh_file_template,
 )
-from pet_exceptions import (
+from pet.pet_exceptions import (
     NameAlreadyTaken,
     NameNotFound,
     PetException,
@@ -106,6 +106,9 @@ def task_exist(project_name, task_name):
 def complete_add(project_name):
     Popen(["/bin/sh", "-c", "sed -i '/projects=/ s/\"$/ {0}\"/' {1}".format(project_name, os.path.join(
         PET_INSTALL_FOLDER, "complete.bash"))])
+
+
+# TODO: TESTS are done for ^
 
 
 def complete_remove(project_name):

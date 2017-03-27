@@ -1,5 +1,5 @@
 __all__ = [
-    'PetException', 'NameNotFound', 'NameAlreadyTaken', 'ProjectActivated'
+    'PetException', 'NameNotFound', 'NameAlreadyTaken', 'ProjectActivated', 'ShellNotRecognized'
 ]
 
 
@@ -25,4 +25,10 @@ class ProjectActivated(PetException):
     """
     Error raised when _lock file exists in project directory
     - meaning project is active
+    """
+
+
+class ShellNotRecognized(PetException):
+    """
+    Error raised when shell isn't recognized as implementedS
     """
