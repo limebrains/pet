@@ -1,4 +1,7 @@
-import functools
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
 import glob
 import logging
 import shutil
@@ -282,7 +285,7 @@ class Zsh(GeneralShellMixin):
             GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
 
 
-@functools.lru_cache()
+@lru_cache()
 def get_shell():
     shell_name = os.environ.get('SHELL', '')
     if 'bash' in shell_name:
