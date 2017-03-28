@@ -249,7 +249,7 @@ def main():
 
     @click.command(cls=click.CommandCollection, sources=[cli, active_cli, projects_cli])
     @click.option('--version', '-v', help="show program's version number and exit")
-    def multi_cli():
+    def multi_cli(version):
         pass
 
     multi_cli()
