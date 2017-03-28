@@ -1,16 +1,10 @@
-import click
-from contextlib import contextmanager
 import os
+from contextlib import contextmanager
+
+import click
 
 from pet import bl
-from pet.pet_exceptions import (
-    NameAlreadyTaken,
-    NameNotFound,
-    PetException,
-    ProjectActivated,
-    ShellNotRecognized,
-    Info,
-)
+from pet.pet_exceptions import Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
 
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', default='')

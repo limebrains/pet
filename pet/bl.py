@@ -4,30 +4,13 @@ except ImportError:
     from backports.functools_lru_cache import lru_cache
 import glob
 import logging
+import os
 import shutil
 import signal
-import os
+from subprocess import PIPE, Popen
 
-from subprocess import (
-    PIPE,
-    Popen,
-)
-
-
-from pet.file_templates import (
-    new_project_py_file_template,
-    new_task_for_tasks_sh_template,
-    new_tasks_sh_file_template,
-)
-from pet.pet_exceptions import (
-    NameAlreadyTaken,
-    NameNotFound,
-    PetException,
-    ProjectActivated,
-    ShellNotRecognized,
-    Info,
-)
-
+from pet.file_templates import new_project_py_file_template, new_task_for_tasks_sh_template, new_tasks_sh_file_template
+from pet.pet_exceptions import Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
 
 log = logging.getLogger(__file__)
 

@@ -17,7 +17,7 @@ class InstallScripts(install_scripts):
 
 setup(
     name='Pet',
-    version='0.1',
+    version='0.0.1',
     description='Project Environment Tool',
     author='LimeBrains',
     author_email='mail@limebrains.com',
