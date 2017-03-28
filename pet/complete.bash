@@ -5,14 +5,14 @@ _pet()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="archive clean edit init list register remove rename restore"
-    projects=""
+    opts="archive clean edit init list register remove rename restore "
+    projects=$(ls "$PET_FOLDER/projects/" | cut -d "/" -f 1)
     if [ -z "$PET_ACTIVE_PROJECT" ]; then
-        opts="${opts} run"
+        opts="${opts} run "
     else
-        opts="${opts} stop task"
+        opts="${opts} stop task "
     fi
-    opts="${opts}${projects}"
+    opts=" ${opts} ${projects} "
     first="${COMP_WORDS[1]}"
     count="${#COMP_WORDS[@]}"
     if [ ${count} == 2 ]; then

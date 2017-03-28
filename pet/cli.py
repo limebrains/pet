@@ -7,7 +7,7 @@ from pet import bl
 from pet.pet_exceptions import Info, PetException
 
 cli = click.Group()
-active = os.environ.get('PET_ACTIVE_PROJECT', default='')
+active_project = os.environ.get('PET_ACTIVE_PROJECT', '')
 
 # TODO: collapse deploy.sh and make.py into one with better name
 # TODO: correct (check if working on Mac - after collapsing ^) deploy.sh
@@ -57,7 +57,7 @@ class ActiveCli(click.MultiCommand):
 
     def get_command(self, ctx, name):
         ns = {}
-        fn = os.path.join(bl.get_projects_root(), active, "tasks.py")
+        fn = os.path.join(bl.get_projects_root(), active_project, "tasks.py")
         with open(fn) as f:
             code = compile(f.read(), fn, 'exec')
             eval(code, ns, ns)
@@ -93,8 +93,8 @@ def print_list(old, tasks, tree):
         if projects:
             click.echo(projects)
     elif tasks:
-        if active:
-            tasks_list = bl.print_tasks(active)
+        if active_project:
+            tasks_list = bl.print_tasks(active_project)
             if tasks_list:
                 click.echo(tasks_list)
         else:
@@ -137,13 +137,13 @@ def clean():
     bl.clean()
 
 
-if active:
+if active_project:
     @cli.command()
     @click.argument('task_name')
     def task(task_name):
         """creates new task"""
         with pet_exception_manager():
-            bl.create_task(active, task_name)
+            bl.create_task(active_project, task_name)
 
     @cli.command()
     def stop():
@@ -156,7 +156,7 @@ if active:
     def remove_task(task_name):
         """removes task"""
         with pet_exception_manager():
-            bl.remove_task(active, task_name)
+            bl.remove_task(active_project, task_name)
 
     @cli.command('rename')
     @click.argument('old_task_name')
@@ -164,7 +164,7 @@ if active:
     def rename_task(old_task_name, new_task_name):
         """renames task"""
         with pet_exception_manager():
-            bl.rename_task(active, old_task_name, new_task_name)
+            bl.rename_task(active_project, old_task_name, new_task_name)
 
     @cli.command()
     @click.argument('task_name', nargs=-1)
@@ -172,9 +172,9 @@ if active:
         """edits task if given name else active project"""
         with pet_exception_manager():
             if len(task_name) > 0:
-                bl.edit_task(active, task_name[0])
+                bl.edit_task(active_project, task_name[0])
             else:
-                bl.edit_project(active)
+                bl.edit_project(active_project)
 else:
     @cli.command('remove')
     @click.argument('project_name')
