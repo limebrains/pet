@@ -2,7 +2,14 @@ import click
 import os
 
 from pet import bl
-from pet.pet_exceptions import PetException
+from pet.pet_exceptions import (
+    NameAlreadyTaken,
+    NameNotFound,
+    PetException,
+    ProjectActivated,
+    ShellNotRecognized,
+    Info,
+)
 
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', default='')
@@ -108,21 +115,21 @@ def print_list(old, tasks, tree):
 
 
 @cli.command()
-@click.argument('name')
-def archive(name):
+@click.argument('project_name')
+def archive(project_name):
     """archives project"""
     try:
-        bl.archive(project_name=name)
+        bl.archive(project_name=project_name)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
 @cli.command()
-@click.argument('name')
-def restore(name):
+@click.argument('project_name')
+def restore(project_name):
     """restores project from archive"""
     try:
-        bl.restore(name)
+        bl.restore(project_name)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
@@ -144,11 +151,13 @@ def clean():
 
 if active:
     @cli.command()
-    @click.argument('name')
-    def task(name):
+    @click.argument('task_name')
+    def task(task_name):
         """creates new task"""
         try:
-            bl.create_task(active, name)
+            bl.create_task(active, task_name)
+        except Info as ex:
+            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='magenta')
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
@@ -163,61 +172,61 @@ if active:
 
 
     @cli.command('remove')
-    @click.argument('task')
-    def remove_task(task):
+    @click.argument('task_name')
+    def remove_task(task_name):
         """removes task"""
         try:
-            bl.remove_task(active, task)
+            bl.remove_task(active, task_name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command('rename')
-    @click.argument('old')
-    @click.argument('new')
-    def rename_task(old, new):
+    @click.argument('old_task_name')
+    @click.argument('new_task_name')
+    def rename_task(old_task_name, new_task_name):
         """renames task"""
         try:
-            bl.rename_task(active, old, new)
+            bl.rename_task(active, old_task_name, new_task_name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
-    @click.argument('name', nargs=-1)
-    def edit(name):
+    @click.argument('task_name', nargs=-1)
+    def edit(task_name):
         """edits task if given name else active project"""
         try:
-            if len(name) > 0:
-                bl.edit_task(active, name[0])
+            if len(task_name) > 0:
+                bl.edit_task(active, task_name[0])
             else:
                 bl.edit_project(active)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 else:
     @cli.command('remove')
-    @click.argument('name')
-    def remove_project(name):
+    @click.argument('project_name')
+    def remove_project(project_name):
         """removes project"""
         try:
-            bl.remove_project(project_name=name)
+            bl.remove_project(project_name=project_name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command('rename')
-    @click.argument('old')
-    @click.argument('new')
-    def rename_project(old, new):
+    @click.argument('old_project_name')
+    @click.argument('new_project_name')
+    def rename_project(old_project_name, new_project_name):
         """renames project"""
         try:
-            bl.rename_project(old, new)
+            bl.rename_project(old_project_name, new_project_name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
-    @click.argument('name')
+    @click.argument('project_name')
     def edit(project_name):
         """edits project"""
         try:
@@ -228,13 +237,13 @@ else:
 
     @cli.command()
     @click.argument('project_name')
-    @click.argument('task')
+    @click.argument('task_name')
     @click.option('-i', '--interactive', is_flag=True)
     @click.argument('args', nargs=-1)
-    def run(project_name, task, interactive, args=()):
+    def run(project_name, task_name, interactive, args=()):
         """runs projects task"""
         try:
-            bl.run_task(project_name=project_name, active_project=None, task_name=task, interactive=interactive, args=args)
+            bl.run_task(project_name=project_name, active_project=None, task_name=task_name, interactive=interactive, args=args)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
