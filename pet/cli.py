@@ -246,7 +246,12 @@ def main():
     else:
         active_cli = click.Group()
     projects_cli = ProjectCli()
-    multi_cli = click.CommandCollection(sources=[cli, active_cli, projects_cli])
+
+    @click.command(cls=click.CommandCollection, sources=[cli, active_cli, projects_cli])
+    @click.option('--version', '-v', help="show program's version number and exit")
+    def multi_cli():
+        pass
+
     multi_cli()
 
 if __name__ == '__main__':
