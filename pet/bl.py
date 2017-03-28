@@ -107,9 +107,11 @@ def complete_add(project_name):
 
 
 def complete_remove(project_name):
-    line_nr = Popen(["/bin/sh", "-c", "grep -n \"projects=\" {0} | cut -d \":\" -f 1".format(
-        os.path.join(PET_INSTALL_FOLDER, "complete.bash"))],
-                    stdout=PIPE).stdout.read()
+    line_nr = Popen(
+        ["/bin/sh", "-c", "grep -n \"projects=\" {0} | cut -d \":\" -f 1".format(
+            os.path.join(PET_INSTALL_FOLDER, "complete.bash"))],
+        stdout=PIPE
+    ).stdout.read()
     if line_nr:
         line_nr = int(line_nr.decode("utf-8")[:-1])
         Popen(["/bin/sh", "-c", "sed -i '{0}s/{1}//' {2}".format(
@@ -129,9 +131,11 @@ def remove_from_active_projects(project_name):
 
 
 def check_in_active_projects(project_name):
-    return (Popen(["/bin/sh", "-c", "grep -n ^{0}$ {1} | cut -d \":\" -f 1".format(
-        project_name, os.path.join(get_pet_install_folder(), "active_projects"))],
-                  stdout=PIPE).stdout.read()).decode("utf-8")[:-1]
+    return Popen(
+        ["/bin/sh", "-c", "grep -n ^{0}$ {1} | cut -d \":\" -f 1".format(
+            project_name, os.path.join(get_pet_install_folder(), "active_projects"))],
+        stdout=PIPE
+    ).stdout.read().decode("utf-8")[:-1]
 
 
 def lockable(check_only_projects=True, check_active=False):
@@ -564,6 +568,6 @@ def remove_task(project_name, task_name):
         task_name, os.path.join(project_root, "tasks.py"))], stdout=PIPE).stdout.read()
     num = int(num.decode("utf-8")[:-1])
     Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
-        str(num-6), str(num+1), os.path.join(project_root, "tasks.py"))])
+        str(num - 6), str(num + 1), os.path.join(project_root, "tasks.py"))])
     Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task_name, os.path.join(project_root, "tasks.sh"))])
     os.remove(get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name))

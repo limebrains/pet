@@ -22,7 +22,7 @@ PET_INSTALL_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "p
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
 projects_root = os.path.join(PET_FOLDER, "projects")
 archive_root = os.path.join(PET_FOLDER, "archive")
-templates_root = os.path.join(PET_FOLDER, "templates")
+projects_templates_root = os.path.join(PET_FOLDER, "templates", "projects")
 
 
 def test_get_pet_install_folder_command():
@@ -40,9 +40,9 @@ def test_get_projects_root_command(mock_exists):
 
 
 @mock.patch('os.path.exists', return_value=True)
-def test_get_templates_root_command(mock_exists):
-    assert get_projects_templates_root() == templates_root
-    mock_exists.assert_called_with(templates_root)
+def test_get_projects_templates_root_command(mock_exists):
+    assert get_projects_templates_root() == projects_templates_root
+    mock_exists.assert_called_with(projects_templates_root)
 
 
 @mock.patch('os.path.exists')
@@ -70,7 +70,7 @@ def test_project_exist_command(mock_exists, project_names):
 def test_template_exist_command(mock_exists, project_names):
     for template_name in project_names:
         template_exist(template_name)
-        template_root = templates_root + "/" + template_name
+        template_root = projects_templates_root + "/" + template_name
         mock_exists.assert_called_with(template_root)
 
 
@@ -98,11 +98,10 @@ def test_complete_add_command(mock_popen, mock_join, project_names):
 
 
 @mock.patch('os.path.join', return_value="/path_to_complete.bash")
-@mock.patch('pet.bl.PIPE')
 @mock.patch('pet.bl.Popen')
-def test_complete_remove_command(mock_popen, mock_pipe, mock_join, project_names):
+def test_complete_remove_command(mock_popen, mock_join, project_names):
     for project_name in project_names:
-        mock_popen.stdout.read.return_value = b'9\n'
+        mock_popen().stdout.read.return_value = b'9\n'
         complete_remove(project_name)
         mock_popen.assert_called_with(["/bin/sh", "-c", "sed -i '{0}s/{1}//' {2}".format(
             9, " " + project_name, "/path_to_complete.bash")])

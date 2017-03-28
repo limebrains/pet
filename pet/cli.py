@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import click
 
 from pet import bl
-from pet.pet_exceptions import Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
+from pet.pet_exceptions import Info, PetException
 
 cli = click.Group()
 active = os.environ.get('PET_ACTIVE_PROJECT', default='')
@@ -145,13 +145,11 @@ if active:
         with pet_exception_manager():
             bl.create_task(active, task_name)
 
-
     @cli.command()
     def stop():
         """stops project"""
         with pet_exception_manager():
             bl.stop()
-
 
     @cli.command('remove')
     @click.argument('task_name')
@@ -160,7 +158,6 @@ if active:
         with pet_exception_manager():
             bl.remove_task(active, task_name)
 
-
     @cli.command('rename')
     @click.argument('old_task_name')
     @click.argument('new_task_name')
@@ -168,7 +165,6 @@ if active:
         """renames task"""
         with pet_exception_manager():
             bl.rename_task(active, old_task_name, new_task_name)
-
 
     @cli.command()
     @click.argument('task_name', nargs=-1)
@@ -187,7 +183,6 @@ else:
         with pet_exception_manager():
             bl.remove_project(project_name=project_name)
 
-
     @cli.command('rename')
     @click.argument('old_project_name')
     @click.argument('new_project_name')
@@ -196,14 +191,12 @@ else:
         with pet_exception_manager():
             bl.rename_project(old_project_name, new_project_name)
 
-
     @cli.command()
     @click.argument('project_name')
     def edit(project_name):
         """edits project"""
         with pet_exception_manager():
             bl.edit_project(project_name)
-
 
     @cli.command()
     @click.argument('project_name')
@@ -213,7 +206,8 @@ else:
     def run(project_name, task_name, interactive, args=()):
         """runs projects task"""
         with pet_exception_manager():
-            bl.run_task(project_name=project_name, active_project=None, task_name=task_name, interactive=interactive, args=args)
+            bl.run_task(
+                project_name=project_name, active_project=None, task_name=task_name, interactive=interactive, args=args)
 
 
 def main():
