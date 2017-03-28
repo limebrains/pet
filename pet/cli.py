@@ -218,10 +218,19 @@ def main():
         active_cli = click.Group()
     projects_cli = ProjectCli()
 
-    @click.command(cls=click.CommandCollection, sources=[cli, active_cli, projects_cli])
-    @click.option('--version', '-v', help="show program's version number and exit")
-    def multi_cli(version):
-        pass
+    @click.command(
+        cls=click.CommandCollection,
+        sources=[cli, active_cli, projects_cli],
+        invoke_without_command=True
+    )
+    @click.option('--version', '-v', help="show program's version number and exit", is_flag=True)
+    @click.pass_context
+    def multi_cli(ctx, version):
+        if version:
+            from pet import version
+            click.secho("pet version {0}".format(version))
+        elif not ctx.invoked_subcommand:
+            click.secho(ctx.invoke(lambda: multi_cli.get_help(ctx)))
 
     multi_cli()
 
