@@ -1,4 +1,5 @@
 import click
+from contextlib import contextmanager
 import os
 
 from pet import bl
@@ -22,14 +23,22 @@ active = os.environ.get('PET_ACTIVE_PROJECT', default='')
 # TODO: in setup add #!venv/python in pet // entry_points
 
 
+@contextmanager
+def pet_exception_manager():
+    try:
+        yield
+    except Info as ex:
+        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='magenta')
+    except PetException as ex:
+        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
+
+
 def get_projects():
     project_list = []
-    try:
+    with pet_exception_manager():
         if bl.print_list():
             project_list = bl.print_list().splitlines()
         return project_list
-    except PetException as ex:
-        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
 class ProjectCli(click.MultiCommand):
@@ -72,17 +81,8 @@ def create_project(name, templates):
     if len(templates) == 1:
         if templates[0].count(',') > 0:
             templates = templates[0].split(',')
-    try:
+    with pet_exception_manager():
         bl.create(name, templates)
-    except PetException as ex:
-        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
-        '''
-        TODO: | pythonicninja
-              |  ~/PycharmProjects/pet   (master)
-              | => pet init
-              NameAlreadyTaken: pet - there is pet command with this name
-        inform about possibility to add custom name via -n
-        '''
 
 
 @cli.command('list')
@@ -114,33 +114,27 @@ def print_list(old, tasks, tree):
             click.echo(projects)
 
 
-@cli.command()
+@cli.command('archive')
 @click.argument('project_name')
 def archive(project_name):
     """archives project"""
-    try:
+    with pet_exception_manager():
         bl.archive(project_name=project_name)
-    except PetException as ex:
-        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
 @cli.command()
 @click.argument('project_name')
 def restore(project_name):
     """restores project from archive"""
-    try:
+    with pet_exception_manager():
         bl.restore(project_name)
-    except PetException as ex:
-        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
 @cli.command()
 def register():
     """registers .pet as project folder"""
-    try:
+    with pet_exception_manager():
         bl.register()
-    except PetException as ex:
-        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
 @cli.command()
@@ -154,31 +148,23 @@ if active:
     @click.argument('task_name')
     def task(task_name):
         """creates new task"""
-        try:
+        with pet_exception_manager():
             bl.create_task(active, task_name)
-        except Info as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='magenta')
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
     def stop():
         """stops project"""
-        try:
+        with pet_exception_manager():
             bl.stop()
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command('remove')
     @click.argument('task_name')
     def remove_task(task_name):
         """removes task"""
-        try:
+        with pet_exception_manager():
             bl.remove_task(active, task_name)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command('rename')
@@ -186,32 +172,26 @@ if active:
     @click.argument('new_task_name')
     def rename_task(old_task_name, new_task_name):
         """renames task"""
-        try:
+        with pet_exception_manager():
             bl.rename_task(active, old_task_name, new_task_name)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
     @click.argument('task_name', nargs=-1)
     def edit(task_name):
         """edits task if given name else active project"""
-        try:
+        with pet_exception_manager():
             if len(task_name) > 0:
                 bl.edit_task(active, task_name[0])
             else:
                 bl.edit_project(active)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 else:
     @cli.command('remove')
     @click.argument('project_name')
     def remove_project(project_name):
         """removes project"""
-        try:
+        with pet_exception_manager():
             bl.remove_project(project_name=project_name)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command('rename')
@@ -219,20 +199,16 @@ else:
     @click.argument('new_project_name')
     def rename_project(old_project_name, new_project_name):
         """renames project"""
-        try:
+        with pet_exception_manager():
             bl.rename_project(old_project_name, new_project_name)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
     @click.argument('project_name')
     def edit(project_name):
         """edits project"""
-        try:
+        with pet_exception_manager():
             bl.edit_project(project_name)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
@@ -242,10 +218,8 @@ else:
     @click.argument('args', nargs=-1)
     def run(project_name, task_name, interactive, args=()):
         """runs projects task"""
-        try:
+        with pet_exception_manager():
             bl.run_task(project_name=project_name, active_project=None, task_name=task_name, interactive=interactive, args=args)
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
 def main():

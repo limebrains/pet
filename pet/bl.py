@@ -74,9 +74,14 @@ def get_projects_root():
         return os.path.join(PET_FOLDER, "projects")
 
 
-def get_templates_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "templates")):
-        return os.path.join(PET_FOLDER, "templates")
+def get_projects_templates_root():
+    if os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
+        return os.path.join(PET_FOLDER, "templates", "projects")
+
+
+def get_tasks_templates_root():
+    if os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
+        return os.path.join(PET_FOLDER, "templates", "tasks")
 
 
 def get_archive_root():
@@ -96,7 +101,7 @@ def project_exist(project_name):
 
 def template_exist(template_name):
     """checks existence of project"""
-    return os.path.exists(os.path.join(get_templates_root(), template_name))
+    return os.path.exists(os.path.join(get_projects_templates_root(), template_name))
 
 
 def task_exist(project_name, task_name):
@@ -309,7 +314,7 @@ class ProjectCreator(object):
 
     def __init__(self, project_name, templates=()):
         self.projects_root = get_projects_root()
-        self.templates_root = get_templates_root()
+        self.templates_root = get_projects_templates_root()
         self.project_name = project_name
         self.project_root = os.path.join(self.projects_root, self.project_name)
         self.templates = templates

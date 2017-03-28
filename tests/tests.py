@@ -6,8 +6,8 @@ import pytest
 
 from pet.bl import (
     get_file_fullname,
-    get_file_fullname_and_path, get_pet_install_folder, get_pet_folder,\
-    get_projects_root, get_templates_root, template_exist, get_archive_root, edit_file, ProjectLock, \
+    get_file_fullname_and_path, get_pet_install_folder, get_pet_folder, \
+    get_projects_root, get_projects_templates_root, template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, complete_add, complete_remove, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, restore, register, clean, edit_project, run_task, edit_task
 )
@@ -42,7 +42,7 @@ def test_get_projects_root_command(mock_exists):
 
 @mock.patch('os.path.exists', return_value=True)
 def test_get_templates_root_command(mock_exists):
-    assert get_templates_root() == templates_root
+    assert get_projects_templates_root() == templates_root
     mock_exists.assert_called_with(templates_root)
 
 
