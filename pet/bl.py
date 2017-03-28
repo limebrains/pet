@@ -1,6 +1,6 @@
 import functools
-import logging
 import glob
+import logging
 import shutil
 import signal
 import os
@@ -22,11 +22,14 @@ from pet.pet_exceptions import (
     PetException,
     ProjectActivated,
     ShellNotRecognized,
+    Info,
 )
 
 
 log = logging.getLogger(__file__)
 
+# TODO: you can make task with projects_name,
+# TODO:  if you do so outside of project, only project is seen, inside task is more powerfull
 # TODO: templates: tasks - but how should it work?
 # TODO: rewrite logging into yields
 
@@ -139,10 +142,10 @@ def check_in_active_projects(project_name):
                   stdout=PIPE).stdout.read()).decode("utf-8")[:-1]
 
 
-def lockable(check_only=True, check_active=False, *args, **kwargs):
+def lockable(check_only_projects=True, check_active=False):
     def _lockable(func, *args, **kwargs):
-        def __lockable(self=None, project_name='', check_only=check_only *args, **kwargs):
-            check_only = not kwargs.pop('lock', (not check_only))
+        def __lockable(self=None, project_name='', check_only=check_only_projects, *args, **kwargs):
+            check_only = not kwargs.pop('lock', not check_only)
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
                 raise ProjectActivated(EX_PROJECT_IS_LOCKED.format(project_name))
             if check_active:
@@ -188,7 +191,7 @@ class GeneralShellMixin(object):
     def create_shell_profiles(self):
         raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
 
-    def task_exec(self, project_name, task_name, interactive, args=()):
+    def task_exec(self, project_name, task_name, active_project, interactive, args=()):
         tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
         popen_args = [os.path.join(tasks_root, get_file_fullname(tasks_root, task_name))]
         popen_args.extend(args)
@@ -217,17 +220,24 @@ class Bash(GeneralShellMixin):
                 shell_profiles_file.write("source ~/.bash_profile\n")
 
     @lockable()
-    def task_exec(self, project_name, task_name, interactive, args=()):
-        if interactive:
+    def task_exec(self, project_name, task_name, active_project, interactive, args=()):
+        if active_project != project_name:
             add_to_active_projects(project_name)
             self.make_rc_file(project_name)
             project_root = os.path.join(get_projects_root(), project_name)
             # TODO: change /bin/bash for usr bin env bash, maybe with Popen -> which usrbin bash -> cut
-            Popen(["/bin/bash", "-c", "$SHELL --rcfile <(echo '. {0}; {1} {2}')\n$SHELL {3}/stop.sh".format(
-                os.path.join(project_root, self.get_rc_filename()),
-                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                " ".join(args),
-                project_root)]).communicate(input)
+            if interactive:
+                Popen(["/bin/bash", "-c", "$SHELL --rcfile <(echo '. {0}; {1} {2}')\n$SHELL {3}/stop.sh".format(
+                    os.path.join(project_root, self.get_rc_filename()),
+                    get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                    " ".join(args),
+                    project_root)]).communicate(input)
+            else:
+                Popen(["/bin/bash", "-c", "$SHELL <(echo '. {0}; {1} {2}')\n$SHELL {3}/stop.sh".format(
+                    os.path.join(project_root, self.get_rc_filename()),
+                    get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                    " ".join(args),
+                    project_root)]).communicate(input)
             remove_from_active_projects(project_name)
         else:
             GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
@@ -255,12 +265,13 @@ class Zsh(GeneralShellMixin):
                 shell_profiles_file.write("source $HOME/.zshrc\n")
 
     @lockable()
-    def task_exec(self, project_name, task_name, interactive, args=()):
-        if interactive:
-            add_to_active_projects(project_name)
-            # TODO: find a way to make interactive tasks in zsh
-            print("it doesn't work in zsh")
-            remove_from_active_projects(project_name)
+    def task_exec(self, project_name, task_name, active_project, interactive, args=()):
+        if active_project != project_name:
+            if interactive:
+                add_to_active_projects(project_name)
+                # TODO: find a way to make interactive tasks in zsh
+                print("it doesn't work in zsh")
+                remove_from_active_projects(project_name)
         else:
             GeneralShellMixin.task_exec(self, project_name, task_name, interactive, args)
 
@@ -308,7 +319,7 @@ class ProjectCreator(object):
         if self.project_name in print_list():
             raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(self.project_name))
         if self.project_name in COMMANDS:
-            raise NameAlreadyTaken("{0} - there is pet command with this name".format(self.project_name))
+            raise NameAlreadyTaken("{0} - there is pet command with this name, use -n NAME".format(self.project_name))
 
     def check_templates(self):
         for template in self.templates:
@@ -518,7 +529,7 @@ def create_task(project_name, task_name):
         tasks_file.write(new_task_for_tasks_sh_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
         tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
-    raise PetException("alias available during next boot of project")
+    raise Info("alias available during next boot of project")
 
 
 def edit_task(project_name, task_name):
@@ -542,13 +553,13 @@ def rename_task(project_name, old_task_name, new_task_name):
     os.rename(old_task_full_path, os.path.join(tasks_root, new_task_name + task_extension))
 
 
-def run_task(project_name, task_name, interactive, args=()):
+def run_task(project_name, task_name, active_project, interactive, args=()):
     """executes task in correct project"""
     if not task_exist(project_name, task_name):
         raise NameNotFound(EX_TASK_NOT_FOUND.format(task_name))
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
         get_shell().create_shell_profiles()
-    get_shell().task_exec(project_name, task_name, interactive, args)
+    get_shell().task_exec(project_name, True, task_name, active_project, interactive, args)
 
 
 def remove_task(project_name, task_name):

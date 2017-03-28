@@ -25,11 +25,11 @@ new_task_for_tasks_sh_template = '''
 
 @click.command()
 @click.argument('args', nargs=-1)
-@click.option('--active', envvar='PET_ACTIVE_PROJECT')
+@click.option('--active_project', envvar='PET_ACTIVE_PROJECT')
 @click.option('-i', '--interactive', is_flag=True)
-def {0}(interactive, active="", args=()):
+def {0}(interactive, active_project="", args=()):
     try:
-        run_task("{1}", "{2}", interactive, args)
+        run_task("{1}", "{2}", active_project, interactive, args)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''

@@ -1,5 +1,5 @@
 __all__ = [
-    'PetException', 'NameNotFound', 'NameAlreadyTaken', 'ProjectActivated', 'ShellNotRecognized'
+    'PetException', 'NameNotFound', 'NameAlreadyTaken', 'ProjectActivated', 'ShellNotRecognized', 'Info'
 ]
 
 
@@ -31,4 +31,10 @@ class ProjectActivated(PetException):
 class ShellNotRecognized(PetException):
     """
     Error raised when shell isn't recognized as implementedS
+    """
+
+
+class Info(PetException):
+    """
+    Error raised when not critical error occurs
     """

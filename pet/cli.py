@@ -83,7 +83,7 @@ def create_project(name, templates):
 @click.option('--tasks', '-t', is_flag=True, help="show tasks in active project")
 @click.option('--tree', is_flag=True, help="show tree of all tasks in projects")
 def print_list(old, tasks, tree):
-    """lists all projects"""
+    """lists all projects/ archived projects/ tasks/ all"""
     if [old, tree, tasks].count(True) > 1:
         click.secho("Only one flag at a time! I am not Mt Everest", fg='red')
         return 1
@@ -218,23 +218,23 @@ else:
 
     @cli.command()
     @click.argument('name')
-    def edit(name):
+    def edit(project_name):
         """edits project"""
         try:
-            bl.edit_project(name)
+            bl.edit_project(project_name)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
 
     @cli.command()
-    @click.argument('project')
+    @click.argument('project_name')
     @click.argument('task')
     @click.option('-i', '--interactive', is_flag=True)
     @click.argument('args', nargs=-1)
-    def run(project, task, interactive, args=()):
+    def run(project_name, task, interactive, args=()):
         """runs projects task"""
         try:
-            bl.run_task(project, task, interactive, args)
+            bl.run_task(project_name=project_name, active_project=None, task_name=task, interactive=interactive, args=args)
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 
