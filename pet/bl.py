@@ -103,7 +103,8 @@ def task_exist(project_name, task_name):
     """checks existence of task"""
     if '.' in task_name:
         task_name = os.path.splitext(task_name)[0]
-    return task_name in print_tasks(project_name)
+    # TODO: it's completly wrong
+    return task_name in print_tasks(project_name).split('\n')
 
 
 def complete_add(project_name):
@@ -316,7 +317,7 @@ class ProjectCreator(object):
         self.check_templates()
 
     def check_name(self):
-        if self.project_name in print_list():
+        if project_exist(self.project_name):
             raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(self.project_name))
         if self.project_name in COMMANDS:
             raise NameAlreadyTaken("{0} - there is pet command with this name, use -n NAME".format(self.project_name))
@@ -421,7 +422,7 @@ def rename_project(old_project_name, new_project_name):
 def edit_project(project_name):
     """edits project start&stop files"""
     projects_root = get_projects_root()
-    if project_name not in print_list():
+    if not project_exist(project_name):
         raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
 
     edit_file(os.path.join(projects_root, project_name, "start.sh"))
@@ -453,7 +454,7 @@ def archive(project_name):
     project_root = os.path.join(get_projects_root(), project_name)
     if not os.path.exists(project_root):
         raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
-    if project_name in print_old():
+    if project_name in print_old().split('\n'):
         raise NameAlreadyTaken(EX_PROJECT_IN_ARCHIVE.format(project_name))
 
     archive_root = get_archive_root()
@@ -465,7 +466,7 @@ def restore(project_name):
     """restores project from archive"""
     if not os.path.exists(os.path.join(get_archive_root(), project_name)):
         raise NameNotFound("{0} - project not found in {1} folder".format(project_name, get_archive_root()))
-    if project_name in print_list():
+    if project_exist(project_name):
         raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(project_name))
 
     shutil.move(os.path.join(get_archive_root(), project_name), os.path.join(get_projects_root(), project_name))
