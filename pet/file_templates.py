@@ -22,7 +22,7 @@ source {0}/shell_profiles
 export PET_ACTIVE_PROJECT='{1}'
 source {2}/start.sh
 v0=$(grep -c '^{1}$' {0}/active_projects)
-PS1=\"[{1}] $PS1\[\e]1;{1} ${{v0/#1/}}\a\]\"
+PS1=\"[{1}] $PS1\[\e]1;{1} ${{v0/#1/}}\a\]\[\e]2;{1} ${{v0/#1/}}\a\]\"
 source {3}
 trap 'source {2}/stop.sh' EXIT
 {4}
