@@ -10,11 +10,9 @@ cli = click.Group()
 active_project = os.environ.get('PET_ACTIVE_PROJECT', '')
 
 # TODO: collapse deploy.sh and make.py into one with better name
-# TODO: correct (check if working on Mac - after collapsing ^) deploy.sh
 # TODO: interactive tasks in ZSH
 # TODO: tasks with templates
 # TODO: tests
-# TODO: in setup add #!venv/python in pet // entry_points
 
 
 @contextmanager

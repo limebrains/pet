@@ -7,7 +7,7 @@ from pet.bl import (
     get_file_fullname,
     get_file_fullname_and_path, get_pet_install_folder, get_pet_folder, \
     get_projects_root, get_projects_templates_root, template_exist, get_archive_root, edit_file, ProjectLock, \
-    ProjectCreator, start, complete_add, complete_remove, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
+    ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, restore, register, clean, edit_project, run_task, edit_task
 )
 from pet.pet_exceptions import (
@@ -85,26 +85,6 @@ def test_task_exist_command(mock_tasks, mock_split, project_names, task_names):
         task_exist(project_name, "coverage.py")
         mock_tasks.assert_called_with(project_name)
 
-
-@mock.patch('os.path.join', return_value="/path_to_complete.bash")
-@mock.patch('pet.bl.Popen')
-def test_complete_add_command(mock_popen, mock_join, project_names):
-    for project_name in project_names:
-        complete_add(project_name)
-        mock_popen.assert_called_with(["/bin/sh", "-c", "sed -i '/projects=/ s/\"$/ {0}\"/' {1}".format(
-            project_name, "/path_to_complete.bash")])
-
-# TODO: here I'm
-
-
-@mock.patch('os.path.join', return_value="/path_to_complete.bash")
-@mock.patch('pet.bl.Popen')
-def test_complete_remove_command(mock_popen, mock_join, project_names):
-    for project_name in project_names:
-        mock_popen().stdout.read.return_value = b'9\n'
-        complete_remove(project_name)
-        mock_popen.assert_called_with(["/bin/sh", "-c", "sed -i '{0}s/{1}//' {2}".format(
-            9, " " + project_name, "/path_to_complete.bash")])
 
 #
 # @mock.patch('bl.get_projects_root', return_value=projects_root)
