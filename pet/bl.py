@@ -40,11 +40,19 @@ EXECUTABLE_RIGHTS = 0o755
 
 
 def get_file_fullname(searching_root, file_name):
-    return glob.glob(os.path.join(searching_root, file_name + '.*'))[0]
+    output = glob.glob(os.path.join(searching_root, file_name + '.*'))
+    if output:
+        return output[0]
+    else:
+        return glob.glob(os.path.join(searching_root, file_name))[0]
 
 
 def get_file_fullname_and_path(searching_root, file_name):
-    return os.path.join(searching_root, glob.glob(os.path.join(searching_root, file_name + '.*'))[0])
+    name = glob.glob(os.path.join(searching_root, file_name + '.*'))
+    if name:
+        return os.path.join(searching_root, name[0])
+    else:
+        return os.path.join(searching_root, glob.glob(os.path.join(searching_root, file_name))[0])
 
 
 def get_pet_install_folder():
