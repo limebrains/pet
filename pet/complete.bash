@@ -16,7 +16,7 @@ _pet()
             PET_FOLDER="${PET_FOLDER:0:${#PET_FOLDER}-1}"
         fi
     fi
-    projects=$(ls "$PET_FOLDER/projects/" | cut -d "/" -f 1)
+    projects=$(/bin/ls "$PET_FOLDER/projects/" | cut -d "/" -f 1)
     if [ -z "$PET_ACTIVE_PROJECT" ]; then
         opts="${opts} run "
     else
@@ -38,7 +38,7 @@ _pet()
             return 0
         esac
         case $prev in restore)
-            archived=$(ls "$PET_FOLDER/archive" | sed s:\.[^./]*$::)
+            archived=$(/bin/ls "$PET_FOLDER/archive" | sed s:\.[^./]*$::)
             COMPREPLY=( $(compgen -W "${archived}" -- ${cur}) )
             return 0
         esac
@@ -49,7 +49,7 @@ _pet()
             esac
         else
             case $prev in edit|remove|rename)
-                tasks=$(ls "$PET_FOLDER/projects/$PET_ACTIVE_PROJECT/tasks" | cut -d "." -f 1)
+                tasks=$(/bin/ls "$PET_FOLDER/projects/$PET_ACTIVE_PROJECT/tasks" | cut -d "." -f 1)
                 COMPREPLY=( $(compgen -W "${tasks}" -- ${cur}) )
                 return 0
             esac
@@ -57,7 +57,7 @@ _pet()
     elif [ ${count} == 4 ]; then
         case $first in run)
             if [ -z "$PET_ACTIVE_PROJECT" ]; then
-                tasks=$(ls "$PET_FOLDER/projects/${COMP_WORDS[2]}/tasks" | cut -d "." -f 1)
+                tasks=$(/bin/ls "$PET_FOLDER/projects/${COMP_WORDS[2]}/tasks" | cut -d "." -f 1)
                 COMPREPLY=( $(compgen -W "${tasks}" -- ${cur}) )
                 return 0
             fi
