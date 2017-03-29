@@ -205,7 +205,7 @@ else:
         """runs projects task"""
         with pet_exception_manager():
             bl.run_task(
-                project_name=project_name, active_project=None, task_name=task_name, interactive=interactive, args=args)
+                project_name=project_name, task_name=task_name, interactive=interactive, args=args)
 
 
 def main():

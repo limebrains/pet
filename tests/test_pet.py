@@ -86,6 +86,8 @@ def test_task_exist_command(mock_tasks, mock_split, project_names, task_names):
         mock_tasks.assert_called_with(project_name)
 
 
+def test_add_to_active_projects():
+    pass
 #
 # @mock.patch('bl.get_projects_root', return_value=projects_root)
 # @mock.patch('os.remove')

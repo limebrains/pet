@@ -15,21 +15,20 @@ def cli(ctx, l):
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''
 
-new_tasks_sh_file_template = '''
+new_tasks_py_file_template = '''
 import click
 from pet.bl import print_tasks, run_task
 from pet.pet_exceptions import PetException
 '''
 
-new_task_for_tasks_sh_template = '''
+new_task_for_tasks_py_template = '''
 
 @click.command()
 @click.argument('args', nargs=-1)
-@click.option('--active_project', envvar='PET_ACTIVE_PROJECT')
 @click.option('-i', '--interactive', is_flag=True)
-def {0}(interactive, active_project="", args=()):
+def {0}(interactive, args=()):
     try:
-        run_task("{1}", "{2}", active_project, interactive, args)
+        run_task("{1}", "{2}", interactive, args)
     except PetException as ex:
         click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''
