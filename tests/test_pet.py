@@ -116,7 +116,8 @@ def test_check_in_active_projects(mock_popen, mock_join, mock_pipe, project_name
             project_name, mock_join())], stdout=mock_pipe)
 
 
-def test_get_shell_command():
+@mock.patch('os.environ.get')
+def test_get_shell_command(mock_get, shells):
     pass
 
 

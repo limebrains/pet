@@ -143,6 +143,7 @@ def lockable(check_only_projects=True, check_active=False):
     return _lockable
 
 
+# TODO: DEBUG: make_rc_file is turned on with every start - change to only when creating
 class GeneralShellMixin(object):
 
     def __init__(self):
@@ -153,8 +154,9 @@ class GeneralShellMixin(object):
 
     def make_rc_file(self, project_name, additional_lines=""):
         project_root = os.path.join(get_projects_root(), project_name)
-        contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\nPS1=\"" \
-                   "[{1}] $PS1\"\nsource {3}\ntrap 'source {2}/stop.sh' EXIT\n{4}"\
+        contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\n" \
+                   "v0=$(grep -c '^{1}$' {0}/active_projects)\nPS1=\"\[\e]2;{1} ${{v0/#1/}}\a\][{1}] $PS1\"\n" \
+                   "source {3}\ntrap 'source {2}/stop.sh' EXIT\n{4}"\
             .format(
                 PET_INSTALL_FOLDER,
                 project_name,
