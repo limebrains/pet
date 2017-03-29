@@ -1,3 +1,5 @@
+# Projects
+
 new_project_py_file_template = '''
 import click
 from pet.bl import start
@@ -14,6 +16,20 @@ def cli(ctx, l):
         except PetException as ex:
             click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''
+
+new_project_bash_rc_template = '''
+source {0}/shell_profiles
+export PET_ACTIVE_PROJECT='{1}'
+source {2}/start.sh
+v0=$(grep -c '^{1}$' {0}/active_projects)
+PS1=\"[{1}] $PS1\[\e]1;{1} ${{v0/#1/}}\a\]\"
+source {3}
+trap 'source {2}/stop.sh' EXIT
+{4}
+'''
+
+
+# Tasks
 
 new_tasks_py_file_template = '''
 import click

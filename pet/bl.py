@@ -9,7 +9,8 @@ import shutil
 import signal
 from subprocess import PIPE, Popen
 
-from pet.file_templates import new_project_py_file_template, new_task_for_tasks_py_template, new_tasks_py_file_template
+from pet.file_templates import new_project_py_file_template, new_task_for_tasks_py_template, new_tasks_py_file_template, \
+    new_project_bash_rc_template
 from pet.pet_exceptions import Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
 
 log = logging.getLogger(__file__)
@@ -162,16 +163,13 @@ class GeneralShellMixin(object):
 
     def make_rc_file(self, project_name, additional_lines=""):
         project_root = os.path.join(get_projects_root(), project_name)
-        contents = "source {0}/shell_profiles\nexport PET_ACTIVE_PROJECT='{1}'\nsource {2}/start.sh\n" \
-                   "v0=$(grep -c '^{1}$' {0}/active_projects)\nPS1=\"\[\e]2;{1} ${{v0/#1/}}\a\][{1}] $PS1\"\n" \
-                   "source {3}\ntrap 'source {2}/stop.sh' EXIT\n{4}"\
-            .format(
-                PET_INSTALL_FOLDER,
-                project_name,
-                project_root,
-                os.path.join(project_root, "tasks.sh"),
-                additional_lines
-            )
+        contents = new_project_bash_rc_template.format(
+            PET_INSTALL_FOLDER,
+            project_name,
+            project_root,
+            os.path.join(project_root, "tasks.sh"),
+            additional_lines
+        )
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
             rc_file.write(contents)
