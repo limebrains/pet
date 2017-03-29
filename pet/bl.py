@@ -21,7 +21,7 @@ log = logging.getLogger(__file__)
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
-PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
+PET_FOLDER = os.path.expanduser(os.environ.get('PET_FOLDER', "~/.pet/"))
 COMMANDS = "pet archive clean edit init list register remove rename restore stop task run".split()
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
@@ -94,28 +94,7 @@ def task_exist(project_name, task_name):
     """checks existence of task"""
     if '.' in task_name:
         task_name = os.path.splitext(task_name)[0]
-    # TODO: it's completly wrong
     return task_name in print_tasks(project_name).split('\n')
-
-
-def complete_add(project_name):
-    Popen(["/bin/sh", "-c", "sed -i '/projects=/ s/\"$/ {0}\"/' {1}".format(project_name, os.path.join(
-        PET_INSTALL_FOLDER, "complete.bash"))])
-
-
-# TODO: TESTS are done for ^
-
-
-def complete_remove(project_name):
-    line_nr = Popen(
-        ["/bin/sh", "-c", "grep -n \"projects=\" {0} | cut -d \":\" -f 1".format(
-            os.path.join(PET_INSTALL_FOLDER, "complete.bash"))],
-        stdout=PIPE
-    ).stdout.read()
-    if line_nr:
-        line_nr = int(line_nr.decode("utf-8")[:-1])
-        Popen(["/bin/sh", "-c", "sed -i '{0}s/{1}//' {2}".format(
-            line_nr, " " + project_name, os.path.join(PET_INSTALL_FOLDER, "complete.bash"))])
 
 
 def add_to_active_projects(project_name):
@@ -366,7 +345,6 @@ class ProjectCreator(object):
         self.create_start()
         self.create_stop()
         self.edit()
-        complete_add(self.project_name)
 
 
 @lockable()
@@ -399,7 +377,6 @@ def register():
         raise PetException("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
 
     os.symlink(folder, os.path.join(get_projects_root(), project_name))
-    complete_add(project_name)
 
 
 def rename_project(old_project_name, new_project_name):
@@ -410,8 +387,6 @@ def rename_project(old_project_name, new_project_name):
     if os.path.exists(os.path.join(projects_root, new_project_name)):
         raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(new_project_name))
     os.rename(os.path.join(projects_root, old_project_name), os.path.join(projects_root, new_project_name))
-    complete_add(new_project_name)
-    complete_remove(old_project_name)
 
 
 def edit_project(project_name):
@@ -440,7 +415,6 @@ def remove_project(project_name):
         os.remove(project_root)
     else:
         shutil.rmtree(project_root)
-    complete_remove(project_name)
 
 
 @lockable(check_active=True)
@@ -454,7 +428,6 @@ def archive(project_name):
 
     archive_root = get_archive_root()
     shutil.move(project_root, os.path.join(archive_root, project_name))
-    complete_remove(project_name)
 
 
 def restore(project_name):
@@ -465,7 +438,6 @@ def restore(project_name):
         raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(project_name))
 
     shutil.move(os.path.join(get_archive_root(), project_name), os.path.join(get_projects_root(), project_name))
-    complete_add(project_name)
 
 
 def clean():
