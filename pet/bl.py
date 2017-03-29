@@ -216,9 +216,9 @@ class Bash(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            with Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
-                    os.path.join(project_root, self.get_rc_filename()), project_root)]):
-                pass
+            Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
+                os.path.join(project_root, self.get_rc_filename()), project_root)]).wait()
+
         remove_from_active_projects(project_name)
 
 
@@ -492,7 +492,7 @@ def create_task(project_name, task_name):
         tasks_file.write(new_task_for_tasks_py_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
         tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
-    raise Info("alias available during next boot of project")
+    raise Info("alias available during next boot of project.\nRight now you can invoke it: pet {0}".format(task_name))
 
 
 def edit_task(project_name, task_name):
