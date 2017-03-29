@@ -214,9 +214,9 @@ class Bash(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            with Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
-                    os.path.join(project_root, self.get_rc_filename()), project_root)]):
-                pass
+            Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
+                os.path.join(project_root, self.get_rc_filename()), project_root)]).wait()
+
         remove_from_active_projects(project_name)
 
 
