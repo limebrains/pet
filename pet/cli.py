@@ -137,7 +137,7 @@ def clean():
 
 if active_project:
     @cli.command()
-    @click.argument('task_name')
+    @click.argument('task_name', metavar='TASK_NAME[.<extension>]')
     def task(task_name):
         """creates new task"""
         with pet_exception_manager():
