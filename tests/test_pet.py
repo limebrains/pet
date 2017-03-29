@@ -5,7 +5,7 @@ import pytest
 
 from pet.bl import (
     get_file_fullname,
-    get_file_fullname_and_path, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
+    get_file_fullname_and_path, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
     get_projects_root, get_projects_templates_root, template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, restore, register, clean, edit_project, run_task, edit_task, remove_project
@@ -116,9 +116,13 @@ def test_check_in_active_projects(mock_popen, mock_join, mock_pipe, project_name
             project_name, mock_join())], stdout=mock_pipe)
 
 
+@mock.patch('pet.bl.lru_cache')
 @mock.patch('os.environ.get')
-def test_get_shell_command(mock_get, shells):
-    pass
+def test_get_shell_command(mock_get, mock_lru, shells):
+    side = shells
+    mock_get.side_effect = side
+    for i in range(len(shells)):
+        assert isinstance(get_shell(), GeneralShellMixin)
 
 
 @mock.patch('os.kill')

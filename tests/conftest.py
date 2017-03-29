@@ -25,7 +25,7 @@ def additional_project_names():
 
 @pytest.fixture
 def shells():
-    return ['bash', 'zsh', '/bin/bash', '/bin/zsh', 'error']
+    return ['bash', 'zsh', '/bin/bash', '/bin/zsh']
 
 
 @pytest.fixture

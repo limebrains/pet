@@ -19,6 +19,8 @@ log = logging.getLogger(__file__)
 # TODO: templates: tasks - but how should it work?
 # TODO: rewrite logging into yields
 
+# TODO: 29th sed is probably hating .pet... (dots - check at home)
+
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.path.expanduser(os.environ.get('PET_FOLDER', "~/.pet/"))
@@ -36,7 +38,6 @@ EX_TASK_NOT_FOUND = "{0} - task not found"
 EX_TASK_ALREADY_EXISTS = "{0}- task already exists"
 EX_SHELL_NOT_SUPPORTED = "{0} - isn't supported"
 EX_NO_RC_FILE_FOUND = "no rc file in {0}"
-EXECUTABLE_RIGHTS = 0o755
 
 
 def get_file_fullname(searching_root, file_name):
@@ -151,7 +152,6 @@ def lockable(check_only_projects=True, check_active=False):
     return _lockable
 
 
-# TODO: DEBUG: make_rc_file is turned on with every start - change to only when creating
 class GeneralShellMixin(object):
 
     def __init__(self):
@@ -211,7 +211,6 @@ class Bash(GeneralShellMixin):
     def task_exec(self, project_name, task_name, interactive, args=()):
         add_to_active_projects(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
-        # TODO: change /bin/bash for usr bin env bash, maybe with Popen -> which usrbin bash -> cut
         if interactive:
             self.make_rc_file(project_name, ". {0} {1}\n".format(
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
@@ -495,7 +494,6 @@ def create_task(project_name, task_name):
         task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
         Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
     edit_file(task_file_path)
-    os.chmod(task_file_path, EXECUTABLE_RIGHTS)
     with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
         tasks_file.write(new_task_for_tasks_py_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
