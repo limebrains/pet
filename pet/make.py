@@ -1,8 +1,8 @@
 import os
 from subprocess import Popen
 
-from bl import get_shell
-from utils import makedirs
+from pet.bl import get_shell
+from pet.utils import makedirs
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))
