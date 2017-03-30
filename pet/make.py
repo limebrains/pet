@@ -1,7 +1,6 @@
 import os
 from subprocess import Popen
 
-from pet.bl import get_shell
 from pet.utils import makedirs
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -21,7 +20,6 @@ def create_active_projects_file():
 
 def main():
     create_folders()
-    get_shell().create_shell_profiles()
     create_active_projects_file()
 
 if __name__ == '__main__':
