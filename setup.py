@@ -27,12 +27,12 @@ setup(
     author_email='mail@limebrains.com',
     url='https://github.com/limebrains/pet',
     packages=find_packages(),
+    include_package_data=True,
     install_requires=requirements,
-    entry_points={
-        'console_scripts': [
-            'pet=pet.cli:main',
-        ],
-    },
+    entry_points="""\
+      [console_scripts]
+      pet = pet.cli:main
+    """,
     cmdclass={'install_scripts': InstallScripts},
     scripts=['pet/deploy.sh', 'pet/complete.bash'],
 )
