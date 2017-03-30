@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from distutils.command.install_scripts import install_scripts
 from distutils.core import setup
+from setuptools import find_packages
 
 requirements = [
     line.split('==')[0]
@@ -25,7 +26,7 @@ setup(
     author='LimeBrains',
     author_email='mail@limebrains.com',
     url='https://github.com/limebrains/pet',
-    packages=['pet', 'pet.cli', 'pet.bl', 'pet.exception', 'pet.utils', 'pet.file_templates'],
+    packages=find_packages(),
     install_requires=requirements,
     entry_points={
         'console_scripts': [
