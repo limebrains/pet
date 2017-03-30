@@ -10,7 +10,7 @@ from pet.bl import (
     ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, restore, register, clean, edit_project, run_task, edit_task, remove_project
 )
-from pet.pet_exceptions import (
+from pet.exceptions import (
     NameAlreadyTaken,
     NameNotFound,
     PetException,

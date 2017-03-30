@@ -3,7 +3,7 @@
 new_project_py_file_template = '''
 import click
 from pet.bl import start
-from pet.pet_exceptions import PetException
+from pet.exceptions import PetException
 
 
 @click.group(chain=True, invoke_without_command=True)
@@ -34,7 +34,7 @@ trap 'source {2}/stop.sh' EXIT
 new_tasks_py_file_template = '''
 import click
 from pet.bl import print_tasks, run_task
-from pet.pet_exceptions import PetException
+from pet.exceptions import PetException
 '''
 
 new_task_for_tasks_py_template = '''

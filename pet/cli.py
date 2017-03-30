@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import click
 
 from pet import bl
-from pet.pet_exceptions import Info, PetException
+from pet.exceptions import Info, PetException
 
 cli = click.Group()
 active_project = os.environ.get('PET_ACTIVE_PROJECT', '')

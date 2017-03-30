@@ -9,9 +9,13 @@ import shutil
 import signal
 from subprocess import PIPE, Popen
 
-from pet.file_templates import new_project_py_file_template, new_task_for_tasks_py_template, new_tasks_py_file_template, \
-    new_project_bash_rc_template
-from pet.pet_exceptions import Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
+from pet.exceptions import (
+    ExceptionMessages, Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
+)
+from pet.file_templates import (
+    new_project_bash_rc_template, new_project_py_file_template, new_task_for_tasks_py_template,
+    new_tasks_py_file_template
+)
 
 log = logging.getLogger(__file__)
 
@@ -19,7 +23,6 @@ log = logging.getLogger(__file__)
 # TODO:  if you do so outside of project, only project is seen, inside task is more powerfull
 # TODO: templates: tasks - but how should it work?
 # TODO: rewrite logging into yields
-
 # TODO: 29th sed is probably hating .pet... (dots - check at home)
 
 
@@ -29,16 +32,6 @@ COMMANDS = "pet archive clean edit init list register remove rename restore stop
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
 SHELL_PROFILES_FILENAME = "shell_profiles"
-EX_PROJECT_NOT_FOUND = "{0} - project not found"
-EX_PROJECT_IS_ACTIVE = "{0} - project is active"
-EX_PROJECT_IS_LOCKED = "{0} - project is locked"
-EX_PROJECT_EXISTS = "{0} - name already taken"
-EX_PROJECT_IN_ARCHIVE = "{0} - name already taken in archive"
-EX_TEMPLATE_NOT_FOUND = "{0} - template not found"
-EX_TASK_NOT_FOUND = "{0} - task not found"
-EX_TASK_ALREADY_EXISTS = "{0}- task already exists"
-EX_SHELL_NOT_SUPPORTED = "{0} - isn't supported"
-EX_NO_RC_FILE_FOUND = "no rc file in {0}"
 
 
 def get_file_fullname(searching_root, file_name):
@@ -132,13 +125,13 @@ def lockable(check_only_projects=True, check_active=False):
         def __lockable(self=None, project_name='', check_only=check_only_projects, *args, **kwargs):
             check_only = not kwargs.pop('lock', not check_only)
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
-                raise ProjectActivated(EX_PROJECT_IS_LOCKED.format(project_name))
+                raise ProjectActivated(ExceptionMessages.project_is_locked.value.format(project_name))
             if check_active:
                 if check_in_active_projects(project_name):
-                    raise ProjectActivated(EX_PROJECT_IS_ACTIVE.format(project_name))
+                    raise ProjectActivated(ExceptionMessages.project_is_active.value.format(project_name))
             if not check_only:
                 if check_in_active_projects(project_name):
-                    log.warning(EX_PROJECT_IS_ACTIVE.format(project_name))
+                    log.warning(ExceptionMessages.project_is_active.value.format(project_name))
                 with ProjectLock(project_name):
                     if self:
                         return func(self, project_name, *args, **kwargs)
@@ -175,13 +168,16 @@ class GeneralShellMixin(object):
             rc_file.write(contents)
 
     def start(self, project_root, project_name):
-        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+        raise ShellNotRecognized(
+            ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
 
     def create_shell_profiles(self):
-        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+        raise ShellNotRecognized(
+            ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
 
     def task_exec(self, project_name, task_name, interactive, args=()):
-        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+        raise ShellNotRecognized(
+            ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
 
 
 class Bash(GeneralShellMixin):
@@ -265,7 +261,8 @@ def get_shell():
     elif 'zsh' in shell_name:
         shell = Zsh()
     else:
-        raise ShellNotRecognized(EX_SHELL_NOT_SUPPORTED.format(os.environ.get('SHELL', 'not found $SHELL')))
+        raise ShellNotRecognized(
+            ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
     return shell
 
 
@@ -274,7 +271,7 @@ class ProjectLock(object):
     def __init__(self, project_name):
 
         if not os.path.exists(os.path.join(get_projects_root(), project_name)):
-            raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
+            raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
         self.filepath = os.path.join(get_projects_root(), project_name, "_lock")
 
     def __enter__(self):
@@ -298,14 +295,14 @@ class ProjectCreator(object):
 
     def check_name(self):
         if project_exist(self.project_name):
-            raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(self.project_name))
+            raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(self.project_name))
         if self.project_name in COMMANDS:
             raise NameAlreadyTaken("{0} - there is pet command with this name, use -n NAME".format(self.project_name))
 
     def check_templates(self):
         for template in self.templates:
             if not template_exist(template):
-                raise NameNotFound(EX_TEMPLATE_NOT_FOUND.format(template))
+                raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
 
     def create_dirs(self):
         if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
@@ -367,7 +364,7 @@ def register():
     folder = os.getcwd()
     project_name = os.path.basename(folder)
     if project_exist(project_name):
-        raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(project_name))
+        raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
     if not (os.path.isfile(os.path.join(folder, project_name + ".py")) and
             os.path.isfile(os.path.join(folder, "start.sh")) and
@@ -383,9 +380,9 @@ def rename_project(old_project_name, new_project_name):
     """renames projects"""
     projects_root = get_projects_root()
     if not os.path.exists(os.path.join(projects_root, old_project_name)):
-        raise NameNotFound(EX_PROJECT_NOT_FOUND.format(old_project_name))
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(old_project_name))
     if os.path.exists(os.path.join(projects_root, new_project_name)):
-        raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(new_project_name))
+        raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(new_project_name))
     os.rename(os.path.join(projects_root, old_project_name), os.path.join(projects_root, new_project_name))
 
 
@@ -393,7 +390,7 @@ def edit_project(project_name):
     """edits project start&stop files"""
     projects_root = get_projects_root()
     if not project_exist(project_name):
-        raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
 
     edit_file(os.path.join(projects_root, project_name, "start.sh"))
     edit_file(os.path.join(projects_root, project_name, "stop.sh"))
@@ -409,7 +406,7 @@ def remove_project(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
     if not os.path.exists(project_root):
-        raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
 
     if os.path.islink(project_root):
         os.remove(project_root)
@@ -422,9 +419,9 @@ def archive(project_name):
     """removes project"""
     project_root = os.path.join(get_projects_root(), project_name)
     if not os.path.exists(project_root):
-        raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
     if project_name in print_old().split('\n'):
-        raise NameAlreadyTaken(EX_PROJECT_IN_ARCHIVE.format(project_name))
+        raise NameAlreadyTaken(ExceptionMessages.project_in_archive.value.format(project_name))
 
     archive_root = get_archive_root()
     shutil.move(project_root, os.path.join(archive_root, project_name))
@@ -435,7 +432,7 @@ def restore(project_name):
     if not os.path.exists(os.path.join(get_archive_root(), project_name)):
         raise NameNotFound("{0} - project not found in {1} folder".format(project_name, get_archive_root()))
     if project_exist(project_name):
-        raise NameAlreadyTaken(EX_PROJECT_EXISTS.format(project_name))
+        raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
     shutil.move(os.path.join(get_archive_root(), project_name), os.path.join(get_projects_root(), project_name))
 
@@ -479,9 +476,9 @@ def print_tasks(project_name):
 def create_task(project_name, task_name):
     """creates task"""
     if not project_exist(project_name):
-        raise NameNotFound(EX_PROJECT_NOT_FOUND.format(project_name))
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
     if task_exist(project_name, task_name):
-        raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(task_name))
+        raise NameAlreadyTaken(ExceptionMessages.task_already_exists.value.format(task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
     if '.' in task_name:
@@ -502,7 +499,7 @@ def create_task(project_name, task_name):
 def edit_task(project_name, task_name):
     """edits task"""
     if not task_exist(project_name, task_name):
-        raise NameNotFound(EX_TASK_NOT_FOUND.format(task_name))
+        raise NameNotFound(ExceptionMessages.task_not_found.value.format(task_name))
 
     edit_file(get_file_fullname_and_path(os.path.join(get_projects_root(), project_name, "tasks"), task_name))
 
@@ -511,9 +508,9 @@ def rename_task(project_name, old_task_name, new_task_name):
     """renames task"""
     tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
     if not task_exist(project_name, old_task_name):
-        raise NameNotFound(EX_TASK_NOT_FOUND.format(old_task_name))
+        raise NameNotFound(ExceptionMessages.task_not_found.value.format(old_task_name))
     if task_exist(project_name, new_task_name):
-        raise NameAlreadyTaken(EX_TASK_ALREADY_EXISTS.format(new_task_name))
+        raise NameAlreadyTaken(ExceptionMessages.task_already_exists.value.format(new_task_name))
 
     old_task_full_path = get_file_fullname_and_path(tasks_root, old_task_name)
     task_extension = os.path.splitext(old_task_full_path)[1]
@@ -523,7 +520,7 @@ def rename_task(project_name, old_task_name, new_task_name):
 def run_task(project_name, task_name, interactive, args=()):
     """executes task in correct project"""
     if not task_exist(project_name, task_name):
-        raise NameNotFound(EX_TASK_NOT_FOUND.format(task_name))
+        raise NameNotFound(ExceptionMessages.task_not_found.value.format(task_name))
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
         get_shell().create_shell_profiles()
     get_shell().task_exec(project_name, True, task_name, interactive, args)
