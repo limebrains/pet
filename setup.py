@@ -29,7 +29,7 @@ setup(
     install_requires=requirements,
     entry_points={
         'console_scripts': [
-            'pet = pet.cli:main',
+            'pet=pet.cli:main',
         ],
     },
     cmdclass={'install_scripts': InstallScripts}
