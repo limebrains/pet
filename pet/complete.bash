@@ -5,7 +5,7 @@ _pet()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="archive clean edit init list register remove rename restore -v --version --help "
+    opts="archive clean edit init list register remove rename restore run -v --version --help "
     if [ -z "$PET_FOLDER" ]; then
         PET_FOLDER="${HOME}/.pet"
     else
@@ -18,7 +18,7 @@ _pet()
     fi
     projects=$(/bin/ls "$PET_FOLDER/projects/" | cut -d "/" -f 1)
     if [ -z "$PET_ACTIVE_PROJECT" ]; then
-        opts="${opts} run "
+        opts="${opts}"
     else
         opts="${opts} stop task "
     fi

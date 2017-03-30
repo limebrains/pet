@@ -6,3 +6,4 @@ pyparsing==2.1.10
 PyYAML==3.12
 six==1.10.0
 backports.functools_lru_cache==1.0.1
+enum34==1.1.6

@@ -123,16 +123,29 @@ def restore(project_name):
 
 
 @cli.command()
-def register():
+@click.option('--name', '-n', default=None, help="name for project")
+def register(name):
     """registers .pet as project folder"""
     with pet_exception_manager():
-        bl.register()
+        bl.register(project_name=name)
 
 
 @cli.command()
 def clean():
     """unlocks all projects"""
     bl.clean()
+
+
+@cli.command()
+@click.argument('project_name')
+@click.argument('task_name')
+@click.option('-i', '--interactive', is_flag=True)
+@click.argument('args', nargs=-1)
+def run(project_name, task_name, interactive, args=()):
+    """runs projects task"""
+    with pet_exception_manager():
+        bl.run_task(
+            project_name=project_name, task_name=task_name, interactive=interactive, args=args)
 
 
 if active_project:
@@ -195,17 +208,6 @@ else:
         """edits project"""
         with pet_exception_manager():
             bl.edit_project(project_name)
-
-    @cli.command()
-    @click.argument('project_name')
-    @click.argument('task_name')
-    @click.option('-i', '--interactive', is_flag=True)
-    @click.argument('args', nargs=-1)
-    def run(project_name, task_name, interactive, args=()):
-        """runs projects task"""
-        with pet_exception_manager():
-            bl.run_task(
-                project_name=project_name, task_name=task_name, interactive=interactive, args=args)
 
 
 def main():

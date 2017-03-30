@@ -19,11 +19,9 @@ from pet.file_templates import (
 
 log = logging.getLogger(__file__)
 
-# TODO: you can make task with projects_name,
-# TODO:  if you do so outside of project, only project is seen, inside task is more powerfull
-# TODO: templates: tasks - but how should it work?
 # TODO: rewrite logging into yields
 # TODO: 29th sed is probably hating .pet... (dots - check at home)
+# TODO: 30th change file_template for tasks.py to make a group like active_cli
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -88,7 +86,7 @@ def project_exist(project_name):
     return os.path.exists(os.path.join(get_projects_root(), project_name))
 
 
-def template_exist(template_name):
+def project_template_exist(template_name):
     """checks existence of project"""
     return os.path.exists(os.path.join(get_projects_templates_root(), template_name))
 
@@ -301,7 +299,7 @@ class ProjectCreator(object):
 
     def check_templates(self):
         for template in self.templates:
-            if not template_exist(template):
+            if not project_template_exist(template):
                 raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
 
     def create_dirs(self):
@@ -359,10 +357,11 @@ def create(project_name, templates=()):
     ProjectCreator(project_name, templates).create()
 
 
-def register():
+def register(project_name):
     """adds symbolic link to .pet folder in projects"""
     folder = os.getcwd()
-    project_name = os.path.basename(folder)
+    if not project_name:
+        project_name = os.path.basename(folder)
     if project_exist(project_name):
         raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
@@ -370,6 +369,7 @@ def register():
             os.path.isfile(os.path.join(folder, "start.sh")) and
             os.path.isfile(os.path.join(folder, "stop.sh")) and
             os.path.isfile(os.path.join(folder, "tasks.py")) and
+            os.path.isfile(os.path.join(folder, "tasks.sh")) and
             os.path.isdir(os.path.join(folder, "tasks"))):
         raise PetException("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
 
