@@ -14,6 +14,9 @@ class InstallScripts(install_scripts):
         from pet.make import main
         main()
 
+    def get_outputs(self):
+        return []
+
 
 setup(
     name='pet',
