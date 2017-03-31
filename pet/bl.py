@@ -135,14 +135,14 @@ def check_version():
 
 
 def recreate():
-    print('Creating pet folders in {0}'.format(PET_FOLDER))
-    makedirs(path=os.path.join(PET_FOLDER, "projects"), exists_ok=True)
-    makedirs(path=os.path.join(PET_FOLDER, "archive"), exists_ok=True)
-    makedirs(path=os.path.join(PET_FOLDER, "templates", "projects"), exists_ok=True)
-    makedirs(path=os.path.join(PET_FOLDER, "templates", "tasks"), exists_ok=True)
+    print('Creating pet folders in {0}'.format(get_pet_folder()))
+    makedirs(path=os.path.join(get_pet_folder(), "projects"), exists_ok=True)
+    makedirs(path=os.path.join(get_pet_folder(), "archive"), exists_ok=True)
+    makedirs(path=os.path.join(get_pet_folder(), "templates", "projects"), exists_ok=True)
+    makedirs(path=os.path.join(get_pet_folder(), "templates", "tasks"), exists_ok=True)
     Popen(["/bin/sh", "-c", "touch {0}; echo \"EDITOR==$EDITOR\" > {1}".format(
-        os.path.join(PET_INSTALL_FOLDER, "active_projects"),
-        os.path.join(PET_INSTALL_FOLDER, "config"),
+        os.path.join(get_pet_install_folder(), "active_projects"),
+        os.path.join(get_pet_install_folder(), "config"),
     )])
 
 
@@ -562,7 +562,7 @@ def run_task(project_name, task_name, interactive, args=()):
     """executes task in correct project"""
     if not task_exist(project_name, task_name):
         raise NameNotFound(ExceptionMessages.task_not_found.value.format(task_name))
-    if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
+    if not os.path.isfile(os.path.join(get_pet_install_folder(), SHELL_PROFILES_FILENAME)):
         get_shell().create_shell_profiles()
     get_shell().task_exec(project_name, True, task_name, interactive, args)
 
@@ -584,7 +584,7 @@ def remove_task(project_name, task_name):
 
 def edit_config():
     """edits config file using $EDITOR"""
-    Popen(["/bin/sh", "-c", "$EDITOR {1}".format(os.path.join(PET_INSTALL_FOLDER, "config"))]).communicate()
+    Popen(["/bin/sh", "-c", "$EDITOR {1}".format(os.path.join(get_pet_install_folder(), "config"))]).communicate()
 
 
 def edit_shell_profiles():
