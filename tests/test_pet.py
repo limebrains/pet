@@ -6,8 +6,8 @@ import pytest
 from pet.bl import (
     get_file_fullname,
     get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
-    get_projects_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
-    ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
+    get_projects_root, archive, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
+    ProjectCreator, start, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
 )
 from pet.exceptions import (
@@ -303,7 +303,41 @@ def test_remove_project_command(mock_rmtree, mock_remove, mock_islink, mock_exis
         remove_project(project_name=project_name)
 
 
-@mock.patch('bl.get_projects_root', return_value=projects_root)
+@mock.patch('pet.bl.lockable', return_value=lockable_t)
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.path.exists')
+@mock.patch('pet.bl.shutil.move')
+@mock.patch('pet.bl.get_archive_root', return_value=archive_root)
+@mock.patch('pet.bl.print_old')
+def test_archive_project_command(mock_old, mock_root_archive, mock_move, mock_exists, mock_root, mock_lockable, project_names):
+    for project_name in project_names:
+        mock_exists.side_effect = [False]
+        with pytest.raises(NameNotFound):
+            archive(project_name=project_name)
+        mock_exists.side_effect = [True, True]
+        mock_old.side_effect = [""]
+        archive(project_name=project_name)
+
+
+@mock.patch('pet.bl.shutil.move')
+@mock.patch('pet.bl.project_exist')
+@mock.patch('pet.bl.get_archive_root', return_value=archive_root)
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.path.exists')
+def test_restore_command(mock_exists, mock_root, mock_archive_root, mock_project_exist, mock_move, project_names):
+    for project_name in project_names:
+        mock_exists.return_value = False
+        with pytest.raises(NameNotFound):
+            restore(project_name)
+        mock_exists.return_value = True
+        mock_project_exist.return_value = True
+        with pytest.raises(NameAlreadyTaken):
+            restore(project_name)
+        mock_project_exist.return_value = False
+        restore(project_name)
+
+
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('os.listdir', return_value=["test_project", "test_project_2", "test_project_3"])
 @mock.patch('os.path.exists')
 @mock.patch('os.remove')
@@ -314,3 +348,34 @@ def test_clean_command(mock_remove, mock_exists, mock_listdir, mock_root):
         calls.append(mock.call(os.path.join(projects_root, project, "_lock")))
     for call in calls:
         assert call in mock_remove.mock_calls
+
+
+@mock.patch('os.listdir', return_value="one\ntwo\nthree")
+def test_print_projects_for_root(mock_listdir):
+    print_projects_for_root("some root")
+
+
+@mock.patch('pet.bl.print_projects_for_root')
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+def test_print_list_command(mock_root, mock_print):
+    print_list()
+    mock_print.assert_called()
+
+
+@mock.patch('pet.bl.print_projects_for_root')
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+def test_print_old_command(mock_root, mock_print):
+    print_old()
+    mock_print.assert_called()
+
+
+@mock.patch('pet.bl.print_projects_for_root')
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.listdir', return_value=['one.txt', 'two.py'])
+def test_print_tasks_command(mock_listdir, mock_root, mock_print, project_names):
+    for project_name in project_names:
+        print_tasks(project_name)
+
+
+def test_create_task_command(project_names, task_names):
+    pass
