@@ -8,7 +8,7 @@ from pet.bl import (
     get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
     get_projects_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
-    print_tasks, remove_task, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project
+    print_tasks, remove_task, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
 )
 from pet.exceptions import (
     NameAlreadyTaken,
@@ -24,6 +24,17 @@ projects_root = os.path.join(PET_FOLDER, "projects")
 archive_root = os.path.join(PET_FOLDER, "archive")
 projects_templates_root = os.path.join(PET_FOLDER, "templates", "projects")
 tasks_templates_root = os.path.join(PET_FOLDER, "templates", "tasks")
+
+
+def lockable_t(check_only_projects=True, check_active=False):
+    def _lockable_t(func, *args, **kwargs):
+        def __lockable_t(self=None, project_name='', check_only=check_only_projects, *args, **kwargs):
+            if self:
+                return func(self, project_name, *args, **kwargs)
+            else:
+                return func(project_name, *args, **kwargs)
+        return __lockable_t
+    return _lockable_t
 
 
 @mock.patch('pet.bl.glob.glob')
@@ -273,6 +284,23 @@ def test_create_command(mock_project_creator, project_names):
 def test_stop_command(mock_kill):
     stop()
     assert mock_kill.called
+
+
+@mock.patch('pet.bl.lockable', return_value=lockable_t)
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.path.exists')
+@mock.patch('os.path.islink')
+@mock.patch('os.remove')
+@mock.patch('pet.bl.shutil.rmtree')
+def test_remove_project_command(mock_rmtree, mock_remove, mock_islink, mock_exists, mock_root, mock_lockable, project_names):
+    for project_name in project_names:
+        mock_exists.side_effect = [False]
+        with pytest.raises(NameNotFound):
+            remove_project(project_name=project_name)
+        mock_exists.side_effect = [True, True]
+        mock_islink.side_effect = [True, False]
+        remove_project(project_name=project_name)
+        remove_project(project_name=project_name)
 
 
 @mock.patch('bl.get_projects_root', return_value=projects_root)
