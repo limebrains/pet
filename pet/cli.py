@@ -9,7 +9,6 @@ from pet.exceptions import Info, PetException
 cli = click.Group()
 active_project = os.environ.get('PET_ACTIVE_PROJECT', '')
 
-# TODO: collapse deploy.sh and make.py into one with better name
 # TODO: interactive tasks in ZSH
 # TODO: tasks with templates
 # TODO: tests

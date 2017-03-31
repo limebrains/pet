@@ -22,10 +22,8 @@ from pet.utils import makedirs
 log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
-# TODO: 29th sed is probably hating .pet... (dots - check at home)
 # TODO: 30th change file_template for tasks.py to make a group like active_cli - delete adding to this file just class
 # TODO: 31st CREATE FILE TO KEEP tabs numbers! (change active_projects)
-# TODO: 31st clear tab_name at stop!
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
