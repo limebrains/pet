@@ -5,8 +5,8 @@ import pytest
 
 from pet.bl import (
     get_file_fullname,
-    get_file_fullname_and_path, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
-    get_projects_root, get_projects_templates_root, template_exist, get_archive_root, edit_file, ProjectLock, \
+    get_file_fullname_and_path, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
+    get_projects_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, restore, register, clean, edit_project, run_task, edit_task, remove_project
 )
@@ -23,6 +23,7 @@ PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), 
 projects_root = os.path.join(PET_FOLDER, "projects")
 archive_root = os.path.join(PET_FOLDER, "archive")
 projects_templates_root = os.path.join(PET_FOLDER, "templates", "projects")
+tasks_templates_root = os.path.join(PET_FOLDER, "templates", "tasks")
 
 
 def test_get_pet_install_folder_command():
@@ -45,17 +46,29 @@ def test_get_projects_templates_root_command(mock_exists):
     mock_exists.assert_called_with(projects_templates_root)
 
 
+@mock.patch('os.path.exists', return_value=True)
+def test_get_tasks_templates_root_command(mock_exists):
+    assert get_tasks_templates_root() == tasks_templates_root
+    mock_exists.assert_called_with(tasks_templates_root)
+
+
 @mock.patch('os.path.exists')
 def test_get_archive_root_command(mock_exists):
     assert get_archive_root() == archive_root
     mock_exists.assert_called_with(archive_root)
 
 
+@mock.patch('os.path.join')
 @mock.patch('pet.bl.Popen')
-def test_edit_file_command(Popen, files):
+def test_edit_file_command(mock_popen, mock_join, files):
     for path in files:
         edit_file(path)
-        Popen.assert_called_with(["/bin/sh", "-c", "$EDITOR %s" % path])
+        mock_popen.assert_called_with([
+            "/bin/sh",
+            "-c",
+            "PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")\n"
+            "if [ -z $PET_EDITOR ]; then\n$EDITOR {1}\n"
+            "else\n$PET_EDITOR {1}\nfi".format(mock_join(), path)])
 
 
 @mock.patch('os.path.exists')
@@ -69,7 +82,7 @@ def test_project_exist_command(mock_exists, project_names):
 @mock.patch('os.path.exists')
 def test_template_exist_command(mock_exists, project_names):
     for template_name in project_names:
-        template_exist(template_name)
+        project_template_exist(template_name)
         template_root = projects_templates_root + "/" + template_name
         mock_exists.assert_called_with(template_root)
 
@@ -123,6 +136,37 @@ def test_get_shell_command(mock_get, mock_lru, shells):
     mock_get.side_effect = side
     for i in range(len(shells)):
         assert isinstance(get_shell(), GeneralShellMixin)
+
+
+@mock.patch('os.path.exists')
+@mock.patch('os.remove')
+@mock.patch('pet.bl.open')
+@mock.patch('os.path.join')
+@mock.patch('pet.bl.get_projects_root')
+def test_project_lock_class(mock_root, mock_join, mock_open, mock_remove, mock_exists, project_names):
+    a = [True] * len(project_names)
+    a.append(False)
+    mock_exists.side_effect = a
+    for project_name in project_names:
+        with ProjectLock(project_name):
+            mock_open.assert_called_with(mock_join(), "w")
+        mock_remove.assert_called_with(mock_join())
+    with pytest.raises(NameNotFound):
+        ProjectLock("not_existing")
+
+
+@mock.patch('pet.bl.project_template_exist', return_value=True)
+@mock.patch('pet.bl.project_exist', return_value=False)
+@mock.patch('pet.bl.get_projects_templates_root', return_value=projects_templates_root)
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.path.exists', return_value=True)
+@mock.patch('os.path.isfile', return_value=True)
+@mock.patch('pet.bl.get_shell')
+@mock.patch('os.getcwd', return_value="")
+@mock.patch('pet.bl.open')
+def test_project_creator_class(mock_open, mock_getcwd, mock_shell, mock_isfile, mock_path_exists, mock_root, mock_templates_root, mock_project_exist, mock_template_exist, project_names, additional_project_names):
+    for project_name in project_names:
+        ProjectCreator(project_name, add_dir=True, templates=additional_project_names).create()
 
 
 @mock.patch('os.kill')
