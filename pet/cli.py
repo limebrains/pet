@@ -65,16 +65,18 @@ class ActiveCli(click.MultiCommand):
 
 @cli.command('init')
 @click.option('--name', '-n', default=None, help="name for project")
+@click.option('--add_dir', '-d', is_flag=True, help="add change directory to current at start")
 @click.option('--templates', '-t', multiple=True, help="-t template,template... or -t template -t template")
-def create_project(name, templates):
+def create_project(name, add_dir, templates):
     """creates new project"""
     if not name:
         name = os.path.basename(os.getcwd())
+        add_dir = True
     if len(templates) == 1:
         if templates[0].count(',') > 0:
             templates = templates[0].split(',')
     with pet_exception_manager():
-        bl.create(name, templates)
+        bl.create(name, add_dir, templates)
 
 
 @cli.command('list')
@@ -146,6 +148,13 @@ def run(project_name, task_name, interactive, args=()):
     with pet_exception_manager():
         bl.run_task(
             project_name=project_name, task_name=task_name, interactive=interactive, args=args)
+
+
+@cli.command()
+def recreate():
+    """Recreates all required folders in PET_FOLDER"""
+    with pet_exception_manager():
+        bl.recreate()
 
 
 if active_project:

@@ -17,6 +17,8 @@ from pet.file_templates import (
     new_tasks_py_file_template
 )
 
+from pet.utils import makedirs
+
 log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
@@ -282,7 +284,7 @@ class ProjectLock(object):
 
 class ProjectCreator(object):
 
-    def __init__(self, project_name, templates=()):
+    def __init__(self, project_name, add_dir, templates=()):
         self.projects_root = get_projects_root()
         self.templates_root = get_projects_templates_root()
         self.project_name = project_name
@@ -290,6 +292,7 @@ class ProjectCreator(object):
         self.templates = templates
         self.check_name()
         self.check_templates()
+        self.add_dir = add_dir
 
     def check_name(self):
         if project_exist(self.project_name):
@@ -317,19 +320,29 @@ class ProjectCreator(object):
         with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
             tasks_alias_file.write("# aliases for your tasks\n")
 
-    def create_files_with_templates(self):
-        for filename in ['start.sh', 'stop.sh']:
-            with open(os.path.join(self.project_root, filename), mode='w') as file:
-                if self.templates:
-                    file.write("# TEMPLATES\n")
-                    for template in self.templates:
-                        file.write("# from template: {0}\n".format(template))
-                        with open(os.path.join(self.templates_root, template, filename)) as corresponding_template_file:
-                            file.write(corresponding_template_file.read())
-                        file.write("\n")
-                    file.write("# check if correctly imported templates\n")
+    def create_files_with_templates(self, filename, additional_lines, increasing_order):
+        with open(os.path.join(self.project_root, filename), mode='w') as file:
+            if self.templates:
+                file.write("# TEMPLATES\n")
+                if increasing_order:
+                    templates = self.templates
                 else:
-                    file.write('# add here shell code to be executed while entering project\n')
+                    templates = reversed(self.templates)
+                for template in templates:
+                    file.write("# from template: {0}\n".format(template))
+                    with open(os.path.join(self.templates_root, template, filename)) as corresponding_template_file:
+                        file.write(corresponding_template_file.read())
+                    file.write("\n")
+                file.write("# check if correctly imported templates\n")
+            else:
+                file.write('# add here shell code to be executed while entering project\n')
+            file.write(additional_lines)
+
+    def create_files(self):
+        if self.add_dir:
+            add_to_start = "cd {0}\n".format(os.getcwd())
+        self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
+        self.create_files_with_templates(filename='stop.sh', additional_lines="", increasing_order=False)
 
     def edit(self):
         edit_file(os.path.join(self.project_root, "start.sh"))
@@ -338,7 +351,7 @@ class ProjectCreator(object):
     def create(self):
         self.create_dirs()
         self.create_additional_files()
-        self.create_files_with_templates()
+        self.create_files()
         self.edit()
 
 
@@ -352,9 +365,9 @@ def start(project_name):
     get_shell().start(project_root, project_name)
 
 
-def create(project_name, templates=()):
+def create(project_name, add_dir, templates=()):
     """creates new project"""
-    ProjectCreator(project_name, templates).create()
+    ProjectCreator(project_name, add_dir, templates).create()
 
 
 def register(project_name):
@@ -539,3 +552,11 @@ def remove_task(project_name, task_name):
         str(num - 6), str(num + 1), os.path.join(project_root, "tasks.py"))])
     Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task_name, os.path.join(project_root, "tasks.sh"))])
     os.remove(get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name))
+
+
+def recreate():
+    makedirs(path=os.path.join(PET_FOLDER, "projects"), exists_ok=True)
+    makedirs(path=os.path.join(PET_FOLDER, "archive"), exists_ok=True)
+    makedirs(path=os.path.join(PET_FOLDER, "templates", "projects"), exists_ok=True)
+    makedirs(path=os.path.join(PET_FOLDER, "templates", "tasks"), exists_ok=True)
+    Popen(["/bin/sh", "-c", "touch {0}".format(os.path.join(PET_INSTALL_FOLDER, "active_projects"))])

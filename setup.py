@@ -12,8 +12,6 @@ requirements = [
 class InstallScripts(install_scripts):
     def run(self):
         print("Installing pet")
-        from pet.make import main
-        main()
 
     def get_outputs(self):
         return []
