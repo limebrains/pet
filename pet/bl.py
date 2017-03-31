@@ -104,22 +104,37 @@ def task_exist(project_name, task_name):
     return task_name in print_tasks(project_name).split('\n')
 
 
-def add_to_active_projects(project_name):
-    Popen(["/bin/sh", "-c", "echo '{0}' >> {1}".format(
-        project_name, os.path.join(PET_INSTALL_FOLDER, "active_projects"))])
+def how_many_active(project_name):
+    nums = Popen(["/bin/sh", "-c", "echo $(grep '^{0}==' {1} | sed -n \"/{0}==/s/{0}==//p\")".format(
+        project_name, os.path.join(PET_INSTALL_FOLDER, "active_projects"))],
+                 stdout=PIPE
+                 ).stdout.read().decode("utf-8")[:-1]
+    if nums:
+        nums = nums.split(" ")
+        nums = [int(num) for num in nums]
+    else:
+        nums = [0]
+    return max(nums)
 
 
-def remove_from_active_projects(project_name):
-    line_nr = check_in_active_projects(project_name)
+def add_to_active_projects(project_name, num):
+    Popen(["/bin/sh", "-c", "echo '{0}=={1}' >> {2}".format(
+        project_name, num, os.path.join(PET_INSTALL_FOLDER, "active_projects"))])
+
+
+def remove_from_active_projects(project_name, num):
+    line_nr = check_in_active_projects(project_name, num)
     if line_nr:
         Popen(["/bin/sh", "-c", "sed -i -e \"{0}d\" {1}".format(
             line_nr.split('\n')[0], os.path.join(get_pet_install_folder(), "active_projects"))])
 
 
-def check_in_active_projects(project_name):
+def check_in_active_projects(project_name, nr):
+    if nr is None:
+        nr = ""
     return Popen(
-        ["/bin/sh", "-c", "grep -n ^{0}$ {1} | cut -d \":\" -f 1".format(
-            project_name, os.path.join(get_pet_install_folder(), "active_projects"))],
+        ["/bin/sh", "-c", "grep -n ^{0}=={1} {2} | cut -d \":\" -f 1".format(
+            project_name, nr, os.path.join(get_pet_install_folder(), "active_projects"))],
         stdout=PIPE
     ).stdout.read().decode("utf-8")[:-1]
 
@@ -153,10 +168,10 @@ def lockable(check_only_projects=True, check_active=False):
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
                 raise ProjectActivated(ExceptionMessages.project_is_locked.value.format(project_name))
             if check_active:
-                if check_in_active_projects(project_name):
+                if check_in_active_projects(project_name, None):
                     raise ProjectActivated(ExceptionMessages.project_is_active.value.format(project_name))
             if not check_only:
-                if check_in_active_projects(project_name):
+                if check_in_active_projects(project_name, None):
                     log.warning(ExceptionMessages.project_is_active.value.format(project_name))
                 with ProjectLock(project_name):
                     if self:
@@ -180,14 +195,17 @@ class GeneralShellMixin(object):
     def get_rc_filename(self):
         return self.rc_filename
 
-    def make_rc_file(self, project_name, additional_lines=""):
+    def make_rc_file(self, project_name, nr, additional_lines=""):
         project_root = os.path.join(get_projects_root(), project_name)
+        if nr == 1:
+            nr = ""
         contents = new_project_bash_rc_template.format(
             PET_INSTALL_FOLDER,
             project_name,
             project_root,
             os.path.join(project_root, "tasks.sh"),
-            additional_lines
+            additional_lines,
+            nr,
         )
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
@@ -213,10 +231,12 @@ class Bash(GeneralShellMixin):
         self.rc_filename = BASH_RC_FILENAME
 
     def start(self, project_root, project_name):
-        add_to_active_projects(project_name)
+        nr = how_many_active(project_name)
+        self.make_rc_file(project_name, nr + 1, additional_lines="")
+        add_to_active_projects(project_name, nr + 1)
         Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}".format(
             os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate()
-        remove_from_active_projects(project_name)
+        remove_from_active_projects(project_name, nr + 1)
 
     def create_shell_profiles(self):
         with open(os.path.join(PET_INSTALL_FOLDER, 'shell_profiles'), mode='w') as shell_profiles_file:
@@ -229,7 +249,8 @@ class Bash(GeneralShellMixin):
 
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
-        add_to_active_projects(project_name)
+        nr = how_many_active(project_name)
+        add_to_active_projects(project_name, nr + 1)
         project_root = os.path.join(get_projects_root(), project_name)
         if interactive:
             self.make_rc_file(project_name, ". {0} {1}\n".format(
@@ -246,7 +267,7 @@ class Bash(GeneralShellMixin):
             Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
                 os.path.join(project_root, self.get_rc_filename()), project_root)]).wait()
 
-        remove_from_active_projects(project_name)
+        remove_from_active_projects(project_name, nr + 1)
 
 
 class Zsh(GeneralShellMixin):
@@ -256,11 +277,12 @@ class Zsh(GeneralShellMixin):
         self.rc_filename = ZSH_RC_FILENAME
 
     def start(self, project_root, project_name):
-        add_to_active_projects(project_name)
+        nr = how_many_active(project_name)
+        add_to_active_projects(project_name, nr + 1)
         print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
         Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL".format(
             project_root)]).communicate()
-        remove_from_active_projects(project_name)
+        remove_from_active_projects(project_name, nr + 1)
 
     def create_shell_profiles(self):
         if os.environ.get('ZDOTDIR', ""):
@@ -272,11 +294,12 @@ class Zsh(GeneralShellMixin):
 
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
+        nr = how_many_active(project_name)
         if interactive:
-            add_to_active_projects(project_name)
+            add_to_active_projects(project_name, nr + 1)
             # TODO: find a way to make interactive tasks in zsh
             print("it doesn't work in zsh")
-            remove_from_active_projects(project_name)
+            remove_from_active_projects(project_name, nr + 1)
 
 
 @lru_cache()
@@ -336,7 +359,7 @@ class ProjectCreator(object):
             get_shell().create_shell_profiles()
         if not os.path.exists(os.path.join(self.project_root, "tasks")):
             os.makedirs(os.path.join(self.project_root, "tasks"))
-        get_shell().make_rc_file(self.project_name)
+        get_shell().make_rc_file(self.project_name, nr=0)
 
     def create_additional_files(self):
         with open(os.path.join(self.project_root, self.project_name + ".py"), mode='w') as project_file:
@@ -389,7 +412,6 @@ def start(project_name):
     if not os.path.isfile(os.path.join(PET_INSTALL_FOLDER, SHELL_PROFILES_FILENAME)):
         get_shell().create_shell_profiles()
     project_root = os.path.join(get_projects_root(), project_name)
-    get_shell().make_rc_file(project_name)
     get_shell().start(project_root, project_name)
 
 

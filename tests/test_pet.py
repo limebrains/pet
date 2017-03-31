@@ -131,9 +131,9 @@ def test_task_exist_command(mock_tasks, mock_split, project_names, task_names):
 @mock.patch('pet.bl.Popen')
 def test_add_to_active_projects_command(mock_popen, mock_join, project_names):
     for project_name in project_names:
-        add_to_active_projects(project_name)
-        mock_popen.assert_called_with(["/bin/sh", "-c", "echo '{0}' >> {1}".format(
-            project_name, mock_join())])
+        add_to_active_projects(project_name, num=0)
+        mock_popen.assert_called_with(["/bin/sh", "-c", "echo '{0}=={1}' >> {2}".format(
+            project_name, 0, mock_join())])
 
 
 @mock.patch('os.path.join')
@@ -141,7 +141,7 @@ def test_add_to_active_projects_command(mock_popen, mock_join, project_names):
 @mock.patch('pet.bl.Popen')
 def test_remove_from_active_projects_command(mock_popen, mock_active, mock_join, project_names):
     for project_name in project_names:
-        remove_from_active_projects(project_name)
+        remove_from_active_projects(project_name, num=0)
         mock_popen.assert_called_with(["/bin/sh", "-c", "sed -i -e \"{0}d\" {1}".format(
             9, mock_join())])
 
@@ -151,10 +151,10 @@ def test_remove_from_active_projects_command(mock_popen, mock_active, mock_join,
 @mock.patch('pet.bl.Popen')
 def test_check_in_active_projects_command(mock_popen, mock_join, mock_pipe, project_names):
     for project_name in project_names:
-        check_in_active_projects(project_name)
+        check_in_active_projects(project_name, nr=0)
         mock_popen.assert_called_with(
-            ["/bin/sh", "-c", "grep -n ^{0}$ {1} | cut -d \":\" -f 1".format(
-            project_name, mock_join())], stdout=mock_pipe)
+            ["/bin/sh", "-c", "grep -n ^{0}=={1} {2} | cut -d \":\" -f 1".format(
+                project_name, 0, mock_join())], stdout=mock_pipe)
 
 
 @mock.patch('pet.bl.PIPE')

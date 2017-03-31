@@ -21,9 +21,8 @@ new_project_bash_rc_template = '''
 source {0}/shell_profiles
 export PET_ACTIVE_PROJECT='{1}'
 source {2}/start.sh
-v0=$(grep -c '^{1}$' {0}/active_projects)
 PS1=\"[{1}] $PS1\"
-echo -ne \"\\033]0;{1} ${{v0/#1/}}\\007"
+echo -ne \"\\033]0;{1} {5}\\007"
 source {3}
 trap 'source {2}/stop.sh' EXIT
 trap 'echo -ne \"\\033]0;\\007"' EXIT
