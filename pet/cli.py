@@ -116,6 +116,35 @@ def archive(project_name):
         bl.archive(project_name=project_name)
 
 
+@cli.group()
+def config():
+    """configures pet"""
+    pass
+
+
+@config.command()
+def shell():
+    """helps you edit shell_profiles file"""
+    with pet_exception_manager():
+        bl.edit_shell_profiles()
+
+
+@config.command()
+def projects_folder():
+    """helps you add PET_FOLDER variable"""
+    with pet_exception_manager():
+        click.secho("Current folder for pet projects is:\n{0}".format(bl.get_projects_root()), fg='green')
+    click.secho("You can change folder that is going to be recognized by pet, by adding\n"
+                "export PET_FOLDER='path'\nto your shell profile file", fg='green')
+
+
+@config.command()
+def editor():
+    """helps you change editor used in pet actions"""
+    with pet_exception_manager():
+        bl.edit_config()
+
+
 @cli.command()
 @click.argument('project_name')
 def restore(project_name):
@@ -237,7 +266,12 @@ def main():
     def multi_cli(ctx, version):
         if version:
             from pet import version
-            click.secho("pet version {0}".format(version))
+            newest_version = bl.check_version()
+            if version != newest_version:
+                click.secho('New pet version available. Using: {0}, available: {1}'.format(
+                    version, newest_version), fg='red')
+            else:
+                click.secho("pet version {0}".format(version))
         elif not ctx.invoked_subcommand:
             click.secho(ctx.invoke(lambda: multi_cli.get_help(ctx)))
 

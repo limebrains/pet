@@ -23,7 +23,9 @@ log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
 # TODO: 29th sed is probably hating .pet... (dots - check at home)
-# TODO: 30th change file_template for tasks.py to make a group like active_cli
+# TODO: 30th change file_template for tasks.py to make a group like active_cli - delete adding to this file just class
+# TODO: 31st CREATE FILE TO KEEP tabs numbers! (change active_projects)
+# TODO: 31st clear tab_name at stop!
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -79,8 +81,12 @@ def get_archive_root():
 
 
 def edit_file(path):
-    """edits file using $EDITOR"""
-    Popen(["/bin/sh", "-c", "$EDITOR {0}".format(path)]).communicate()
+    """edits file using EDITOR variable from config file"""
+    Popen(["/bin/sh",
+           "-c",
+           "PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")\n"
+           "if [ -z $PET_EDITOR ]; then\n$EDITOR {1}\nelse\n$PET_EDITOR {1}\nfi".format(
+               os.path.join(PET_INSTALL_FOLDER, "config"), path)]).communicate()
 
 
 def project_exist(project_name):
@@ -118,6 +124,28 @@ def check_in_active_projects(project_name):
             project_name, os.path.join(get_pet_install_folder(), "active_projects"))],
         stdout=PIPE
     ).stdout.read().decode("utf-8")[:-1]
+
+
+def check_version():
+    newest_version = Popen([
+        "/bin/sh",
+        "-c",
+        "git ls-remote -t git@github.com:dmydlo/pet.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1  |"
+        " sort -b -t . -k 1,1nr -k 2,2nr -k 3,3r -k 4,4r -k 5,5r | uniq",
+    ], stdout=PIPE).stdout.read()
+    return newest_version.decode("utf-8")
+
+
+def recreate():
+    print('Creating pet folders in {0}'.format(PET_FOLDER))
+    makedirs(path=os.path.join(PET_FOLDER, "projects"), exists_ok=True)
+    makedirs(path=os.path.join(PET_FOLDER, "archive"), exists_ok=True)
+    makedirs(path=os.path.join(PET_FOLDER, "templates", "projects"), exists_ok=True)
+    makedirs(path=os.path.join(PET_FOLDER, "templates", "tasks"), exists_ok=True)
+    Popen(["/bin/sh", "-c", "touch {0}; echo \"EDITOR==$EDITOR\" > {1}".format(
+        os.path.join(PET_INSTALL_FOLDER, "active_projects"),
+        os.path.join(PET_INSTALL_FOLDER, "config"),
+    )])
 
 
 def lockable(check_only_projects=True, check_active=False):
@@ -341,6 +369,8 @@ class ProjectCreator(object):
     def create_files(self):
         if self.add_dir:
             add_to_start = "cd {0}\n".format(os.getcwd())
+        else:
+            add_to_start = ""
         self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
         self.create_files_with_templates(filename='stop.sh', additional_lines="", increasing_order=False)
 
@@ -554,9 +584,10 @@ def remove_task(project_name, task_name):
     os.remove(get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name))
 
 
-def recreate():
-    makedirs(path=os.path.join(PET_FOLDER, "projects"), exists_ok=True)
-    makedirs(path=os.path.join(PET_FOLDER, "archive"), exists_ok=True)
-    makedirs(path=os.path.join(PET_FOLDER, "templates", "projects"), exists_ok=True)
-    makedirs(path=os.path.join(PET_FOLDER, "templates", "tasks"), exists_ok=True)
-    Popen(["/bin/sh", "-c", "touch {0}".format(os.path.join(PET_INSTALL_FOLDER, "active_projects"))])
+def edit_config():
+    """edits config file using $EDITOR"""
+    Popen(["/bin/sh", "-c", "$EDITOR {1}".format(os.path.join(PET_INSTALL_FOLDER, "config"))]).communicate()
+
+
+def edit_shell_profiles():
+    edit_file(os.path.join(get_pet_install_folder(), SHELL_PROFILES_FILENAME))
