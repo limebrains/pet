@@ -5,10 +5,10 @@ import pytest
 
 from pet.bl import (
     get_file_fullname,
-    get_file_fullname_and_path, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
+    get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, check_in_active_projects, add_to_active_projects, remove_from_active_projects, get_pet_install_folder, get_pet_folder, \
     get_projects_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
-    print_tasks, remove_task, restore, register, clean, edit_project, run_task, edit_task, remove_project
+    print_tasks, remove_task, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project
 )
 from pet.exceptions import (
     NameAlreadyTaken,
@@ -24,6 +24,22 @@ projects_root = os.path.join(PET_FOLDER, "projects")
 archive_root = os.path.join(PET_FOLDER, "archive")
 projects_templates_root = os.path.join(PET_FOLDER, "templates", "projects")
 tasks_templates_root = os.path.join(PET_FOLDER, "templates", "tasks")
+
+
+@mock.patch('pet.bl.glob.glob')
+@mock.patch('os.path.join')
+def test_file_fullname_command(mock_join, mock_glob):
+    mock_glob.side_effect = [['cancer'], None, ['bigger_cancer']]
+    get_file_fullname("", "")
+    get_file_fullname("", "")
+
+
+@mock.patch('pet.bl.glob.glob')
+@mock.patch('os.path.join')
+def test_get_file_fullname_and_path(mock_join, mock_glob):
+    mock_glob.side_effect = [['cancer'], None, ['bigger_cancer']]
+    get_file_fullname_and_path("", "")
+    get_file_fullname_and_path("", "")
 
 
 def test_get_pet_install_folder_command():
@@ -101,7 +117,7 @@ def test_task_exist_command(mock_tasks, mock_split, project_names, task_names):
 
 @mock.patch('os.path.join')
 @mock.patch('pet.bl.Popen')
-def test_add_to_active_projects(mock_popen, mock_join, project_names):
+def test_add_to_active_projects_command(mock_popen, mock_join, project_names):
     for project_name in project_names:
         add_to_active_projects(project_name)
         mock_popen.assert_called_with(["/bin/sh", "-c", "echo '{0}' >> {1}".format(
@@ -121,12 +137,27 @@ def test_remove_from_active_projects_command(mock_popen, mock_active, mock_join,
 @mock.patch('pet.bl.PIPE')
 @mock.patch('os.path.join')
 @mock.patch('pet.bl.Popen')
-def test_check_in_active_projects(mock_popen, mock_join, mock_pipe, project_names):
+def test_check_in_active_projects_command(mock_popen, mock_join, mock_pipe, project_names):
     for project_name in project_names:
         check_in_active_projects(project_name)
         mock_popen.assert_called_with(
             ["/bin/sh", "-c", "grep -n ^{0}$ {1} | cut -d \":\" -f 1".format(
             project_name, mock_join())], stdout=mock_pipe)
+
+
+@mock.patch('pet.bl.PIPE')
+@mock.patch('pet.bl.Popen')
+def test_check_version_command(mock_popen, mock_pipe):
+    check_version()
+
+
+@mock.patch('pet.bl.makedirs')
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+@mock.patch('pet.bl.get_pet_install_folder', return_value=PET_INSTALL_FOLDER)
+@mock.patch('os.path.join')
+@mock.patch('pet.bl.Popen')
+def test_recreate_command(mock_popen, mock_join, mock_install_folder, mock_pet_folder, mock_makedirs):
+    recreate()
 
 
 @mock.patch('pet.bl.lru_cache')
@@ -167,6 +198,75 @@ def test_project_lock_class(mock_root, mock_join, mock_open, mock_remove, mock_e
 def test_project_creator_class(mock_open, mock_getcwd, mock_shell, mock_isfile, mock_path_exists, mock_root, mock_templates_root, mock_project_exist, mock_template_exist, project_names, additional_project_names):
     for project_name in project_names:
         ProjectCreator(project_name, add_dir=True, templates=additional_project_names).create()
+
+
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('pet.bl.get_shell')
+@mock.patch('os.path.isfile')
+def test_start_command(mock_isfile, mock_shell, mock_projects_root, project_names):
+    for i, project_name in enumerate(project_names):
+        if i == 1:
+            mock_isfile.side_effect = [True, True]
+            with pytest.raises(ProjectActivated):
+                start(project_name)
+        else:
+            mock_isfile.side_effect = [True, False]
+            with pytest.raises(ProjectActivated):
+                start(project_name)
+
+
+@mock.patch('os.getcwd')
+@mock.patch('os.path.basename', return_value="project")
+@mock.patch('pet.bl.project_exist')
+@mock.patch('os.path.isfile')
+@mock.patch('os.path.isdir')
+@mock.patch('os.symlink')
+@mock.patch('os.path.join')
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+def test_register_command(mock_root, mock_join, mock_symlink, mock_isdir, mock_isfile, mock_exist, mock_basename, mock_getcwd):
+    mock_exist.side_effect = [True]
+    with pytest.raises(NameAlreadyTaken):
+        register("")
+    mock_exist.side_effect = [False, False]
+    mock_isdir.return_value = True
+    mock_isfile.return_value = False
+    with pytest.raises(PetException):
+        register("")
+    mock_isfile.return_value = True
+    register("")
+
+
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('os.path.exists')
+@mock.patch('os.rename')
+def test_rename_project_command(mock_rename, mock_exists, mock_root, project_names):
+    for project_name in project_names:
+        mock_exists.side_effect = [False]
+        with pytest.raises(NameNotFound):
+            rename_project("old", project_name)
+        mock_exists.side_effect = [True, True]
+        with pytest.raises(NameAlreadyTaken):
+            rename_project("old", project_name)
+        mock_exists.side_effect = [True, False]
+        rename_project("old", project_name)
+
+
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('pet.bl.project_exist')
+@mock.patch('pet.bl.edit_file')
+def test_edit_project_command(mock_edit_file, mock_exist, mock_root, project_names):
+    for project_name in project_names:
+        mock_exist.return_value = False
+        with pytest.raises(NameNotFound):
+            edit_project(project_name)
+        mock_exist.return_value = True
+        edit_project(project_name)
+
+
+@mock.patch('pet.bl.ProjectCreator')
+def test_create_command(mock_project_creator, project_names):
+    for project_name in project_names:
+        create(project_name, add_dir=False, templates=())
 
 
 @mock.patch('os.kill')
