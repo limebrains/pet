@@ -251,14 +251,14 @@ class Bash(GeneralShellMixin):
         with active_projects_manager(project_name, amount_active + 1):
             project_root = os.path.join(get_projects_root(), project_name)
             if interactive:
-                self.make_rc_file(project_name, ". {0} {1}\n".format(
+                self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\n".format(
                     get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                     " ".join(args)
                 ))
                 Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
                     os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate()
             else:
-                self.make_rc_file(project_name, ". {0} {1}\nexit\n".format(
+                self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
                     get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                     " ".join(args)
                 ))
