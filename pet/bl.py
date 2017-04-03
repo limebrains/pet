@@ -77,13 +77,24 @@ def get_archive_root():
         return os.path.join(PET_FOLDER, "archive")
 
 
+# TODO: tasks are overwriting printf
+# TODO: autocomplete pet -> tasks
 def edit_file(path):
     """edits file using EDITOR variable from config file"""
     Popen(["/bin/sh",
            "-c",
-           "PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")\n"
-           "if [ -z $PET_EDITOR ]; then\n$EDITOR {1}\nelse\n$PET_EDITOR {1}\nfi".format(
-               os.path.join(get_pet_folder(), "config"), path)]).communicate()
+           """PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")
+            if [ -z "$PET_EDITOR" ]; then
+                if [ -z "$EDITOR" ]; then
+                    echo "haven't found either $EDITOR, either EDITOR in pet config - trying vi"
+                    /usr/bin/vi {1}
+                else
+                    $EDITOR {1}
+                fi
+            else
+                $PET_EDITOR {1}
+            fi""".format(
+                os.path.join(get_pet_folder(), "config"), path)]).communicate()
 
 
 def project_exist(project_name):
@@ -380,17 +391,16 @@ class ProjectCreator(object):
                         file.write(corresponding_template_file.read())
                     file.write("\n")
                 file.write("# check if correctly imported templates\n")
-            else:
-                file.write('# add here shell code to be executed while entering project\n')
             file.write(additional_lines)
 
     def create_files(self):
         if self.add_dir:
-            add_to_start = "cd {0}\n".format(os.getcwd())
+            add_to_start = "cd {0}\n# add here shell code to be executed while entering project\n".format(os.getcwd())
         else:
-            add_to_start = ""
+            add_to_start = "# add here shell code to be executed while entering project\n"
+        add_to_stop = "# add here shell code to be executed while exiting project\n"
         self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
-        self.create_files_with_templates(filename='stop.sh', additional_lines="", increasing_order=False)
+        self.create_files_with_templates(filename='stop.sh', additional_lines=add_to_stop, increasing_order=False)
 
     def edit(self):
         edit_file(os.path.join(self.project_root, "start.sh"))
