@@ -39,19 +39,27 @@ def lockable_t(check_only_projects=True, check_active=False):
 
 
 @mock.patch('pet.bl.glob.glob')
-@mock.patch('os.path.join')
-def test_file_fullname_command(mock_join, mock_glob):
-    mock_glob.side_effect = [['cancer'], None, ['bigger_cancer']]
-    get_file_fullname("", "")
-    get_file_fullname("", "")
+def test_file_fullname_command(mock_glob):
+    mock_glob.return_value = ['cancer']
+    searching_root = "searching_here"
+    file_name = "file_without_ext"
+    get_file_fullname(searching_root, file_name)
+    mock_glob.assert_called_with(os.path.join(searching_root, file_name + '.*'))
+    mock_glob.side_effect = [None, ['bigger_cancer']]
+    get_file_fullname(searching_root, file_name)
+    mock_glob.assert_called_with(os.path.join(searching_root, file_name))
 
 
 @mock.patch('pet.bl.glob.glob')
-@mock.patch('os.path.join')
-def test_get_file_fullname_and_path(mock_join, mock_glob):
-    mock_glob.side_effect = [['cancer'], None, ['bigger_cancer']]
-    get_file_fullname_and_path("", "")
-    get_file_fullname_and_path("", "")
+def test_get_file_fullname_and_path(mock_glob):
+    mock_glob.return_value = ['cancer']
+    searching_root = "searching_here"
+    file_name = "file_without_ext"
+    get_file_fullname(searching_root, file_name)
+    mock_glob.assert_called_with(os.path.join(searching_root, file_name + '.*'))
+    mock_glob.side_effect = [None, ['bigger_cancer']]
+    get_file_fullname(searching_root, file_name)
+    mock_glob.assert_called_with(os.path.join(searching_root, file_name))
 
 
 def test_get_pet_install_folder_command():
@@ -94,9 +102,17 @@ def test_edit_file_command(mock_popen, mock_join, files):
         mock_popen.assert_called_with([
             "/bin/sh",
             "-c",
-            "PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")\n"
-            "if [ -z $PET_EDITOR ]; then\n$EDITOR {1}\n"
-            "else\n$PET_EDITOR {1}\nfi".format(mock_join(), path)])
+            """PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")
+            if [ -z $PET_EDITOR ]; then
+                if [ -z $EDITOR ]; then
+                    echo "haven't found either $EDITOR, either EDITOR in pet config - trying vi"
+                    /usr/bin/vi {1}
+                else
+                    $EDITOR {1}
+                fi
+            else
+                $PET_EDITOR {1}
+            fi""".format(mock_join(), path)])
 
 
 @mock.patch('os.path.exists')
@@ -201,8 +217,8 @@ def test_project_lock_class(mock_root, mock_join, mock_open, mock_remove, mock_e
 @mock.patch('os.symlink')
 @mock.patch('pet.bl.open')
 def test_project_creator_class(mock_open, mock_symlink, mock_getcwd, mock_shell, mock_isfile, mock_path_exists, mock_root, mock_templates_root, mock_project_exist, mock_template_exist, project_names, additional_project_names):
-    for project_name in project_names:
-        ProjectCreator(project_name, in_place=False, add_dir=True, templates=additional_project_names).create()
+    project_name = project_names[0]
+    ProjectCreator(project_name, in_place=False, add_dir=True, templates=[additional_project_names[0], additional_project_names[1]]).create()
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
