@@ -2,7 +2,6 @@
 from distutils.command.install_scripts import install_scripts
 from distutils.core import setup
 from setuptools import find_packages
-from subprocess import Popen
 
 requirements = [
     line.split('==')[0]
@@ -13,7 +12,6 @@ requirements = [
 class InstallScripts(install_scripts):
     def run(self):
         print("This line will never be printed")
-        Popen(['bin/sh', '-c', './pet/deploy.bash']).communicate()
 
     def get_outputs(self):
         return []
@@ -34,4 +32,5 @@ setup(
       pet = pet.cli:main
     """,
     cmdclass={'install_scripts': InstallScripts},
+    scripts=['pet/deploy'],
 )
