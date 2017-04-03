@@ -1,10 +1,23 @@
 #!/usr/bin/env python
-from setuptools import find_packages, setup
+from distutils.command.install_scripts import install_scripts
+from distutils.core import setup
+from setuptools import find_packages
+import os
+from subprocess import PIPE, Popen
 
 requirements = [
     line.split('==')[0]
     for line in open('requirements.txt', 'r').readlines()
     ]
+
+
+class InstallScripts(install_scripts):
+    def run(self):
+        print("Installing pet")
+        Popen('./deploy.sh')
+
+    def get_outputs(self):
+        return []
 
 
 setup(
@@ -21,5 +34,5 @@ setup(
       [console_scripts]
       pet = pet.cli:main
     """,
-    scripts=['pet/deploy.sh'],
+    cmdclass={'install_scripts': InstallScripts},
 )
