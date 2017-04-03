@@ -38,4 +38,5 @@ read shell
 """
 
 
-Popen(['bin/sh', '-c', deploy_script]).communicate()
+def deploy():
+    Popen(['bin/sh', '-c', deploy_script]).communicate()
