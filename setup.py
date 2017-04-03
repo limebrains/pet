@@ -22,5 +22,5 @@ setup(
       [console_scripts]
       pet = pet.cli:main
     """,
-    scripts=['pet/deploy'],
+    scripts=['pet/deploy.py'],
 )
