@@ -26,7 +26,9 @@ if [ $(echo "$shell" | grep "bash") ]; then
     printf "\n\n\/ During first run use\npet recreate\n"
 
 elif [ $(echo "$shell" | grep "zsh") ]; then
-    echo "zsh completion in progress"
+    autoload bashcompinit
+    bashcompinit
+    source "$DIR/complete.bash"
     printf "\n\n\/ During first run use\npet recreate\n"
 else
     echo "Shell $shell is not supported"

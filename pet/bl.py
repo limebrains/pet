@@ -23,7 +23,6 @@ from pet.utils import makedirs
 log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
-# TODO: 30th change file_template for tasks.py to make a group like active_cli - delete adding to this file just class
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -122,10 +121,8 @@ def active_projects_manager(project_name, with_number):
     Popen(["/bin/sh", "-c", "echo '{0}=={1}' >> {2}".format(
         project_name, with_number, os.path.join(get_pet_folder(), "active_projects"))])
     yield
-    line_nr = check_in_active_projects(project_name, with_number)
-    if line_nr:
-        Popen(["/bin/sh", "-c", "sed -i -e \"{0}d\" {1}".format(
-            line_nr.split('\n')[0], os.path.join(get_pet_folder(), "active_projects"))])
+    Popen(["/bin/sh", "-c", "sed -i -e \"/{0}=={1}/d\" {2}".format(
+        project_name, with_number, os.path.join(get_pet_folder(), "active_projects"))])
 
 
 def check_in_active_projects(project_name, nr):
@@ -331,6 +328,7 @@ class ProjectCreator(object):
         self.projects_root = get_projects_root()
         self.templates_root = get_projects_templates_root()
         self.project_name = project_name
+        self.in_place = in_place
         if in_place:
             self.project_root = os.path.join(os.getcwd(), ".pet", self.project_name)
         else:
@@ -356,7 +354,8 @@ class ProjectCreator(object):
             get_shell().create_shell_profiles()
         if not os.path.exists(os.path.join(self.project_root, "tasks")):
             os.makedirs(os.path.join(self.project_root, "tasks"))
-        os.symlink(self.project_root, os.path.join(get_projects_root(), self.project_name))
+        if self.in_place:
+            os.symlink(self.project_root, os.path.join(get_projects_root(), self.project_name))
         get_shell().make_rc_file(self.project_name, nr=0)
 
     def create_additional_files(self):
