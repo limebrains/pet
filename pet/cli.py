@@ -9,10 +9,6 @@ from pet.exceptions import Info, PetException
 cli = click.Group()
 active_project = os.environ.get('PET_ACTIVE_PROJECT', '')
 
-# TODO: interactive tasks in ZSH
-# TODO: tasks with templates
-# TODO: tests
-
 
 @contextmanager
 def pet_exception_manager():
@@ -64,9 +60,10 @@ class ActiveCli(click.MultiCommand):
 
 @cli.command('init')
 @click.option('--name', '-n', default=None, help="name for project")
+@click.option('--in_place', '-i', is_flag=True, help="saves project files in ./.pet/")
 @click.option('--add_dir', '-d', is_flag=True, help="add change directory to current at start")
 @click.option('--templates', '-t', multiple=True, help="-t template,template... or -t template -t template")
-def create_project(name, add_dir, templates):
+def create_project(name, in_place, add_dir, templates):
     """creates new project"""
     if not name:
         name = os.path.basename(os.getcwd())
@@ -75,7 +72,7 @@ def create_project(name, add_dir, templates):
         if templates[0].count(',') > 0:
             templates = templates[0].split(',')
     with pet_exception_manager():
-        bl.create(name, add_dir, templates)
+        bl.create(name, in_place, add_dir, templates)
 
 
 @cli.command('list')
