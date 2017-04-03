@@ -2,8 +2,7 @@
 from distutils.command.install_scripts import install_scripts
 from distutils.core import setup
 from setuptools import find_packages
-import os
-from subprocess import PIPE, Popen
+from subprocess import Popen
 
 requirements = [
     line.split('==')[0]
@@ -14,7 +13,7 @@ requirements = [
 class InstallScripts(install_scripts):
     def run(self):
         print("Installing pet")
-        Popen('./deploy.sh')
+        Popen('./deploy.sh').communicate()
 
     def get_outputs(self):
         return []
