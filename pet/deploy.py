@@ -1,4 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
+from subprocess import Popen
+
+
+deploy_script = """#!/usr/bin/env bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "give name of shell you are using accepting bash/ zsh"
 read shell
@@ -31,3 +35,7 @@ read shell
     else
         echo "Shell $shell is not supported"
     fi
+"""
+
+
+Popen(['bin/sh', '-c', deploy_script]).communicate()
