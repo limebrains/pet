@@ -1,19 +1,10 @@
 #!/usr/bin/env python
-from distutils.command.install_scripts import install_scripts
 from setuptools import find_packages, setup
 
 requirements = [
     line.split('==')[0]
     for line in open('requirements.txt', 'r').readlines()
     ]
-
-
-class InstallScripts(install_scripts):
-    def run(self):
-        print("Installing pet")
-
-    def get_outputs(self):
-        return []
 
 
 setup(
@@ -30,6 +21,5 @@ setup(
       [console_scripts]
       pet = pet.cli:main
     """,
-    cmdclass={'install_scripts': InstallScripts},
     scripts=['pet/deploy.sh'],
 )
