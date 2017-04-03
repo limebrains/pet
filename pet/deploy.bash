@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo "give name of shell you are using accepting bash/ zsh"
-read shell
-    if [ $(echo "$shell" | grep "bash") ]; then
+    if [ $(echo "$SHELL" | grep "bash") ]; then
 
         if [ $(uname -s) = "Darwin" ]; then
             if [ -d "$(brew --prefix)/etc/bash_completion.d/" ]; then
@@ -25,9 +23,9 @@ read shell
         fi
         printf "\n\n\/ During first run use\npet recreate\n"
 
-    elif [ $(echo "$shell" | grep "zsh") ]; then
+    elif [ $(echo "$SHELL" | grep "zsh") ]; then
         echo "zsh completion in progress"
         printf "\n\n\/ During first run use\npet recreate\n"
     else
-        echo "Shell $shell is not supported"
+        echo "Shell $SHELL is not supported"
     fi
