@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from distutils.command.install_scripts import install_scripts
-from distutils.core import setup
-from setuptools import find_packages
+from setuptools import find_packages, setup
 
 requirements = [
     line.split('==')[0]
@@ -32,5 +31,5 @@ setup(
       pet = pet.cli:main
     """,
     cmdclass={'install_scripts': InstallScripts},
-    scripts=['pet/deploy.sh', 'pet/complete.bash'],
+    scripts=['pet/deploy.sh'],
 )
