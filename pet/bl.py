@@ -602,12 +602,20 @@ def remove_task(project_name, task_name):
         raise NameNotFound("{0}/{1} - task not found in this project".format(project_name, task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
-    num = Popen(["/bin/sh", "-c", "grep -n \"def {0}\" {1} | cut -d \":\" -f 1".format(
-        task_name, os.path.join(project_root, "tasks.py"))], stdout=PIPE).stdout.read()
-    num = int(num.decode("utf-8")[:-1])
-    Popen(["/bin/sh", "-c", "sed -i -e \"{0},{1}d\" {2}".format(
-        str(num - 6), str(num + 1), os.path.join(project_root, "tasks.py"))])
-    Popen(["/bin/sh", "-c", "sed -i \"/alias {0}/d\" {1}".format(task_name, os.path.join(project_root, "tasks.sh"))])
+    Popen([
+        "/bin/sh",
+        "-c",
+        """
+        line_nr=$(grep -n "def {0}" {1} | cut -d ":" -f 1)
+        line_nr=$(($line_nr))
+        sed -i -e "$(($line_nr - 6)),$(($line_nr + 1))d" {1}
+        sed -i "/alias {0}/d" {2}
+        """.format(
+            task_name,
+            os.path.join(project_root, "tasks.py"),
+            os.path.join(project_root, "tasks.sh"),
+        )
+    ])
     os.remove(get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name))
 
 
