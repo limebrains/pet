@@ -154,7 +154,6 @@ def check_version():
 
 
 def recreate():
-    print('Creating pet folders in {0}'.format(get_pet_folder()))
     makedirs(path=os.path.join(get_pet_folder(), "projects"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "archive"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "templates", "projects"), exists_ok=True)

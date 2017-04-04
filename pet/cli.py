@@ -294,6 +294,8 @@ def main():
         elif not ctx.invoked_subcommand:
             click.secho(ctx.invoke(lambda: multi_cli.get_help(ctx)))
 
+    # TODO: del, it's tmp solution (install script)
+    bl.recreate()
     multi_cli()
 
 if __name__ == '__main__':
