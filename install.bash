@@ -31,4 +31,4 @@ else
     create_folders
 fi
 printf "\n------------------------\n-auto-completion deploy-\n------------------------\n"
-sudo "$(pwd)/pet/pet/deploy"
+sudo bash "$(pwd)/pet/pet/deploy"
