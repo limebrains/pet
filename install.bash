@@ -23,7 +23,7 @@ touch "$PET_FOLDER/active_projects"
 echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
 }
 
-git clone git@github.com:dmydlo/pet.git && pip install -e pet/
+git clone https://github.com/dmydlo/pet.git && pip install -e pet/
 printf "\n------------------------\n-Installing rest of pet-\n------------------------\n"
 if [ "$USER" == 'root' ]; then
     printf "\n\nWarning (used as root): During first run use\npet recreate\n"
