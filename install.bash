@@ -14,10 +14,10 @@ fi
 
 function create_folders(){
 printf "\n------------------------\n----Creating folders----\n------------------------\n"
-mkdir "$PET_FOLDER/projects"
-mkdir "$PET_FOLDER/archive"
-mkdir "$PET_FOLDER/templates/projects"
-mkdir "$PET_FOLDER/templates/tasks"
+mkdir -p "$PET_FOLDER/projects"
+mkdir -p "$PET_FOLDER/archive"
+mkdir -p "$PET_FOLDER/templates/projects"
+mkdir -p "$PET_FOLDER/templates/tasks"
 printf "\n------------------------\n-----Creating files-----\n------------------------\n"
 touch "$PET_FOLDER/active_projects"
 echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
