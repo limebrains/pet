@@ -23,7 +23,7 @@ touch "$PET_FOLDER/active_projects"
 echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
 }
 
-curl -fsSL https://github.com/dmydlo/pet/archive/master.zip -o pet.zip | tar -x && pip install -e pet/
+curl -fsSL https://github.com/dmydlo/pet/archive/master.zip -o pet.zip | tar -x && pip install -e pet-master/
 printf "\n------------------------\n-Installing rest of pet-\n------------------------\n"
 if [ "$USER" == 'root' ]; then
     printf "\n\nWarning (used as root): During first run use\npet recreate\n"
