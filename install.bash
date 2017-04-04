@@ -24,7 +24,15 @@ echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
 }
 
 curl -fsSL https://github.com/dmydlo/pet/archive/master.zip -o pet.zip
+if [ ! -f pet.zip ]; then
+    printf "\n\e[1;31mInstallation unsuccessful due to failed download\e[0m\n"
+    return 1
+fi
 unzip pet.zip
+if [ ! -d "pet-master" ]; then
+    printf "\n\e[1;31mInstallation unsuccessful due to failed unzip\e[0m\n"
+    return 1
+fi
 pip install -e pet-master/
 printf "\n------------------------\n-Installing rest of pet-\n------------------------\n"
 if [ "$USER" == 'root' ]; then
