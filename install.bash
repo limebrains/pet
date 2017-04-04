@@ -35,4 +35,4 @@ fi
 printf "\n------------------------\n-auto-completion deploy-\n------------------------\n"
 printf "\n\e[1;33mAuto-completion requires sudo\e[0m\n"
 sudo bash "$(pwd)/pet-master/pet/deploy"
-printf "\n\e[1;31mInstallation completed\e[0m\n"
+printf "\n\e[1;32mInstallation completed\e[0m\n"
