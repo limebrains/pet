@@ -1,21 +1,4 @@
-# Projects
-
-new_project_py_file_template = '''
-import click
-from pet.bl import start
-from pet.exceptions import PetException
-
-
-@click.group(chain=True, invoke_without_command=True)
-@click.option('-l', is_flag=True, help="Lock project")
-@click.pass_context
-def cli(ctx, l):
-    if ctx.invoked_subcommand is None:
-        try:
-            start(project_name='{0}', lock=bool(l))
-        except PetException as ex:
-            click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
-'''
+# bashrc
 
 new_project_bash_rc_template = '''
 source {0}/shell_profiles
@@ -33,25 +16,4 @@ fi
 trap 'echo -ne \"\\033]0;$tab_name_at_exit\\007"' EXIT
 export PET_PREV_TAB_NAME='{1} {5}'
 {4}
-'''
-
-
-# Tasks
-
-new_tasks_py_file_template = '''
-import click
-from pet.bl import print_tasks, run_task
-from pet.exceptions import PetException
-'''
-
-new_task_for_tasks_py_template = '''
-
-@click.command()
-@click.argument('args', nargs=-1)
-@click.option('-i', '--interactive', is_flag=True)
-def {0}(interactive, args=()):
-    try:
-        run_task("{1}", "{2}", interactive, args)
-    except PetException as ex:
-        click.secho(ex.__class__.__name__ + ": " + ex.__str__(), fg='red')
 '''

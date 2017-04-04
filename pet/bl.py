@@ -14,8 +14,7 @@ from pet.exceptions import (
     ExceptionMessages, Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
 )
 from pet.file_templates import (
-    new_project_bash_rc_template, new_project_py_file_template, new_task_for_tasks_py_template,
-    new_tasks_py_file_template
+    new_project_bash_rc_template,
 )
 
 from pet.utils import makedirs
@@ -77,8 +76,6 @@ def get_archive_root():
         return os.path.join(PET_FOLDER, "archive")
 
 
-# TODO: tasks are overwriting printf
-# TODO: autocomplete pet -> tasks
 def edit_file(path):
     """edits file using EDITOR variable from config file"""
     Popen(["/bin/sh",
@@ -136,9 +133,7 @@ def active_projects_manager(project_name, with_number):
         project_name, with_number, os.path.join(get_pet_folder(), "active_projects"))])
 
 
-def check_in_active_projects(project_name, nr):
-    if nr is None:
-        nr = ""
+def check_in_active_projects(project_name, nr=""):
     return Popen(
         ["/bin/sh", "-c", "grep -n ^{0}=={1} {2} | cut -d \":\" -f 1".format(
             project_name, nr, os.path.join(get_pet_folder(), "active_projects"))],
@@ -175,10 +170,10 @@ def lockable(check_only_projects=True, check_active=False):
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
                 raise ProjectActivated(ExceptionMessages.project_is_locked.value.format(project_name))
             if check_active:
-                if check_in_active_projects(project_name, None):
+                if check_in_active_projects(project_name):
                     raise ProjectActivated(ExceptionMessages.project_is_active.value.format(project_name))
             if not check_only:
-                if check_in_active_projects(project_name, None):
+                if check_in_active_projects(project_name):
                     log.warning(ExceptionMessages.project_is_active.value.format(project_name))
                 with ProjectLock(project_name):
                     if self:
@@ -370,10 +365,6 @@ class ProjectCreator(object):
         get_shell().make_rc_file(self.project_name, nr=0)
 
     def create_additional_files(self):
-        with open(os.path.join(self.project_root, self.project_name + ".py"), mode='w') as project_file:
-            project_file.write(new_project_py_file_template.format(self.project_name))
-        with open(os.path.join(self.project_root, "tasks.py"), mode='w') as tasks_file:
-            tasks_file.write(new_tasks_py_file_template)
         with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
             tasks_alias_file.write("# aliases for your tasks\n")
 
@@ -435,13 +426,11 @@ def register(project_name):
     if project_exist(project_name):
         raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
-    if not (os.path.isfile(os.path.join(folder, project_name + ".py")) and
-            os.path.isfile(os.path.join(folder, "start.sh")) and
+    if not (os.path.isfile(os.path.join(folder, "start.sh")) and
             os.path.isfile(os.path.join(folder, "stop.sh")) and
-            os.path.isfile(os.path.join(folder, "tasks.py")) and
             os.path.isfile(os.path.join(folder, "tasks.sh")) and
             os.path.isdir(os.path.join(folder, "tasks"))):
-        raise PetException("Haven't found all 5 files and tasks folder in\n{0}".format(folder))
+        raise PetException("Haven't found {{tasks.sh, start.sh, stop.sh}} and tasks folder in\n{0}".format(folder))
 
     os.symlink(folder, os.path.join(get_projects_root(), project_name))
 
@@ -559,8 +548,6 @@ def create_task(project_name, task_name):
         task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
         Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
     edit_file(task_file_path)
-    with open(os.path.join(project_root, "tasks.py"), mode='a') as tasks_file:
-        tasks_file.write(new_task_for_tasks_py_template.format(task_name, project_name, task_name))
     with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
         tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
     raise Info("alias available during next boot of project.\nRight now you can invoke it: pet {0}".format(task_name))
@@ -606,13 +593,9 @@ def remove_task(project_name, task_name):
         "/bin/sh",
         "-c",
         """
-        line_nr=$(grep -n "def {0}" {1} | cut -d ":" -f 1)
-        line_nr=$(($line_nr))
-        sed -i -e "$(($line_nr - 6)),$(($line_nr + 1))d" {1}
-        sed -i "/alias {0}/d" {2}
+        sed -i -e "/alias {0}/d" {1}
         """.format(
             task_name,
-            os.path.join(project_root, "tasks.py"),
             os.path.join(project_root, "tasks.sh"),
         )
     ])

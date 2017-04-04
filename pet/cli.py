@@ -28,19 +28,26 @@ def get_projects():
         return project_list
 
 
+# TODO: try refactor later
 class ProjectCli(click.MultiCommand):
 
     def list_commands(self, ctx):
         return []
 
     def get_command(self, ctx, name):
-        ns = {}
-        if os.path.exists(os.path.join(bl.get_projects_root(), name, name + ".py")):
-            fn = os.path.join(bl.get_projects_root(), name, name + ".py")
-            with open(fn) as f:
-                code = compile(f.read(), fn, 'exec')
-                eval(code, ns, ns)
-            return ns['cli']
+        def _project_cli(project_name):
+            @click.command(project_name)
+            @click.option('-l', is_flag=True, help="Lock project")
+            def project_cli(l):
+                with pet_exception_manager():
+                    bl.start(project_name=project_name, lock=bool(l))
+
+            return project_cli
+
+        projects = bl.print_list()
+        projects.split('\n')
+        if name in projects:
+            return _project_cli(name)
 
 
 class ActiveCli(click.MultiCommand):
@@ -49,13 +56,20 @@ class ActiveCli(click.MultiCommand):
         return []
 
     def get_command(self, ctx, name):
-        ns = {}
-        fn = os.path.join(bl.get_projects_root(), active_project, "tasks.py")
-        with open(fn) as f:
-            code = compile(f.read(), fn, 'exec')
-            eval(code, ns, ns)
-        if name in ns:
-            return ns[name]
+        def _task_cli(project_name, task_name):
+            @click.command(task_name)
+            @click.argument('args', nargs=-1)
+            @click.option('-i', '--interactive', is_flag=True)
+            def task_cli(interactive, args=()):
+                with pet_exception_manager():
+                    bl.run_task(project_name, task_name, interactive, args)
+
+            return task_cli
+
+        tasks = bl.print_tasks(active_project)
+        tasks.split('\n')
+        if name in tasks:
+            return _task_cli(active_project, name)
 
 
 @cli.command('init')
@@ -245,8 +259,7 @@ else:
 
 
 def main():
-    bl.get_projects_root()
-    if os.environ.get('PET_ACTIVE_PROJECT', None):
+    if active_project:
         active_cli = ActiveCli()
     else:
         active_cli = click.Group()

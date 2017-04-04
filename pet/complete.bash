@@ -20,7 +20,8 @@ _pet()
     if [ -z "$PET_ACTIVE_PROJECT" ]; then
         opts="${opts}"
     else
-        opts="${opts} stop task "
+        tasks=$(/bin/ls "$PET_FOLDER/projects/$PET_ACTIVE_PROJECT/tasks" | cut -d "." -f 1)
+        opts="${opts} stop task ${tasks} "
     fi
     opts=" ${opts} ${projects} "
     first="${COMP_WORDS[1]}"
