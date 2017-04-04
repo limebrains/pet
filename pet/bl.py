@@ -22,8 +22,7 @@ from pet.utils import makedirs
 log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
-# TODO: install script like
-# TODO: /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+# TODO: what about histfiles?
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -154,6 +153,7 @@ def check_version():
 
 
 def recreate():
+    print("Creating pet files in {0}".format(get_pet_folder()))
     makedirs(path=os.path.join(get_pet_folder(), "projects"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "archive"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "templates", "projects"), exists_ok=True)
