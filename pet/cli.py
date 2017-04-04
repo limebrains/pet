@@ -23,12 +23,21 @@ def pet_exception_manager():
 def get_projects():
     project_list = []
     with pet_exception_manager():
-        if bl.print_list():
-            project_list = bl.print_list().splitlines()
+        bl_output = bl.print_list()
+        if bl_output:
+            project_list = bl_output.splitlines()
         return project_list
 
 
-# TODO: try refactor later
+def get_tasks(project_name):
+    task_list = []
+    with pet_exception_manager():
+        bl_output = bl.print_tasks(project_name)
+        if bl_output:
+            task_list = bl_output.splitlines()
+        return task_list
+
+
 class ProjectCli(click.MultiCommand):
 
     def list_commands(self, ctx):
@@ -44,8 +53,7 @@ class ProjectCli(click.MultiCommand):
 
             return project_cli
 
-        projects = bl.print_list()
-        projects.split('\n')
+        projects = get_projects()
         if name in projects:
             return _project_cli(name)
 
@@ -66,8 +74,7 @@ class ActiveCli(click.MultiCommand):
 
             return task_cli
 
-        tasks = bl.print_tasks(active_project)
-        tasks.split('\n')
+        tasks = get_tasks(active_project)
         if name in tasks:
             return _task_cli(active_project, name)
 
@@ -164,9 +171,11 @@ def restore(project_name):
 
 
 @cli.command()
-@click.option('--name', '-n', default=None, help="name for project")
+@click.option('--name', '-n', default="", help="name for project")
 def register(name):
     """registers .pet as project folder"""
+    if not name:
+        name = os.path.basename(os.getcwd())
     with pet_exception_manager():
         bl.register(project_name=name)
 
