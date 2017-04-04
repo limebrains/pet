@@ -79,6 +79,7 @@ class ActiveCli(click.MultiCommand):
             return _task_cli(active_project, name)
 
 
+# TODO: delete -i and just do it anyways?
 @cli.command('init')
 @click.option('--name', '-n', default=None, help="name for project")
 @click.option('--in_place', '-i', is_flag=True, help="saves project files in ./.pet/")

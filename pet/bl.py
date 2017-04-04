@@ -22,6 +22,8 @@ from pet.utils import makedirs
 log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
+# TODO: install script like
+# TODO: /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 
 PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
@@ -423,6 +425,7 @@ def register(project_name):
     folder = os.getcwd()
     if not project_name:
         project_name = os.path.basename(folder)
+    folder = os.path.join(folder, '.pet')
     if project_exist(project_name):
         raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
