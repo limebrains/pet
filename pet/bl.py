@@ -143,7 +143,7 @@ def how_many_active(project_name):
     nums = Popen([
         "/bin/sh",
         "-c",
-        "pstree -al | grep \"#pet {0}=\" | sed -n \"s/.*#pet {0}=\([0-9][0-9]*\).*/\\1/p\"".format(
+        "ps aux | grep \"#pet {0}=\" | sed -n \"s/.*#pet {0}=\([0-9][0-9]*\).*/\\1/p\"".format(
             project_name)
     ], stdout=PIPE
     ).stdout.read()
@@ -248,7 +248,7 @@ class Bash(GeneralShellMixin):
         self.make_rc_file(project_name, amount_active + 1, additional_lines="")
         Popen(["/bin/sh",
                "-c",
-               "#pet {0}={1}\n$SHELL --rcfile {2}".format(
+               "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                    project_name,
                    amount_active + 1,
                    os.path.join(project_root, self.get_rc_filename()),
@@ -274,7 +274,7 @@ class Bash(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}".format(
+            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 amount_active + 1,
                 os.path.join(project_root, self.get_rc_filename()),
@@ -284,7 +284,7 @@ class Bash(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}".format(
+            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 amount_active + 1,
                 os.path.join(project_root, self.get_rc_filename()),
@@ -300,7 +300,7 @@ class Zsh(GeneralShellMixin):
     def start(self, project_root, project_name):
         amount_active = how_many_active(project_name)
         print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
-        Popen(["/bin/sh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL".format(
+        Popen(["/bin/sh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
             project_name,
             amount_active + 1,
             project_root,
