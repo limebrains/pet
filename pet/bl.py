@@ -337,7 +337,7 @@ class ProjectCreator(object):
         self.project_name = project_name
         self.in_place = in_place
         if in_place:
-            self.project_root = os.path.join(os.getcwd(), ".pet", self.project_name)
+            self.project_root = os.path.join(os.getcwd(), ".pet")
         else:
             self.project_root = os.path.join(self.projects_root, self.project_name)
         self.templates = templates
