@@ -79,22 +79,19 @@ class ActiveCli(click.MultiCommand):
             return _task_cli(active_project, name)
 
 
-# TODO: delete -i and just do it anyways?
 @cli.command('init')
 @click.option('--name', '-n', default=None, help="name for project")
 @click.option('--in_place', '-i', is_flag=True, help="saves project files in ./.pet/")
-@click.option('--add_dir', '-d', is_flag=True, help="add change directory to current at start")
 @click.option('--templates', '-t', multiple=True, help="-t template,template... or -t template -t template")
-def create_project(name, in_place, add_dir, templates):
+def create_project(name, in_place, templates):
     """creates new project"""
     if not name:
         name = os.path.basename(os.getcwd())
-        add_dir = True
     if len(templates) == 1:
         if templates[0].count(',') > 0:
             templates = templates[0].split(',')
     with pet_exception_manager():
-        bl.create(name, in_place, add_dir, templates)
+        bl.create(name, in_place, templates)
 
 
 @cli.command('list')
@@ -182,12 +179,6 @@ def register(name):
 
 
 @cli.command()
-def clean():
-    """unlocks all projects"""
-    bl.clean()
-
-
-@cli.command()
 @click.argument('project_name')
 @click.argument('task_name')
 @click.option('-i', '--interactive', is_flag=True)
@@ -221,11 +212,19 @@ if active_project:
             bl.stop()
 
     @cli.command('remove')
-    @click.argument('task_name')
-    def remove_task(task_name):
-        """removes task"""
+    @click.option('-l', '--locks', is_flag=True, help="unlocks all projects")
+    @click.argument('task_name', nargs=-1)
+    @click.pass_context
+    def remove_task(ctx, locks, task_name):
+        """removes task or locks"""
         with pet_exception_manager():
-            bl.remove_task(active_project, task_name)
+            if locks:
+                bl.clean()
+            elif task_name:
+                bl.remove_task(active_project, task_name[0])
+            else:
+                click.secho(ctx.invoke(lambda: remove_task.get_help(ctx)))
+
 
     @cli.command('rename')
     @click.argument('old_task_name')
@@ -246,11 +245,19 @@ if active_project:
                 bl.edit_project(active_project)
 else:
     @cli.command('remove')
-    @click.argument('project_name')
-    def remove_project(project_name):
-        """removes project"""
+    @click.option('-l', '--locks', is_flag=True, help="unlocks all projects")
+    @click.argument('project_name', nargs=-1)
+    @click.pass_context
+    def remove_project(ctx, locks, project_name):
+        """removes project or locks"""
         with pet_exception_manager():
-            bl.remove_project(project_name=project_name)
+            if locks:
+                bl.clean()
+            elif project_name:
+                bl.remove_project(project_name=project_name[0])
+            else:
+                click.secho(ctx.invoke(lambda: remove_project.get_help(ctx)))
+
 
     @cli.command('rename')
     @click.argument('old_project_name')

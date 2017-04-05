@@ -17,6 +17,7 @@ class ExceptionMessages(Enum):
     task_already_exists = "{0}- task already exists"
     shell_not_supported = "{0} - isn't supported"
     no_rc_file_found = "no rc file in {0}"
+    directory_not_found = "{0} - directory not found\ntry 'pet recreate'"
 
 
 class PetException(Exception):
@@ -47,6 +48,12 @@ class ProjectActivated(PetException):
 class ShellNotRecognized(PetException):
     """
     Error raised when shell isn't recognized as implementedS
+    """
+
+
+class FolderNotFound(PetException):
+    """
+    Error raised when some of folders pet is using doesn't exist
     """
 
 

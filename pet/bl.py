@@ -2,7 +2,6 @@ try:
     from functools import lru_cache
 except ImportError:
     from backports.functools_lru_cache import lru_cache
-from contextlib import contextmanager
 import glob
 import logging
 import os
@@ -11,7 +10,14 @@ import signal
 from subprocess import PIPE, Popen
 
 from pet.exceptions import (
-    ExceptionMessages, Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated, ShellNotRecognized
+    ExceptionMessages,
+    Info,
+    NameAlreadyTaken,
+    NameNotFound,
+    PetException,
+    ProjectActivated,
+    ShellNotRecognized,
+    FolderNotFound,
 )
 from pet.file_templates import (
     new_project_bash_rc_template,
@@ -23,14 +29,15 @@ log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
 # TODO: what about histfiles?
+# TODO: add to install checking are all commands needed available
 
 
-PET_INSTALL_FOLDER = os.path.dirname(os.path.realpath(__file__))
-PET_FOLDER = os.path.expanduser(os.environ.get('PET_FOLDER', "~/.pet/"))
-COMMANDS = "pet archive clean edit init list register remove rename restore stop task run".split()
+COMMANDS = "pet archive edit init list locks register remove rename restore stop task run".split()
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
 SHELL_PROFILES_FILENAME = "shell_profiles"
+# TODO: github:dmydlo also in install.bash
+SETUP_FILE_FOR_VERSION = "https://raw.githubusercontent.com/dmydlo/pet/master/setup.py"
 
 
 def get_file_fullname(searching_root, file_name):
@@ -50,31 +57,51 @@ def get_file_fullname_and_path(searching_root, file_name):
 
 
 def get_pet_install_folder():
-    return PET_INSTALL_FOLDER
+    directory = os.path.dirname(os.path.realpath(__file__))
+    if os.path.exists(directory):
+        return directory
+    else:
+        raise FolderNotFound(ExceptionMessages.directory_not_found.value.format(directory))
 
 
 def get_pet_folder():
-    return PET_FOLDER
+    directory = os.path.expanduser(os.environ.get('PET_FOLDER', "~/.pet/"))
+    if os.path.exists(directory):
+        return directory
+    else:
+        raise FolderNotFound(ExceptionMessages.directory_not_found.value.format(directory))
 
 
 def get_projects_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "projects")):
-        return os.path.join(PET_FOLDER, "projects")
+    directory = os.path.join(get_pet_folder(), "projects")
+    if os.path.exists(directory):
+        return directory
+    else:
+        raise FolderNotFound(ExceptionMessages.directory_not_found.value.format(directory))
 
 
 def get_projects_templates_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "templates", "projects")):
-        return os.path.join(PET_FOLDER, "templates", "projects")
+    directory = os.path.join(get_pet_folder(), "templates", "projects")
+    if os.path.exists(directory):
+        return directory
+    else:
+        raise FolderNotFound(ExceptionMessages.directory_not_found.value.format(directory))
 
 
 def get_tasks_templates_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "templates", "tasks")):
-        return os.path.join(PET_FOLDER, "templates", "tasks")
+    directory = os.path.join(get_pet_folder(), "templates", "tasks")
+    if os.path.exists(directory):
+        return directory
+    else:
+        raise FolderNotFound(ExceptionMessages.directory_not_found.value.format(directory))
 
 
 def get_archive_root():
-    if os.path.exists(os.path.join(PET_FOLDER, "archive")):
-        return os.path.join(PET_FOLDER, "archive")
+    directory = os.path.join(get_pet_folder(), "archive")
+    if os.path.exists(directory):
+        return directory
+    else:
+        raise FolderNotFound(ExceptionMessages.directory_not_found.value.format(directory))
 
 
 def edit_file(path):
@@ -113,43 +140,27 @@ def task_exist(project_name, task_name):
 
 
 def how_many_active(project_name):
-    nums = Popen(["/bin/sh", "-c", "echo $(grep '^{0}==' {1} | sed -n \"/{0}==/s/{0}==//p\")".format(
-        project_name, os.path.join(get_pet_folder(), "active_projects"))],
-                 stdout=PIPE
-                 ).stdout.read().decode("utf-8")[:-1]
+    nums = Popen([
+        "/bin/sh",
+        "-c",
+        "pstree -al | grep \"#pet {0}=\" | sed -n \"s/.*#pet {0}=\([0-9][0-9]*\).*/\\1/p\"".format(
+            project_name)
+    ], stdout=PIPE
+    ).stdout.read()
+    nums = nums.splitlines()
     if nums:
-        nums = nums.split(" ")
-        nums = [int(num) for num in nums]
+        return max([int(num) for num in nums])
     else:
-        nums = [0]
-    return max(nums)
-
-
-@contextmanager
-def active_projects_manager(project_name, with_number):
-    Popen(["/bin/sh", "-c", "echo '{0}=={1}' >> {2}".format(
-        project_name, with_number, os.path.join(get_pet_folder(), "active_projects"))])
-    yield
-    Popen(["/bin/sh", "-c", "sed -i -e \"/{0}=={1}/d\" {2}".format(
-        project_name, with_number, os.path.join(get_pet_folder(), "active_projects"))])
-
-
-def check_in_active_projects(project_name, nr=""):
-    return Popen(
-        ["/bin/sh", "-c", "grep -n ^{0}=={1} {2} | cut -d \":\" -f 1".format(
-            project_name, nr, os.path.join(get_pet_folder(), "active_projects"))],
-        stdout=PIPE
-    ).stdout.read().decode("utf-8")[:-1]
+        return 0
 
 
 def check_version():
     newest_version = Popen([
         "/bin/sh",
         "-c",
-        "git ls-remote -t git@github.com:dmydlo/pet.git | awk '{print $2}' | cut -d '/' -f 3 | cut -d '^' -f 1  |"
-        " sort -b -t . -k 1,1nr -k 2,2nr -k 3,3r -k 4,4r -k 5,5r | uniq",
+        "curl -fsSL {0} | grep 'version=' | sed -n \"s/.*='\(.*\)'.*/\\1/p\"".format(SETUP_FILE_FOR_VERSION),
     ], stdout=PIPE).stdout.read()
-    return newest_version.decode("utf-8")
+    return newest_version[:-1]
 
 
 def recreate():
@@ -158,8 +169,7 @@ def recreate():
     makedirs(path=os.path.join(get_pet_folder(), "archive"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "templates", "projects"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "templates", "tasks"), exists_ok=True)
-    Popen(["/bin/sh", "-c", "touch {0}; echo \"EDITOR==$EDITOR\" > {1}".format(
-        os.path.join(get_pet_folder(), "active_projects"),
+    Popen(["/bin/sh", "-c", "echo \"EDITOR==$EDITOR\" > {0}".format(
         os.path.join(get_pet_folder(), "config"),
     )])
 
@@ -171,10 +181,10 @@ def lockable(check_only_projects=True, check_active=False):
             if os.path.isfile(os.path.join(get_projects_root(), project_name, "_lock")):
                 raise ProjectActivated(ExceptionMessages.project_is_locked.value.format(project_name))
             if check_active:
-                if check_in_active_projects(project_name):
+                if how_many_active(project_name):
                     raise ProjectActivated(ExceptionMessages.project_is_active.value.format(project_name))
             if not check_only:
-                if check_in_active_projects(project_name):
+                if how_many_active(project_name):
                     log.warning(ExceptionMessages.project_is_active.value.format(project_name))
                 with ProjectLock(project_name):
                     if self:
@@ -236,9 +246,15 @@ class Bash(GeneralShellMixin):
     def start(self, project_root, project_name):
         amount_active = how_many_active(project_name)
         self.make_rc_file(project_name, amount_active + 1, additional_lines="")
-        with active_projects_manager(project_name, amount_active + 1):
-            Popen(["/bin/sh", "-c", "$SHELL --rcfile {0}".format(
-                os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate()
+        Popen(["/bin/sh",
+               "-c",
+               "#pet {0}={1}\n$SHELL --rcfile {2}".format(
+                   project_name,
+                   amount_active + 1,
+                   os.path.join(project_root, self.get_rc_filename()),
+                   project_root,
+               )
+               ]).communicate()
 
     def create_shell_profiles(self):
         with open(os.path.join(get_pet_folder(), 'shell_profiles'), mode='w') as shell_profiles_file:
@@ -252,22 +268,27 @@ class Bash(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         amount_active = how_many_active(project_name)
-        with active_projects_manager(project_name, amount_active + 1):
-            project_root = os.path.join(get_projects_root(), project_name)
-            if interactive:
-                self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\n".format(
-                    get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                    " ".join(args)
-                ))
-                Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
-                    os.path.join(project_root, self.get_rc_filename()), project_root)]).communicate()
-            else:
-                self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
-                    get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                    " ".join(args)
-                ))
-                Popen(["/bin/bash", "-c", "$SHELL --rcfile {0}".format(
-                    os.path.join(project_root, self.get_rc_filename()), project_root)]).wait()
+        project_root = os.path.join(get_projects_root(), project_name)
+        if interactive:
+            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\n".format(
+                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                " ".join(args)
+            ))
+            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}".format(
+                project_name,
+                amount_active + 1,
+                os.path.join(project_root, self.get_rc_filename()),
+            )]).communicate()
+        else:
+            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
+                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                " ".join(args)
+            ))
+            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}".format(
+                project_name,
+                amount_active + 1,
+                os.path.join(project_root, self.get_rc_filename()),
+            )]).wait()
 
 
 class Zsh(GeneralShellMixin):
@@ -278,10 +299,12 @@ class Zsh(GeneralShellMixin):
 
     def start(self, project_root, project_name):
         amount_active = how_many_active(project_name)
-        with active_projects_manager(project_name, amount_active + 1):
-            print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
-            Popen(["/bin/sh", "-c", "ZDOTDIR={0} $SHELL".format(
-                project_root)]).communicate()
+        print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
+        Popen(["/bin/sh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL".format(
+            project_name,
+            amount_active + 1,
+            project_root,
+        )]).communicate()
 
     def create_shell_profiles(self):
         if os.environ.get('ZDOTDIR', ""):
@@ -295,9 +318,8 @@ class Zsh(GeneralShellMixin):
     def task_exec(self, project_name, task_name, interactive, args=()):
         amount_active = how_many_active(project_name)
         if interactive:
-            with active_projects_manager(project_name, amount_active + 1):
-                # TODO: find a way to make interactive tasks in zsh
-                print("it doesn't work in zsh")
+            # TODO: find a way to make interactive tasks in zsh
+            print("it doesn't work in zsh")
 
 
 @lru_cache()
@@ -331,7 +353,7 @@ class ProjectLock(object):
 
 class ProjectCreator(object):
 
-    def __init__(self, project_name, in_place, add_dir, templates=()):
+    def __init__(self, project_name, in_place, templates=()):
         self.projects_root = get_projects_root()
         self.templates_root = get_projects_templates_root()
         self.project_name = project_name
@@ -343,7 +365,6 @@ class ProjectCreator(object):
         self.templates = templates
         self.check_name()
         self.check_templates()
-        self.add_dir = add_dir
 
     def check_name(self):
         if project_exist(self.project_name):
@@ -386,10 +407,7 @@ class ProjectCreator(object):
             file.write(additional_lines)
 
     def create_files(self):
-        if self.add_dir:
-            add_to_start = "cd {0}\n# add here shell code to be executed while entering project\n".format(os.getcwd())
-        else:
-            add_to_start = "# add here shell code to be executed while entering project\n"
+        add_to_start = "cd {0}\n# add here shell code to be executed while entering project\n".format(os.getcwd())
         add_to_stop = "# add here shell code to be executed while exiting project\n"
         self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
         self.create_files_with_templates(filename='stop.sh', additional_lines=add_to_stop, increasing_order=False)
@@ -414,11 +432,12 @@ def start(project_name):
     get_shell().start(project_root, project_name)
 
 
-def create(project_name, in_place, add_dir, templates=()):
+def create(project_name, in_place, templates=()):
     """creates new project"""
-    ProjectCreator(project_name, in_place, add_dir, templates).create()
+    ProjectCreator(project_name, in_place, templates).create()
 
 
+# TODO: add editing cd command to match getcwd
 def register(project_name):
     """adds symbolic link to .pet folder in projects"""
     folder = os.getcwd()
@@ -500,7 +519,6 @@ def restore(project_name):
 
 def clean():
     """unlocks all projects"""
-    Popen(["/bin/sh", "-c", "echo '' > {0}".format(os.path.join(get_pet_folder(), "active_projects"))])
     projects_root = get_projects_root()
     for dirname in os.listdir(projects_root):
         if os.path.exists(os.path.join(projects_root, dirname, "_lock")):
