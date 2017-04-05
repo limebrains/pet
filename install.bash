@@ -19,7 +19,6 @@ mkdir -p "$PET_FOLDER/archive"
 mkdir -p "$PET_FOLDER/templates/projects"
 mkdir -p "$PET_FOLDER/templates/tasks"
 printf "\n------------------------\n-----Creating files-----\n------------------------\n"
-touch "$PET_FOLDER/active_projects"
 echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
 }
 

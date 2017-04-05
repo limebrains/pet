@@ -32,7 +32,7 @@ log = logging.getLogger(__file__)
 # TODO: add to install checking are all commands needed available
 
 
-COMMANDS = "pet archive edit init list locks register remove rename restore stop task run".split()
+COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
 SHELL_PROFILES_FILENAME = "shell_profiles"
