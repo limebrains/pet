@@ -624,7 +624,7 @@ def remove_task(project_name, task_name):
 
 def edit_config():
     """edits config file using $EDITOR"""
-    Popen(["/bin/sh", "-c", "$EDITOR {0}".format(os.path.join(get_pet_folder(), "config"))]).communicate()
+    edit_file(os.path.join(get_pet_folder(), "config"))
 
 
 def edit_shell_profiles():
