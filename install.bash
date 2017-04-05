@@ -19,7 +19,11 @@ mkdir -p "$PET_FOLDER/archive"
 mkdir -p "$PET_FOLDER/templates/projects"
 mkdir -p "$PET_FOLDER/templates/tasks"
 printf "\n------------------------\n-----Creating files-----\n------------------------\n"
-echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
+if [ -f "$PET_FOLDER/config" ]; then
+    printf "\n\e[1;33mFound config file at: $PET_FOLDER/config\e[0m\n"
+else
+    echo "EDITOR==$EDITOR" > "$PET_FOLDER/config"
+fi
 }
 
 curl -fsSL https://github.com/dmydlo/pet/archive/master.zip -o pet.zip
