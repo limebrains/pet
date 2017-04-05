@@ -27,9 +27,11 @@ from pet.utils import makedirs
 
 log = logging.getLogger(__file__)
 
+# TODO: REDO totally templates before release
 # TODO: rewrite logging into yields
 # TODO: what about histfiles?
-# TODO: add to install checking are all commands needed available
+# TODO: add to install checking are all commands needed available?
+# TODO: zsh known issues: either stop.sh is not executed, either execution is not shown; no tasks for now; no auto-completion
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -217,6 +219,7 @@ class GeneralShellMixin(object):
         project_root = os.path.join(get_projects_root(), project_name)
         if nr == 1:
             nr = ""
+        print(get_pet_folder())
         contents = new_project_rc_template.format(
             get_pet_folder(),
             project_name,
@@ -226,6 +229,7 @@ class GeneralShellMixin(object):
             nr,
             self.get_shell_profiles(),
         )
+        print('writing to: {0}'.format(os.path.join(project_root, self.get_rc_filename())))
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
             rc_file.write(contents)
@@ -336,9 +340,7 @@ class Zsh(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         amount_active = how_many_active(project_name)
-        if interactive:
-            # TODO: find a way to make interactive tasks in zsh
-            print("it doesn't work in zsh")
+        raise Info("it doesn't work in zsh yet")
 
 
 @lru_cache()

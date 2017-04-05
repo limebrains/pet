@@ -1,7 +1,7 @@
 # bashrc
 
 new_project_rc_template = '''
-source {0}/{6}
+source {0}{6}
 export PET_ACTIVE_PROJECT='{1}'
 source {2}/start.sh
 PS1=\"[{1}] $PS1\"
