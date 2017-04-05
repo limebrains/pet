@@ -20,7 +20,7 @@ from pet.exceptions import (
     FolderNotFound,
 )
 from pet.file_templates import (
-    new_project_bash_rc_template,
+    new_project_rc_template,
 )
 
 from pet.utils import makedirs
@@ -35,7 +35,8 @@ log = logging.getLogger(__file__)
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
-SHELL_PROFILES_FILENAME = "shell_profiles"
+BASH_PROFILES_FILENAME = "bash_profiles"
+ZSH_PROFILES_FILENAME = "zsh_profiles"
 # TODO: github:dmydlo also in install.bash
 SETUP_FILE_FOR_VERSION = "https://raw.githubusercontent.com/dmydlo/pet/master/setup.py"
 
@@ -204,21 +205,26 @@ class GeneralShellMixin(object):
 
     def __init__(self):
         self.rc_filename = ""
+        self.shell_profiles = ""
 
     def get_rc_filename(self):
         return self.rc_filename
+
+    def get_shell_profiles(self):
+        return self.shell_profiles
 
     def make_rc_file(self, project_name, nr, additional_lines=""):
         project_root = os.path.join(get_projects_root(), project_name)
         if nr == 1:
             nr = ""
-        contents = new_project_bash_rc_template.format(
+        contents = new_project_rc_template.format(
             get_pet_folder(),
             project_name,
             project_root,
             os.path.join(project_root, "tasks.sh"),
             additional_lines,
             nr,
+            self.get_shell_profiles(),
         )
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
@@ -236,12 +242,17 @@ class GeneralShellMixin(object):
         raise ShellNotRecognized(
             ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
 
+    def edit_shell_profiles(self):
+        raise ShellNotRecognized(
+            ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
+
 
 class Bash(GeneralShellMixin):
 
     def __init__(self):
         GeneralShellMixin.__init__(self)
         self.rc_filename = BASH_RC_FILENAME
+        self.shell_profiles = BASH_PROFILES_FILENAME
 
     def start(self, project_root, project_name):
         amount_active = how_many_active(project_name)
@@ -252,18 +263,18 @@ class Bash(GeneralShellMixin):
                    project_name,
                    amount_active + 1,
                    os.path.join(project_root, self.get_rc_filename()),
-                   project_root,
                )
                ]).communicate()
 
     def create_shell_profiles(self):
-        with open(os.path.join(get_pet_folder(), 'shell_profiles'), mode='w') as shell_profiles_file:
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
-                shell_profiles_file.write("source ~/.bashrc\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
-                shell_profiles_file.write("source ~/.profile\n")
-            if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
-                shell_profiles_file.write("source ~/.bash_profile\n")
+        if not os.path.isfile(os.path.join(get_pet_folder(), BASH_PROFILES_FILENAME)):
+            with open(os.path.join(get_pet_folder(), BASH_PROFILES_FILENAME), mode='w') as bash_profiles:
+                if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bashrc')):
+                    bash_profiles.write("source ~/.bashrc\n")
+                if os.path.isfile(os.path.join(os.path.expanduser("~"), '.profile')):
+                    bash_profiles.write("source ~/.profile\n")
+                if os.path.isfile(os.path.join(os.path.expanduser("~"), '.bash_profile')):
+                    bash_profiles.write("source ~/.bash_profile\n")
 
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
@@ -290,29 +301,37 @@ class Bash(GeneralShellMixin):
                 os.path.join(project_root, self.get_rc_filename()),
             )]).wait()
 
+    def edit_shell_profiles(self):
+        edit_file(os.path.join(get_pet_folder(), BASH_PROFILES_FILENAME))
+
 
 class Zsh(GeneralShellMixin):
 
     def __init__(self):
         GeneralShellMixin.__init__(self)
         self.rc_filename = ZSH_RC_FILENAME
+        self.shell_profiles = ZSH_PROFILES_FILENAME
 
     def start(self, project_root, project_name):
         amount_active = how_many_active(project_name)
-        print('I am doing (actually not - I forgot about it - but it is a print so may be someday i will do it)')
-        Popen(["/bin/sh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
-            project_name,
-            amount_active + 1,
-            project_root,
-        )]).communicate()
+        self.make_rc_file(project_name, amount_active + 1, additional_lines="")
+        Popen(["/bin/sh",
+               "-c",
+               "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                   project_name,
+                   amount_active + 1,
+                   project_root,
+               )
+               ]).communicate()
 
     def create_shell_profiles(self):
-        if os.environ.get('ZDOTDIR', ""):
-            with open(os.path.join(get_pet_folder(), 'shell_profiles'), mode='w') as shell_profiles_file:
-                shell_profiles_file.write("source $ZDOTDIR/.zshrc\n")
-        else:
-            with open(os.path.join(get_pet_folder(), 'shell_profiles'), mode='w') as shell_profiles_file:
-                shell_profiles_file.write("source $HOME/.zshrc\n")
+        if not os.path.isfile(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME)):
+            if os.environ.get('ZDOTDIR', ""):
+                with open(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME), mode='w') as zsh_profiles:
+                    zsh_profiles.write("source $ZDOTDIR/.zshrc\n")
+            else:
+                with open(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME), mode='w') as zsh_profiles:
+                    zsh_profiles.write("source $HOME/.zshrc\n")
 
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
@@ -378,8 +397,7 @@ class ProjectCreator(object):
                 raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
 
     def create_dirs(self):
-        if not os.path.isfile(os.path.join(get_pet_folder(), SHELL_PROFILES_FILENAME)):
-            get_shell().create_shell_profiles()
+        get_shell().create_shell_profiles()
         if not os.path.exists(os.path.join(self.project_root, "tasks")):
             os.makedirs(os.path.join(self.project_root, "tasks"))
         if self.in_place:
@@ -391,6 +409,7 @@ class ProjectCreator(object):
             tasks_alias_file.write("# aliases for your tasks\n")
 
     def create_files_with_templates(self, filename, additional_lines, increasing_order):
+        # TODO: should we ask what to do if file exist?
         with open(os.path.join(self.project_root, filename), mode='w') as file:
             if self.templates:
                 file.write("# TEMPLATES\n")
@@ -407,6 +426,7 @@ class ProjectCreator(object):
             file.write(additional_lines)
 
     def create_files(self):
+        # TODO: (copy from line394) should we ask what to do if file exist?
         add_to_start = "cd {0}\n# add here shell code to be executed while entering project\n".format(os.getcwd())
         add_to_stop = "# add here shell code to be executed while exiting project\n"
         self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
@@ -426,8 +446,7 @@ class ProjectCreator(object):
 @lockable()
 def start(project_name):
     """starts new project"""
-    if not os.path.isfile(os.path.join(get_pet_folder(), SHELL_PROFILES_FILENAME)):
-        get_shell().create_shell_profiles()
+    get_shell().create_shell_profiles()
     project_root = os.path.join(get_projects_root(), project_name)
     get_shell().start(project_root, project_name)
 
@@ -598,8 +617,7 @@ def run_task(project_name, task_name, interactive, args=()):
     """executes task in correct project"""
     if not task_exist(project_name, task_name):
         raise NameNotFound(ExceptionMessages.task_not_found.value.format(task_name))
-    if not os.path.isfile(os.path.join(get_pet_folder(), SHELL_PROFILES_FILENAME)):
-        get_shell().create_shell_profiles()
+    get_shell().create_shell_profiles()
     get_shell().task_exec(project_name, True, task_name, interactive, args)
 
 
@@ -628,4 +646,4 @@ def edit_config():
 
 
 def edit_shell_profiles():
-    edit_file(os.path.join(get_pet_folder(), SHELL_PROFILES_FILENAME))
+    get_shell().edit_shell_profiles()
