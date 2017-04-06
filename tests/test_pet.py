@@ -12,18 +12,21 @@ from pet.bl import (
 )
 
 from pet.exceptions import (
+    ExceptionMessages,
     NameAlreadyTaken,
     NameNotFound,
     PetException,
     ProjectActivated,
     Info,
     ShellNotRecognized,
+    FolderNotFound,
 )
 
 from pet.file_templates import (
     edit_file_popen_template,
     new_project_rc_template,
     new_start_sh_template,
+    auto_complete_zsh_deploy,
 )
 
 
@@ -48,58 +51,97 @@ def lockable_t(check_only_projects=True, check_active=False):
 
 @mock.patch('pet.bl.glob.glob')
 def test_file_fullname_command(mock_glob):
-    mock_glob.return_value = ['cancer']
+    mock_glob.return_value = ['cancer.sh']
     searching_root = "searching_here"
     file_name = "file_without_ext"
-    get_file_fullname(searching_root, file_name)
+    assert get_file_fullname(searching_root, file_name) == 'cancer.sh'
     mock_glob.assert_called_with(os.path.join(searching_root, file_name + '.*'))
-    mock_glob.side_effect = [None, ['bigger_cancer']]
-    get_file_fullname(searching_root, file_name)
+    mock_glob.side_effect = [None, ['bigger_cancer.sh']]
+    assert get_file_fullname(searching_root, file_name) == 'bigger_cancer.sh'
     mock_glob.assert_called_with(os.path.join(searching_root, file_name))
 
 
 @mock.patch('pet.bl.glob.glob')
 def test_get_file_fullname_and_path(mock_glob):
-    mock_glob.return_value = ['cancer']
+    mock_glob.return_value = ['cancer.sh']
     searching_root = "searching_here"
     file_name = "file_without_ext"
-    get_file_fullname(searching_root, file_name)
+    assert get_file_fullname_and_path(searching_root, file_name) == searching_root + '/cancer.sh'
     mock_glob.assert_called_with(os.path.join(searching_root, file_name + '.*'))
-    mock_glob.side_effect = [None, ['bigger_cancer']]
-    get_file_fullname(searching_root, file_name)
+    mock_glob.side_effect = [None, ['bigger_cancer.sh']]
+    assert get_file_fullname_and_path(searching_root, file_name) == searching_root + '/bigger_cancer.sh'
     mock_glob.assert_called_with(os.path.join(searching_root, file_name))
 
 
-def test_get_pet_install_folder_command():
+@mock.patch('os.path.dirname')
+@mock.patch('os.path.exists')
+def test_get_pet_install_folder_command(mock_exists, mock_dirname):
+    mock_dirname.return_value = PET_INSTALL_FOLDER
+    mock_exists.return_value = True
     assert get_pet_install_folder() == PET_INSTALL_FOLDER
+    mock_exists.assert_called_with(PET_INSTALL_FOLDER)
+    mock_exists.return_value = False
+    with pytest.raises(FolderNotFound):
+        get_pet_install_folder()
 
 
-def test_get_pet_folder_command():
+@mock.patch('os.path.expanduser')
+@mock.patch('os.path.exists')
+def test_get_pet_folder_command(mock_exists, mock_expand):
+    mock_expand.return_value = PET_FOLDER
+    mock_exists.return_value = True
     assert get_pet_folder() == PET_FOLDER
+    mock_exists.assert_called_with(PET_FOLDER)
+    mock_exists.return_value = False
+    with pytest.raises(FolderNotFound):
+        get_pet_folder()
 
 
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('os.path.exists', return_value=True)
-def test_get_projects_root_command(mock_exists):
+def test_get_projects_root_command(mock_exists, mock_get_pet_folder):
+    mock_exists.return_value = True
     assert get_projects_root() == projects_root
     mock_exists.assert_called_with(projects_root)
+    mock_exists.return_value = False
+    with pytest.raises(FolderNotFound):
+        get_projects_root()
 
 
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('os.path.exists', return_value=True)
-def test_get_projects_templates_root_command(mock_exists):
+def test_get_projects_templates_root_command(mock_exists, mock_get_pet_folder):
+    mock_exists.return_value = True
     assert get_projects_templates_root() == projects_templates_root
     mock_exists.assert_called_with(projects_templates_root)
+    mock_exists.return_value = False
+    with pytest.raises(FolderNotFound):
+        get_projects_root()
 
 
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('os.path.exists', return_value=True)
-def test_get_tasks_templates_root_command(mock_exists):
+def test_get_tasks_templates_root_command(mock_exists, mock_get_pet_folder):
+    mock_exists.return_value = True
     assert get_tasks_templates_root() == tasks_templates_root
     mock_exists.assert_called_with(tasks_templates_root)
+    mock_exists.return_value = False
+    with pytest.raises(FolderNotFound):
+        get_tasks_templates_root()
 
 
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('os.path.exists')
-def test_get_archive_root_command(mock_exists):
+def test_get_archive_root_command(mock_exists, mock_get_pet_folder):
+    mock_exists.return_value = True
     assert get_archive_root() == archive_root
     mock_exists.assert_called_with(archive_root)
+    mock_exists.return_value = False
+    with pytest.raises(FolderNotFound):
+        get_archive_root()
+
+
+# TODO: 6th
 
 
 @mock.patch('os.path.join')
