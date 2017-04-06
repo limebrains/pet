@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 _pet()
 {
-    local cur prev opts
+    #setup
+    local cur prev opts projects tasks first count archived
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -26,10 +27,17 @@ _pet()
     opts=" ${opts} ${projects} "
     first="${COMP_WORDS[1]}"
     count="${#COMP_WORDS[@]}"
-    if [ ${count} == 2 ]; then
+
+    # for zsh
+    if [ $(echo $0 | grep compgen) ]; then
+        count=$((count + 1))
+    fi
+
+    #completions
+    if (( count == 2 )); then
         COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
         return 0
-    elif [ ${count} == 3 ]; then
+    elif (( count == 3 )); then
         case $prev in archive|run)
             COMPREPLY=( $(compgen -W "${projects}" -- ${cur}) )
             return 0
@@ -59,7 +67,7 @@ _pet()
                 return 0
             esac
         fi
-    elif [ ${count} == 4 ]; then
+    elif (( count == 4 )); then
         case $first in run)
             if [ -z "$PET_ACTIVE_PROJECT" ]; then
                 tasks=$(/bin/ls "$PET_FOLDER/projects/${COMP_WORDS[2]}/tasks" | cut -d "." -f 1)

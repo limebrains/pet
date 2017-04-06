@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo "give name of shell you are using accepting bash/ zsh"
+printf "\n\e[1;36mGive name of shell you are using\nAccepting bash/ zsh\e[0m\n"
 read shell
 if [ $(echo "$shell" | grep "bash") ]; then
 
@@ -25,9 +25,15 @@ if [ $(echo "$shell" | grep "bash") ]; then
     fi
 
 elif [ $(echo "$shell" | grep "zsh") ]; then
-    autoload bashcompinit
-    bashcompinit
-    source "$DIR/complete.bash"
+    if [ -z "$ZDOTDIR" ]; then
+        rc_path="$HOME/.zshrc"
+    else
+        rc_path="$ZDOTDIR/.zshrc"
+    fi
+    printf "autoload -U +X compinit && compinit\n" >> "$rc_path"
+    printf "autoload -U +X bashcompinit && bashcompinit\n" >> "$rc_path"
+    printf "source \"$DIR/complete.bash\"\n" >> "$rc_path"
+    printf "\n\n\e[1;32mAuto-completion should work in \e[1;31mnew\e[1;32m zsh terminals\n\e[0m\n"
 else
     echo "Shell $shell is not supported"
 fi
