@@ -366,7 +366,6 @@ class Zsh(GeneralShellMixin):
                 amount_active + 1,
                 project_root,
             )]).wait()
-        raise Info("it doesn't work in zsh yet")
 
     def edit_shell_profiles(self):
         edit_file(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME))
