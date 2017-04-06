@@ -738,10 +738,10 @@ def deploy():
                 if 0 <= choice < len(available):
                     if available[choice] in possible[-2:]:
                         with open(available[choice], mode='a') as file:
-                            file.write(". ${0}/complete.bash".format(path))
+                            file.write(". {0}/complete.bash".format(path))
                     else:
                         with open(os.path.join(available[choice], 'pet'), mode='w') as file:
-                            file.write(". ${0}/complete.bash".format(path))
+                            file.write(". {0}/complete.bash".format(path))
             except ValueError:
                 raise PetException('choice not recognized')
             except NameError:
