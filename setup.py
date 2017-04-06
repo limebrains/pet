@@ -32,5 +32,5 @@ setup(
       pet = pet.cli:main
     """,
     cmdclass={'install_scripts': InstallScripts},
-    scripts=['pet/deploy'],
+    scripts=[],
 )
