@@ -197,6 +197,13 @@ def recreate():
         bl.recreate()
 
 
+@cli.command()
+def deploy():
+    """Deploys auto-completion"""
+    with pet_exception_manager():
+        bl.deploy()
+
+
 if active_project:
     @cli.command()
     @click.argument('task_name', metavar='TASK_NAME[.<extension>]')

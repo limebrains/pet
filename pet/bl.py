@@ -652,3 +652,47 @@ def edit_config():
 
 def edit_shell_profiles():
     get_shell().edit_shell_profiles()
+
+
+def deploy():
+    shell = os.environ.get('SHELL', '')
+    path = os.path.dirname(os.path.realpath(__file__))
+    if 'bash' in shell:
+        possible = [
+            '/etc/bash_completion.d',
+            '/usr/local/etc/bash_completion.d',
+            os.path.join(os.path.expanduser("~"), '.bash_completion'),  # this stays last
+        ]
+        available = []
+        for directory in possible:
+            if os.path.exists(directory):
+                available.append(directory)
+        if available:
+            print('Deploy auto-completion to:')
+            for i, directory in enumerate(available):
+                print('({0}) - {1}'.format(i, directory))
+            try:
+                choice = input()
+                choice = int(choice)
+                if 0 <= choice < len(available):
+                    if available[choice] == possible[-1]:
+                        with open(available[choice], mode='a') as file:
+                            file.write(". ${0}/complete.bash".format(path))
+                    else:
+                        with open(available[choice], mode='w') as file:
+                            file.write(". ${0}/complete.bash".format(path))
+            except ValueError:
+                print('choice not recognized')
+            except NameError:
+                print('choice not recognized')
+        else:
+            print("Haven't found correct path to deploy auto-completions")
+    elif 'zsh' in shell:
+        rc_path = os.path.join(os.environ.get('ZDOTDIR', os.path.expanduser('~')), '.zshrc')
+        with open(rc_path, mode='a') as file:
+            file.write("autoload -U +X compinit && compinit\n"
+                       "autoload -U +X bashcompinit && bashcompinit\n"
+                       "source \"${0}/complete.bash\"\n".format(path))
+        print("Auto-completion should work in new zsh terminals")
+    else:
+        print(ExceptionMessages.shell_not_supported.value.format(shell))
