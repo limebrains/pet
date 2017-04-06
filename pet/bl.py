@@ -655,7 +655,14 @@ def edit_shell_profiles():
 
 
 def deploy():
-    shell = os.environ.get('SHELL', '')
+    try:
+        shell = input("Give name of shell you are using\nAccepting bash/ zsh\n")
+    except ValueError:
+        raise PetException('choice not recognized')
+    except NameError:
+        raise PetException('choice not recognized')
+    except SyntaxError:
+        raise PetException('choice not recognized')
     path = os.path.dirname(os.path.realpath(__file__))
     if 'bash' in shell:
         possible = [
@@ -682,17 +689,19 @@ def deploy():
                         with open(os.path.join(available[choice], 'pet'), mode='w') as file:
                             file.write(". ${0}/complete.bash".format(path))
             except ValueError:
-                print('choice not recognized')
+                raise PetException('choice not recognized')
             except NameError:
-                print('choice not recognized')
+                raise PetException('choice not recognized')
+            except SyntaxError:
+                raise PetException('choice not recognized')
         else:
-            print("Haven't found correct path to deploy auto-completions")
+            raise PetException("Haven't found correct path to deploy auto-completions")
     elif 'zsh' in shell:
         rc_path = os.path.join(os.environ.get('ZDOTDIR', os.path.expanduser('~')), '.zshrc')
         with open(rc_path, mode='a') as file:
             file.write("autoload -U +X compinit && compinit\n"
                        "autoload -U +X bashcompinit && bashcompinit\n"
                        "source \"${0}/complete.bash\"\n".format(path))
-        print("Auto-completion should work in new zsh terminals")
+        raise Info("Auto-completion should work in new zsh terminals")
     else:
-        print(ExceptionMessages.shell_not_supported.value.format(shell))
+        raise ShellNotRecognized(ExceptionMessages.shell_not_supported.value.format(shell))
