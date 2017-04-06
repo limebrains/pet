@@ -28,10 +28,10 @@ from pet.utils import makedirs
 
 log = logging.getLogger(__file__)
 
-# TODO: REDO totally templates before release
+# TODO: 7th check docs
 # TODO: rewrite logging into yields
 # TODO: what about histfiles?
-# TODO: zsh known issues: no tasks for now; auto-completion works only for full words
+# TODO: zsh known issues: auto-completion works only for full words
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -623,6 +623,20 @@ def print_tasks(project_name):
     tasks = [os.path.splitext(task)[0]
              for task in os.listdir(projects_tasks_root)]
     return "\n".join(tasks)
+
+
+def print_tree():
+    """prints projects and all it's tasks"""
+    projects = print_list().splitlines()
+    output = ""
+    for project in projects:
+        output += "{0}\n".format(project)
+        tasks = print_tasks(project).splitlines()
+        for task in tasks:
+            output += " - {0}".format(task)
+        if tasks:
+            output += "\n"
+    return output
 
 
 def create_task(project_name, task_name):

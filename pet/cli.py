@@ -100,27 +100,29 @@ def create_project(name, in_place, templates):
 @click.option('--tree', is_flag=True, help="show tree of all tasks in projects")
 def print_list(old, tasks, tree):
     """lists all projects/ archived projects/ tasks/ all"""
-    if [old, tree, tasks].count(True) > 1:
-        click.secho("Only one flag at a time! I am not Mt Everest", fg='red')
-        return 1
-    if old:
-        projects = bl.print_old()
-        if projects:
-            click.echo(projects)
-    elif tasks:
-        if active_project:
-            tasks_list = bl.print_tasks(active_project)
-            if tasks_list:
-                click.echo(tasks_list)
+    with pet_exception_manager():
+        if [old, tree, tasks].count(True) > 1:
+            click.secho("Only one flag at a time! I am not Mt Everest", fg='red')
+            return 1
+        if old:
+            projects = bl.print_old()
+            if projects:
+                click.echo(projects)
+        elif tasks:
+            if active_project:
+                tasks_list = bl.print_tasks(active_project)
+                if tasks_list:
+                    click.echo(tasks_list)
+            else:
+                click.secho("No project activated", fg='red')
+        elif tree:
+            tree = bl.print_tree()
+            if tree:
+                click.echo(tree)
         else:
-            click.secho("No project activated", fg='red')
-    elif tree:
-        # TODO: Tree projects -|-tasks
-        click.secho("Not implemented yet", fg='magenta')
-    else:
-        projects = bl.print_list()
-        if projects:
-            click.echo(projects)
+            projects = bl.print_list()
+            if projects:
+                click.echo(projects)
 
 
 @cli.command('archive')
