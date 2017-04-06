@@ -203,13 +203,32 @@ def test_task_exist_command(mock_tasks, project_names, task_names):
     assert not mock_tasks.assert_called_with(project_name)
 
 
-# TODO: 6th/ 7th
+# TODO: this actually works O_o
+@mock.patch('pet.bl.PIPE')
+@mock.patch('pet.bl.Popen')
+def test_how_many_active_command(mock_popen, mock_pipe, project_names):
+    process_mock = mock.Mock()
+    attrs = {'stdout.read.return_value': '1\n2\n3\n'}
+    process_mock.configure_mock(**attrs)
+    mock_popen.return_value = process_mock
+    project_name = project_names[0]
+    assert how_many_active(project_name) == 3
+    attrs = {'stdout.read.return_value': ''}
+    process_mock.configure_mock(**attrs)
+    assert how_many_active(project_name) == 0
 
 
 @mock.patch('pet.bl.PIPE')
 @mock.patch('pet.bl.Popen')
 def test_check_version_command(mock_popen, mock_pipe):
-    check_version()
+    process_mock = mock.Mock()
+    attrs = {'stdout.read.return_value': '3.4.5\n'}
+    process_mock.configure_mock(**attrs)
+    mock_popen.return_value = process_mock
+    assert check_version() == '3.4.5'
+
+
+# TODO: 6th/ 7th
 
 
 @mock.patch('pet.bl.makedirs')
