@@ -135,6 +135,11 @@ def project_template_exist(template_name):
     return os.path.exists(os.path.join(get_projects_templates_root(), template_name))
 
 
+def task_template_exist(template_name):
+    """checks existence of project"""
+    return os.path.exists(os.path.join(get_tasks_templates_root(), template_name))
+
+
 def task_exist(project_name, task_name):
     """checks existence of task"""
     if '.' in task_name:
@@ -382,6 +387,7 @@ class ProjectCreator(object):
         else:
             self.project_root = os.path.join(self.projects_root, self.project_name)
         self.templates = templates
+        self.templates_and_paths = {}
         self.check_name()
         self.check_templates()
 
@@ -393,8 +399,14 @@ class ProjectCreator(object):
 
     def check_templates(self):
         for template in self.templates:
-            if not project_template_exist(template):
-                raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
+            if project_template_exist(template):
+                self.templates_and_paths[template] = os.path.join(self.templates_root, template)
+            else:
+                if project_exist(template):
+                    self.templates_and_paths[template] = os.path.join(self.projects_root, template)
+                    print("{0} - is project not template".format(template))
+                else:
+                    raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
 
     def create_dirs(self):
         get_shell().create_shell_profiles()
@@ -418,7 +430,7 @@ class ProjectCreator(object):
                     templates = reversed(self.templates)
                 for template in templates:
                     file.write("# from template: {0}\n".format(template))
-                    with open(os.path.join(self.templates_root, template, filename)) as corresponding_template_file:
+                    with open(os.path.join(self.templates_and_paths[template], filename)) as corresponding_template_file:
                         file.write(corresponding_template_file.read())
                     file.write("\n")
                 file.write("# check if correctly imported templates\n")
@@ -529,6 +541,18 @@ def archive(project_name):
 
     archive_root = get_archive_root()
     shutil.move(project_root, os.path.join(archive_root, project_name))
+
+
+def add_to_templates(project_name):
+    """copy project to templates"""
+    project_root = os.path.join(get_projects_root(), project_name)
+    if not os.path.exists(project_root):
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
+    if project_template_exist(project_name):
+        raise NameAlreadyTaken(ExceptionMessages.template_exists.value.format(project_name))
+
+    template_root = get_projects_templates_root()
+    shutil.copy(project_root, os.path.join(template_root, project_name))
 
 
 def restore(project_name):

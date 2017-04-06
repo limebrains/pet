@@ -124,11 +124,15 @@ def print_list(old, tasks, tree):
 
 
 @cli.command('archive')
+@click.option('-t', '--template', is_flag=True, help="copy project to templates")
 @click.argument('project_name')
-def archive(project_name):
-    """archives project"""
+def archive(project_name, template):
+    """archives project or adds it to templates"""
     with pet_exception_manager():
-        bl.archive(project_name=project_name)
+        if template:
+            bl.add_to_templates(project_name=project_name)
+        else:
+            bl.archive(project_name=project_name)
 
 
 @cli.group()
