@@ -23,6 +23,7 @@ from pet.file_templates import (
     new_project_rc_template,
     new_start_sh_template,
     edit_file_popen_template,
+    auto_complete_zsh_deploy,
 )
 
 from pet.utils import makedirs
@@ -689,9 +690,7 @@ def remove_task(project_name, task_name):
     Popen([
         "/bin/sh",
         "-c",
-        """
-        sed -i -e "/alias {0}/d" {1}
-        """.format(
+        "sed -i -e \"/alias {0}/d\" {1}".format(
             task_name,
             os.path.join(project_root, "tasks.sh"),
         )
@@ -754,9 +753,7 @@ def deploy():
     elif shell == 2:
         rc_path = os.path.join(os.environ.get('ZDOTDIR', os.path.expanduser('~')), '.zshrc')
         with open(rc_path, mode='a') as file:
-            file.write("autoload -U +X compinit && compinit\n"
-                       "autoload -U +X bashcompinit && bashcompinit\n"
-                       "source \"{0}/complete.bash\"\n".format(path))
+            file.write(auto_complete_zsh_deploy.format(path))
         raise Info("Auto-completion should work in new zsh terminals")
     else:
         raise PetException('choice not recognized')
