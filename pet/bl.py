@@ -21,6 +21,7 @@ from pet.exceptions import (
 )
 from pet.file_templates import (
     new_project_rc_template,
+    new_start_sh_template,
 )
 
 from pet.utils import makedirs
@@ -30,8 +31,7 @@ log = logging.getLogger(__file__)
 # TODO: REDO totally templates before release
 # TODO: rewrite logging into yields
 # TODO: what about histfiles?
-# TODO: add to install checking are all commands needed available?
-# TODO: zsh known issues: either stop.sh is not executed, either execution is not shown; no tasks for now; no auto-completion
+# TODO: zsh known issues: no tasks for now; auto-completion works only for full words
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -219,7 +219,6 @@ class GeneralShellMixin(object):
         project_root = os.path.join(get_projects_root(), project_name)
         if nr == 1:
             nr = ""
-        print(get_pet_folder())
         contents = new_project_rc_template.format(
             get_pet_folder(),
             project_name,
@@ -229,7 +228,6 @@ class GeneralShellMixin(object):
             nr,
             self.get_shell_profiles(),
         )
-        print('writing to: {0}'.format(os.path.join(project_root, self.get_rc_filename())))
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
             rc_file.write(contents)
@@ -411,7 +409,6 @@ class ProjectCreator(object):
             tasks_alias_file.write("# aliases for your tasks\n")
 
     def create_files_with_templates(self, filename, additional_lines, increasing_order):
-        # TODO: should we ask what to do if file exist?
         with open(os.path.join(self.project_root, filename), mode='w') as file:
             if self.templates:
                 file.write("# TEMPLATES\n")
@@ -428,8 +425,7 @@ class ProjectCreator(object):
             file.write(additional_lines)
 
     def create_files(self):
-        # TODO: (copy from line394) should we ask what to do if file exist?
-        add_to_start = "cd {0}\n# add here shell code to be executed while entering project\n".format(os.getcwd())
+        add_to_start = new_start_sh_template.format(os.getcwd())
         add_to_stop = "# add here shell code to be executed while exiting project\n"
         self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
         self.create_files_with_templates(filename='stop.sh', additional_lines=add_to_stop, increasing_order=False)
@@ -458,23 +454,30 @@ def create(project_name, in_place, templates=()):
     ProjectCreator(project_name, in_place, templates).create()
 
 
-# TODO: add editing cd command to match getcwd
 def register(project_name):
     """adds symbolic link to .pet folder in projects"""
-    folder = os.getcwd()
+    directory = os.getcwd()
     if not project_name:
-        project_name = os.path.basename(folder)
-    folder = os.path.join(folder, '.pet')
+        project_name = os.path.basename(directory)
+    directory = os.path.join(directory, '.pet')
     if project_exist(project_name):
         raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
-    if not (os.path.isfile(os.path.join(folder, "start.sh")) and
-            os.path.isfile(os.path.join(folder, "stop.sh")) and
-            os.path.isfile(os.path.join(folder, "tasks.sh")) and
-            os.path.isdir(os.path.join(folder, "tasks"))):
-        raise PetException("Haven't found {{tasks.sh, start.sh, stop.sh}} and tasks folder in\n{0}".format(folder))
+    if not (os.path.isfile(os.path.join(directory, "start.sh")) and
+                os.path.isfile(os.path.join(directory, "stop.sh")) and
+                os.path.isfile(os.path.join(directory, "tasks.sh")) and
+                os.path.isdir(os.path.join(directory, "tasks"))):
+        raise PetException("Haven't found {{tasks.sh, start.sh, stop.sh}} and tasks folder in\n{0}".format(directory))
 
-    os.symlink(folder, os.path.join(get_projects_root(), project_name))
+    os.symlink(directory, os.path.join(get_projects_root(), project_name))
+    Popen([
+        "/bin/sh",
+        "-c",
+        "$ sed -i 's/^pet_project_folder=.*$/pet_project_folder='{0}'/g' {1}".format(
+            directory,
+            os.path.join(directory, "start.sh"),
+        ),
+    ])
 
 
 def rename_project(old_project_name, new_project_name):

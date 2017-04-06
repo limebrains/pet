@@ -7,13 +7,17 @@ source {2}/start.sh
 PS1=\"[{1}] $PS1\"
 echo -ne \"\\033]0;{1} {5}\\007"
 source {3}
-trap 'source {2}/stop.sh' EXIT
 if [ -z "$PET_PREV_TAB_NAME" ]; then
     tab_name_at_exit=""
 else
     tab_name_at_exit="$PET_PREV_TAB_NAME"
 fi
-trap 'echo -ne \"\\033]0;$tab_name_at_exit\\007"' EXIT
+trap 'echo -ne \"\\033]0;$tab_name_at_exit\\007";source {2}/stop.sh' EXIT
 export PET_PREV_TAB_NAME='{1} {5}'
 {4}
+'''
+new_start_sh_template = '''
+pet_project_folder='{0}'
+cd "$pet_project_folder"
+# add here shell code to be executed while entering project
 '''
