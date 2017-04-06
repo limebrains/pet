@@ -8,7 +8,7 @@ from pet.bl import (
     get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, get_pet_install_folder, get_pet_folder, \
     get_projects_root, archive, edit_config, edit_shell_profiles, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
-    print_tasks, remove_task, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
+    print_tasks, remove_task, task_template_exist, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
 )
 
 from pet.exceptions import (
@@ -116,7 +116,7 @@ def test_get_projects_templates_root_command(mock_exists, mock_get_pet_folder):
     mock_exists.assert_called_with(projects_templates_root)
     mock_exists.return_value = False
     with pytest.raises(FolderNotFound):
-        get_projects_root()
+        get_projects_templates_root()
 
 
 @mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
@@ -141,46 +141,69 @@ def test_get_archive_root_command(mock_exists, mock_get_pet_folder):
         get_archive_root()
 
 
-# TODO: 6th
-
-
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('os.path.join')
 @mock.patch('pet.bl.Popen')
-def test_edit_file_command(mock_popen, mock_join, files):
-    for path in files:
-        edit_file(path)
-        mock_popen.assert_called_with([
-            "/bin/sh",
-            "-c",
-            edit_file_popen_template.format(mock_join(), path)])
+def test_edit_file_command(mock_popen, mock_join, mock_get_pet_folder, files):
+    path = files[0]
+    edit_file(path)
+    mock_popen.assert_called_with([
+        "/bin/sh",
+        "-c",
+        edit_file_popen_template.format(mock_join(), path)])
 
 
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('os.path.exists')
-def test_project_exist_command(mock_exists, project_names):
-    for project_name in project_names:
-        project_exist(project_name)
-        project_root = projects_root + "/" + project_name
-        mock_exists.assert_called_with(project_root)
+def test_project_exist_command(mock_exists, mock_projects_root, project_names):
+    project_name = project_names[0]
+    mock_exists.return_value = True
+    assert project_exist(project_name)
+    project_root = os.path.join(projects_root, project_name)
+    mock_exists.assert_called_with(project_root)
+    mock_exists.return_value = False
+    assert not project_exist(project_name)
+    mock_exists.assert_called_with(project_root)
 
 
+@mock.patch('pet.bl.get_projects_templates_root', return_value=projects_templates_root)
 @mock.patch('os.path.exists')
-def test_template_exist_command(mock_exists, project_names):
-    for template_name in project_names:
-        project_template_exist(template_name)
-        template_root = projects_templates_root + "/" + template_name
-        mock_exists.assert_called_with(template_root)
+def test_template_exist_command(mock_exists, mock_templates_root, project_names):
+    template_name = project_names[0]
+    mock_exists.return_value = True
+    assert project_template_exist(template_name)
+    template_root = os.path.join(projects_templates_root, template_name)
+    mock_exists.assert_called_with(template_root)
+    mock_exists.return_value = False
+    assert not project_template_exist(template_name)
+    mock_exists.assert_called_with(template_root)
 
 
-@mock.patch('os.path.splitext')
+@mock.patch('pet.bl.get_tasks_templates_root', return_value=tasks_templates_root)
+@mock.patch('os.path.exists')
+def test_task_template_exist_command(mock_exists, mock_templates_root, task_names):
+    template_name = task_names[0]
+    mock_exists.return_value = True
+    assert task_template_exist(template_name)
+    template_root = os.path.join(tasks_templates_root, template_name)
+    mock_exists.assert_called_with(template_root)
+    mock_exists.return_value = False
+    assert not task_template_exist(template_name)
+    mock_exists.assert_called_with(template_root)
+
+
 @mock.patch('pet.bl.print_tasks')
-def test_task_exist_command(mock_tasks, mock_split, project_names, task_names):
-    for project_name in project_names:
-        project_root = projects_root + "/" + project_name
-        for task_name in task_names:
-            task_exist(project_name, task_name)
-            mock_tasks.assert_called_with(project_name)
-        task_exist(project_name, "coverage.py")
-        mock_tasks.assert_called_with(project_name)
+def test_task_exist_command(mock_tasks, project_names, task_names):
+    project_name = project_names[0]
+    task_name = task_names[0]
+    mock_tasks.return_value = "{0}\ntask1\ntask2\ncov\n".format(task_name)
+    assert task_exist(project_name, task_name)
+    mock_tasks.assert_called_with(project_name)
+    task_exist(project_name, "coverage.py")
+    assert not mock_tasks.assert_called_with(project_name)
+
+
+# TODO: 6th/ 7th
 
 
 @mock.patch('pet.bl.PIPE')
