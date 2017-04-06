@@ -45,5 +45,5 @@ else
 fi
 printf "\n------------------------\n-auto-completion deploy-\n------------------------\n"
 printf "\n\e[1;33mAuto-completion requires sudo\e[0m\n"
-sudo python -c "$(pwd)/pet-master/pet/cli.py deploy"
+sudo python "$(pwd)/pet-master/pet/cli.py deploy"
 printf "\n\e[1;32mInstallation completed\e[0m\n"
