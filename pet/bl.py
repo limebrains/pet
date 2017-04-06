@@ -343,7 +343,33 @@ class Zsh(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         amount_active = how_many_active(project_name)
+        project_root = os.path.join(get_projects_root(), project_name)
+        if interactive:
+            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\n".format(
+                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                " ".join(args)
+            ))
+            Popen(["/bin/zsh",
+                   "-c",
+                   "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                       project_name,
+                       amount_active + 1,
+                       project_root,
+                   )]).communicate()
+        else:
+            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
+                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                " ".join(args)
+            ))
+            Popen(["/bin/zsh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                project_name,
+                amount_active + 1,
+                project_root,
+            )]).wait()
         raise Info("it doesn't work in zsh yet")
+
+    def edit_shell_profiles(self):
+        edit_file(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME))
 
 
 @lru_cache()
@@ -692,6 +718,7 @@ def deploy():
         possible = [
             '/etc/bash_completion.d',
             '/usr/local/etc/bash_completion.d',
+            '/usr/share/bash-completion/bash_completion',  # this stays last - 1
             os.path.join(os.path.expanduser("~"), '.bash_completion'),  # this stays last
         ]
         available = []
@@ -706,7 +733,7 @@ def deploy():
                 choice = input()
                 choice = int(choice)
                 if 0 <= choice < len(available):
-                    if available[choice] == possible[-1]:
+                    if available[choice] in possible[-2:]:
                         with open(available[choice], mode='a') as file:
                             file.write(". ${0}/complete.bash".format(path))
                     else:
