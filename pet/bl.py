@@ -22,6 +22,7 @@ from pet.exceptions import (
 from pet.file_templates import (
     new_project_rc_template,
     new_start_sh_template,
+    edit_file_popen_template,
 )
 
 from pet.utils import makedirs
@@ -111,17 +112,7 @@ def edit_file(path):
     """edits file using EDITOR variable from config file"""
     Popen(["/bin/sh",
            "-c",
-           """PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n \"/EDITOR==/s/EDITOR==//p\")
-            if [ -z "$PET_EDITOR" ]; then
-                if [ -z "$EDITOR" ]; then
-                    echo "haven't found either $EDITOR, either EDITOR in pet config - trying vi"
-                    /usr/bin/vi {1}
-                else
-                    $EDITOR {1}
-                fi
-            else
-                $PET_EDITOR {1}
-            fi""".format(
+           edit_file_popen_template.format(
                 os.path.join(get_pet_folder(), "config"), path)]).communicate()
 
 
