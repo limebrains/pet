@@ -679,7 +679,7 @@ def deploy():
                         with open(available[choice], mode='a') as file:
                             file.write(". ${0}/complete.bash".format(path))
                     else:
-                        with open(available[choice], mode='w') as file:
+                        with open(os.path.join(available[choice], 'pet'), mode='w') as file:
                             file.write(". ${0}/complete.bash".format(path))
             except ValueError:
                 print('choice not recognized')
