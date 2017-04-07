@@ -6,7 +6,7 @@ import pytest
 from pet.bl import (
     get_file_fullname,
     get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, get_pet_install_folder, get_pet_folder, \
-    get_projects_root, archive, edit_config, edit_shell_profiles, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
+    get_projects_root, archive, lockable, edit_config, edit_shell_profiles, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, task_template_exist, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
 )
@@ -228,16 +228,90 @@ def test_check_version_command(mock_popen, mock_pipe):
     assert check_version() == '3.4.5'
 
 
-# TODO: 6th/ 7th
-
-
 @mock.patch('pet.bl.makedirs')
 @mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
-@mock.patch('pet.bl.get_pet_install_folder', return_value=PET_INSTALL_FOLDER)
 @mock.patch('os.path.join')
 @mock.patch('pet.bl.Popen')
-def test_recreate_command(mock_popen, mock_join, mock_install_folder, mock_pet_folder, mock_makedirs):
+def test_recreate_command(mock_popen, mock_join, mock_pet_folder, mock_makedirs):
     recreate()
+    mock_popen.assert_called_with(["/bin/sh",
+                                   "-c",
+                                   "echo \"EDITOR==$EDITOR\" > {0}".format(os.path.join(PET_FOLDER, "config")),
+                                   ])
+
+
+@mock.patch('pet.bl.ProjectLock')
+@mock.patch('pet.bl.log.warning')
+@mock.patch('pet.bl.how_many_active')
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+@mock.patch('os.path.isfile')
+def test_lockable_decorator(mock_isfile, mock_pet_folder, mock_amount_active, mock_log_warning, mock_project_lock, project_names):
+    name = project_names[0]
+
+    @lockable()
+    def func_to_test1(project_name):
+        pass
+    mock_isfile.return_value = True
+    with pytest.raises(ProjectActivated):
+        func_to_test1(project_name=name)
+
+    @lockable(check_active=True)
+    def func_to_test2(project_name):
+        pass
+    mock_isfile.return_value = False
+    mock_amount_active.return_value = 3
+    with pytest.raises(ProjectActivated):
+        func_to_test2(project_name=name)
+
+    @lockable(check_only_projects=False)
+    def func_to_test3(project_name, arg1, arg2, kwarg=''):
+        return project_name, arg1, arg2, kwarg
+    assert func_to_test3(project_name=name, arg1=1, arg2=2, kwarg='x') == (name, 1, 2, 'x')
+    mock_log_warning.assert_called_with(ExceptionMessages.project_is_active.value.format(name))
+    assert mock_project_lock.called
+
+    @lockable()
+    def func_to_test4(project_name, arg1, arg2, kwarg=''):
+        return project_name, arg1, arg2, kwarg
+
+    assert func_to_test4(project_name=name, arg1=1, arg2=2, kwarg='x') == (name, 1, 2, 'x')
+
+    assert func_to_test4(project_name=name, arg1=1, arg2=2, kwarg='x', lock=True) == (name, 1, 2, 'x')
+    mock_log_warning.assert_called_with(ExceptionMessages.project_is_active.value.format(name))
+
+    class ClassToTest1(object):
+
+        def __init__(self, arg1, arg2, kwarg=''):
+            self.arg1 = arg1
+            self.arg2 = arg2
+            self.kwarg = kwarg
+
+        @lockable(check_only_projects=False)
+        def action(self, project_name):
+            arg3 = self.arg1 + self.arg2
+            return project_name, self.arg1, self.arg2, arg3, self.kwarg
+
+    assert ClassToTest1(arg1=1, arg2=2, kwarg='x').action(project_name=name) == (name, 1, 2, 3, 'x')
+
+    class ClassToTest2(object):
+        def __init__(self, arg1, arg2, kwarg=''):
+            self.arg1 = arg1
+            self.arg2 = arg2
+            self.kwarg = kwarg
+
+        @lockable()
+        def action(self, project_name):
+            arg3 = self.arg1 + self.arg2
+            return project_name, self.arg1, self.arg2, arg3, self.kwarg
+
+    assert ClassToTest2(arg1=1, arg2=2, kwarg='x').action(project_name=name) == (name, 1, 2, 3, 'x')
+
+    assert ClassToTest2(arg1=1, arg2=2, kwarg='x').action(project_name=name, lock=True) == (name, 1, 2, 3, 'x')
+    mock_log_warning.assert_called_with(ExceptionMessages.project_is_active.value.format(name))
+
+
+# TODO: 6th/ 7th
+
 
 
 @mock.patch('pet.bl.lru_cache')
