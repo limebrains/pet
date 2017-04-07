@@ -311,9 +311,6 @@ def test_lockable_decorator(mock_isfile, mock_pet_folder, mock_amount_active, mo
     mock_log_warning.assert_called_with(ExceptionMessages.project_is_active.value.format(name))
 
 
-# TODO: 7th
-
-
 # TODO: MOCKING MOCK_OPEN
 @mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -490,7 +487,7 @@ def test_zsh_create_shell_profiles_method(mock_get, mock_pet_folder, mock_isfile
 def test_zsh_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
     project_name = project_names[0]
     task_name = task_names[0]
-    project_root = os.path.join(get_projects_root(), project_name)
+    project_root = os.path.join(projects_root, project_name)
     Zsh().task_exec(project_name=project_name, task_name=task_name, interactive=True)
     mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
         '/some/path/file.ext', " ".join(())))
@@ -543,45 +540,90 @@ def test_project_lock_class(mock_root, mock_join, mock_open, mock_remove, mock_e
         ProjectLock("not_existing")
 
 
-@mock.patch('pet.bl.project_template_exist', return_value=True)
-@mock.patch('pet.bl.project_exist', return_value=False)
+@mock.patch('pet.bl.project_template_exist')
+@mock.patch('pet.bl.project_exist')
 @mock.patch('pet.bl.get_projects_templates_root', return_value=projects_templates_root)
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
-@mock.patch('os.path.exists', return_value=True)
+@mock.patch('os.path.exists')
 @mock.patch('os.path.isfile', return_value=True)
 @mock.patch('pet.bl.get_shell')
 @mock.patch('os.getcwd', return_value="")
 @mock.patch('os.symlink')
 @mock.patch('pet.bl.open')
-def test_project_creator_class(mock_open, mock_symlink, mock_getcwd, mock_shell, mock_isfile, mock_path_exists, mock_root, mock_templates_root, mock_project_exist, mock_template_exist, project_names, additional_project_names):
+@mock.patch('os.makedirs')
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+def test_project_creator_class(mock_pet_folder, mock_makedirs, mock_open, mock_symlink, mock_getcwd, mock_shell, mock_isfile, mock_path_exists, mock_root, mock_templates_root, mock_project_exist, mock_template_exist, project_names, additional_project_names):
     project_name = project_names[0]
-    ProjectCreator(project_name, in_place=False, templates=[additional_project_names[0], additional_project_names[1]]).create()
+    project_root = os.path.join(projects_root, project_name)
+    templates = [additional_project_names[0], additional_project_names[1]]
+    mock_project_exist.return_value = True
+    mock_path_exists.return_value = True
+
+    # check_templates
+
+    with pytest.raises(NameAlreadyTaken):
+        ProjectCreator(project_name=project_name, in_place=False, templates=templates).create()
+    mock_project_exist.return_value = False
+    with pytest.raises(NameAlreadyTaken):
+        ProjectCreator(project_name='init', in_place=False, templates=templates).create()
+    mock_template_exist.return_value = False
+    mock_project_exist.side_effect = [False, True, True]
+    ProjectCreator(project_name=project_name, in_place=True, templates=templates).create()
+    mock_project_exist.side_effect = [False, False]
+    with pytest.raises(NameNotFound):
+        ProjectCreator(project_name=project_name, in_place=True, templates=templates).create()
+    mock_template_exist.return_value = True
+    mock_project_exist.side_effect = [False]
+    ProjectCreator(project_name=project_name, in_place=True, templates=templates).create()
+
+    # next
+
+    mock_path_exists.return_value = False
+    mock_project_exist.side_effect = [False]
+    with mock.patch('builtins.open', create=True) as mock_open:
+        ProjectCreator(project_name=project_name, in_place=True, templates=templates).create()
+        assert mock_shell().create_shell_profiles.called
+        assert mock_makedirs.called
+        assert mock_symlink.called
+        assert mock_shell().make_rc_file.called
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('pet.bl.get_shell')
 @mock.patch('os.path.isfile')
 def test_start_command(mock_isfile, mock_shell, mock_projects_root, project_names):
-    for i, project_name in enumerate(project_names):
-        if i == 1:
-            mock_isfile.side_effect = [True, True]
-            with pytest.raises(ProjectActivated):
-                start(project_name)
-        else:
-            mock_isfile.side_effect = [True, False]
-            with pytest.raises(ProjectActivated):
-                start(project_name)
+    project_name = project_names[0]
+    mock_isfile.return_value = True
+    with pytest.raises(ProjectActivated):
+        start(project_name)
+    project_name = project_names[1]
+    project_root = os.path.join(projects_root, project_name)
+    mock_isfile.return_value = False
+    start(project_name=project_name)
+    assert mock_shell().create_shell_profiles.called
+    mock_shell().start.assert_called_with(project_root, project_name)
 
 
-@mock.patch('os.getcwd')
+def test_create_command():
+    pass
+
+
+@mock.patch('pet.bl.ProjectCreator')
+def test_create_command(mock_project_creator, project_names):
+    project_name = project_names[0]
+    create(project_name, in_place=False, templates=())
+    assert mock_project_creator().create.called
+
+
+@mock.patch('os.getcwd', return_value="/some/path")
 @mock.patch('os.path.basename', return_value="project")
 @mock.patch('pet.bl.project_exist')
 @mock.patch('os.path.isfile')
 @mock.patch('os.path.isdir')
 @mock.patch('os.symlink')
-@mock.patch('os.path.join')
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
-def test_register_command(mock_root, mock_join, mock_symlink, mock_isdir, mock_isfile, mock_exist, mock_basename, mock_getcwd):
+@mock.patch('pet.bl.Popen')
+def test_register_command(mock_popen, mock_root, mock_symlink, mock_isdir, mock_isfile, mock_exist, mock_basename, mock_getcwd):
     mock_exist.side_effect = [True]
     with pytest.raises(NameAlreadyTaken):
         register("")
@@ -592,6 +634,17 @@ def test_register_command(mock_root, mock_join, mock_symlink, mock_isdir, mock_i
         register("")
     mock_isfile.return_value = True
     register("")
+    mock_popen.assert_called_with([
+        "/bin/sh",
+        "-c",
+        "$ sed -i 's/^pet_project_folder=.*$/pet_project_folder='{0}'/g' {1}".format(
+            "/some/path/.pet",
+            os.path.join("/some/path/.pet", "start.sh"),
+        ),
+    ])
+
+
+# TODO: 7th
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -619,12 +672,6 @@ def test_edit_project_command(mock_edit_file, mock_exist, mock_root, project_nam
             edit_project(project_name)
         mock_exist.return_value = True
         edit_project(project_name)
-
-
-@mock.patch('pet.bl.ProjectCreator')
-def test_create_command(mock_project_creator, project_names):
-    for project_name in project_names:
-        create(project_name, in_place=False, templates=())
 
 
 @mock.patch('os.kill')
