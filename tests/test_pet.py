@@ -651,27 +651,33 @@ def test_register_command(mock_popen, mock_root, mock_symlink, mock_isdir, mock_
 @mock.patch('os.path.exists')
 @mock.patch('os.rename')
 def test_rename_project_command(mock_rename, mock_exists, mock_root, project_names):
-    for project_name in project_names:
-        mock_exists.side_effect = [False]
-        with pytest.raises(NameNotFound):
-            rename_project("old", project_name)
-        mock_exists.side_effect = [True, True]
-        with pytest.raises(NameAlreadyTaken):
-            rename_project("old", project_name)
-        mock_exists.side_effect = [True, False]
+    project_name = project_names[0]
+    mock_exists.side_effect = [False]
+    with pytest.raises(NameNotFound):
         rename_project("old", project_name)
+    mock_exists.side_effect = [True, True]
+    with pytest.raises(NameAlreadyTaken):
+        rename_project("old", project_name)
+    mock_exists.side_effect = [True, False]
+    rename_project("old", project_name)
+    mock_rename.assert_called_with(os.path.join(projects_root, "old"),
+                                   os.path.join(projects_root, project_name))
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('pet.bl.project_exist')
 @mock.patch('pet.bl.edit_file')
 def test_edit_project_command(mock_edit_file, mock_exist, mock_root, project_names):
-    for project_name in project_names:
-        mock_exist.return_value = False
-        with pytest.raises(NameNotFound):
-            edit_project(project_name)
-        mock_exist.return_value = True
+    project_name = project_names[0]
+    mock_exist.return_value = False
+    with pytest.raises(NameNotFound):
         edit_project(project_name)
+    mock_exist.return_value = True
+    edit_project(project_name)
+    mock_edit_file.assert_has_calls([
+        mock.call(os.path.join(projects_root, project_name, "start.sh")),
+        mock.call(os.path.join(projects_root, project_name, "stop.sh")),
+    ])
 
 
 @mock.patch('os.kill')
