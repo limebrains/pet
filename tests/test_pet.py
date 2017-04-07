@@ -1,3 +1,4 @@
+import builtins
 import os
 import mock
 
@@ -203,7 +204,7 @@ def test_task_exist_command(mock_tasks, project_names, task_names):
     assert not mock_tasks.assert_called_with(project_name)
 
 
-# TODO: this actually works O_o
+# TODO: MOCKING methods of already mocked objects
 @mock.patch('pet.bl.PIPE')
 @mock.patch('pet.bl.Popen')
 def test_how_many_active_command(mock_popen, mock_pipe, project_names):
@@ -310,8 +311,65 @@ def test_lockable_decorator(mock_isfile, mock_pet_folder, mock_amount_active, mo
     mock_log_warning.assert_called_with(ExceptionMessages.project_is_active.value.format(name))
 
 
-# TODO: 6th/ 7th
+# TODO: 7th
 
+
+# TODO: MOCKING MOCK_OPEN
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+def test_general_shell_mixin_make_rc_file_method(mock_root, mock_pet_folder, project_names):
+    project_name = project_names[0]
+    project_root = os.path.join(get_projects_root(), project_name)
+    nr = 0
+    additional_lines = ""
+    rc = os.path.join(project_root, "bashrc")
+    with mock.patch('builtins.open', create=True) as mock_open:
+        Bash().make_rc_file(project_name, nr)
+        mock_open.assert_called_with(rc, mode='w')
+        handle = mock_open.return_value.__enter__.return_value
+        handle.write.assert_called_with(
+            new_project_rc_template.format(
+                os.path.join(PET_FOLDER, "bash_profiles"),
+                project_name,
+                os.path.join(project_root, 'start.sh'),
+                nr,
+                os.path.join(project_root, "tasks.sh"),
+                os.path.join(project_root, 'stop.sh'),
+                additional_lines,
+            )
+        )
+    nr = 1
+    additional_lines = "cancerous line"
+    with mock.patch('builtins.open', create=True) as mock_open:
+        Bash().make_rc_file(project_name, nr, additional_lines)
+        mock_open.assert_called_with(rc, mode='w')
+        handle = mock_open.return_value.__enter__.return_value
+        handle.write.assert_called_with(
+            new_project_rc_template.format(
+                os.path.join(PET_FOLDER, "bash_profiles"),
+                project_name,
+                os.path.join(project_root, 'start.sh'),
+                "",
+                os.path.join(project_root, "tasks.sh"),
+                os.path.join(project_root, 'stop.sh'),
+                additional_lines,
+            )
+        )
+
+
+@mock.patch('os.environ.get', return_value='wrong/shell')
+def test_general_shell_mixin_class_errors(mock_get, project_names, task_names):
+    project_name = project_names[0]
+    task_name = task_names[0]
+    project_root = os.path.join(projects_root, project_name)
+    with pytest.raises(ShellNotRecognized):
+        GeneralShellMixin().start(project_root, project_name)
+    with pytest.raises(ShellNotRecognized):
+        GeneralShellMixin().create_shell_profiles()
+    with pytest.raises(ShellNotRecognized):
+        GeneralShellMixin().task_exec(project_name, task_name, interactive=False)
+    with pytest.raises(ShellNotRecognized):
+        GeneralShellMixin().edit_shell_profiles()
 
 
 @mock.patch('pet.bl.lru_cache')
