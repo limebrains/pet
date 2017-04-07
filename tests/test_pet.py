@@ -9,7 +9,7 @@ from pet.bl import (
     get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, get_pet_install_folder, get_pet_folder, \
     get_projects_root, archive, lockable, edit_config, edit_shell_profiles, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
     ProjectCreator, start, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
-    print_tasks, remove_task, task_template_exist, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
+    print_tasks, remove_task, Zsh, task_template_exist, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
 )
 
 from pet.exceptions import (
@@ -420,10 +420,19 @@ def test_bash_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_ho
     Bash().task_exec(project_name=project_name, task_name=task_name, interactive=True)
     mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
         '/some/path/file.ext', " ".join(())))
-    # mock_popen.assert_called_with()
+    mock_popen.assert_called_with(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+                project_name,
+                3 + 1,
+                os.path.join(project_root, "bashrc"),
+            )])
     Bash().task_exec(project_name=project_name, task_name=task_name, interactive=False)
     mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
         '/some/path/file.ext', " ".join(())))
+    mock_popen.assert_called_with(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+                project_name,
+                3 + 1,
+                os.path.join(project_root, "bashrc"),
+            )])
 
 
 @mock.patch('pet.bl.edit_file')
@@ -431,6 +440,82 @@ def test_bash_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_ho
 def test_bash_edit_shell_profiles_method(mock_pet_folder, mock_edit):
     Bash().edit_shell_profiles()
     mock_edit.assert_called_with(os.path.join(PET_FOLDER, "bash_profiles"))
+
+
+@mock.patch('pet.bl.how_many_active', return_value=3)
+@mock.patch('pet.bl.Popen')
+@mock.patch('pet.bl.GeneralShellMixin.make_rc_file')
+def test_zsh_start_method(mock_make_rc_file, mock_popen, mock_how_many_active, project_names):
+    project_name = project_names[0]
+    project_root = os.path.join(projects_root, project_name)
+    Zsh().start(project_root, project_name)
+    mock_popen.assert_called_with(
+        ["/bin/sh",
+         "-c",
+         "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+             project_name,
+             3 + 1,
+             project_root,
+         )
+         ]
+    )
+    assert mock_make_rc_file.called
+
+
+@mock.patch('os.path.isfile', return_value=False)
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+@mock.patch('os.environ.get')
+def test_zsh_create_shell_profiles_method(mock_get, mock_pet_folder, mock_isfile):
+    mock_get.return_value = "/zdotpath/"
+    with mock.patch('builtins.open', create=True) as mock_open:
+        Zsh().create_shell_profiles()
+        mock_open.assert_called_with(os.path.join(PET_FOLDER, "zsh_profiles"), mode='w')
+        handle = mock_open.return_value.__enter__.return_value
+        handle.write.assert_called_with("source $ZDOTDIR/.zshrc\n")
+    mock_get.return_value = ""
+    with mock.patch('builtins.open', create=True) as mock_open:
+        Zsh().create_shell_profiles()
+        mock_open.assert_called_with(os.path.join(PET_FOLDER, "zsh_profiles"), mode='w')
+        handle = mock_open.return_value.__enter__.return_value
+        handle.write.assert_called_with("source $HOME/.zshrc\n")
+
+
+@mock.patch('os.path.isfile', side_effect=[False, False, True, True, True])
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+@mock.patch('pet.bl.how_many_active', return_value=3)
+@mock.patch('pet.bl.GeneralShellMixin.make_rc_file')
+@mock.patch('pet.bl.get_file_fullname_and_path', return_value='/some/path/file.ext')
+@mock.patch('pet.bl.Popen')
+def test_zsh_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
+    project_name = project_names[0]
+    task_name = task_names[0]
+    project_root = os.path.join(get_projects_root(), project_name)
+    Zsh().task_exec(project_name=project_name, task_name=task_name, interactive=True)
+    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
+        '/some/path/file.ext', " ".join(())))
+    mock_popen.assert_called_with(["/bin/zsh",
+                                   "-c",
+                                   "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                                       project_name,
+                                       3 + 1,
+                                       project_root,
+                                   )])
+    Zsh().task_exec(project_name=project_name, task_name=task_name, interactive=False)
+    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
+        '/some/path/file.ext', " ".join(())))
+    mock_popen.assert_called_with(["/bin/zsh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                project_name,
+                3 + 1,
+                project_root,
+            )])
+
+
+@mock.patch('pet.bl.edit_file')
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+def test_zsh_edit_shell_profiles_method(mock_pet_folder, mock_edit):
+    Zsh().edit_shell_profiles()
+    mock_edit.assert_called_with(os.path.join(PET_FOLDER, "zsh_profiles"))
 
 
 @mock.patch('pet.bl.lru_cache')
