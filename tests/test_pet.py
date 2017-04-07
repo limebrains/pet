@@ -372,6 +372,67 @@ def test_general_shell_mixin_class_errors(mock_get, project_names, task_names):
         GeneralShellMixin().edit_shell_profiles()
 
 
+@mock.patch('pet.bl.how_many_active', return_value=3)
+@mock.patch('pet.bl.Popen')
+@mock.patch('pet.bl.GeneralShellMixin.make_rc_file')
+def test_bash_start_method(mock_make_rc_file, mock_popen, mock_how_many_active, project_names):
+    project_name = project_names[0]
+    project_root = os.path.join(projects_root, project_name)
+    Bash().start(project_root, project_name)
+    mock_popen.assert_called_with(
+        ["/bin/sh",
+         "-c",
+         "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+             project_name,
+             3 + 1,
+             os.path.join(project_root, "bashrc"),
+         )
+         ]
+    )
+    assert mock_make_rc_file.called
+
+
+@mock.patch('os.path.isfile', side_effect=[False, True, True, True])
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+def test_bash_create_shell_profiles_method(mock_pet_folder, mock_isfile):
+    with mock.patch('builtins.open', create=True) as mock_open:
+        Bash().create_shell_profiles()
+        mock_open.assert_called_with(os.path.join(PET_FOLDER, "bash_profiles"), mode='w')
+        handle = mock_open.return_value.__enter__.return_value
+        handle.write.assert_has_calls([
+            mock.call("source ~/.bashrc\n"),
+            mock.call("source ~/.profile\n"),
+            mock.call("source ~/.bash_profile\n"),
+        ])
+
+
+@mock.patch('os.path.isfile', side_effect=[False, False, True, True, True])
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+@mock.patch('pet.bl.how_many_active', return_value=3)
+@mock.patch('pet.bl.GeneralShellMixin.make_rc_file')
+@mock.patch('pet.bl.get_file_fullname_and_path', return_value='/some/path/file.ext')
+@mock.patch('pet.bl.Popen')
+def test_bash_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
+    project_name = project_names[0]
+    task_name = task_names[0]
+    project_root = os.path.join(get_projects_root(), project_name)
+    Bash().task_exec(project_name=project_name, task_name=task_name, interactive=True)
+    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
+        '/some/path/file.ext', " ".join(())))
+    # mock_popen.assert_called_with()
+    Bash().task_exec(project_name=project_name, task_name=task_name, interactive=False)
+    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
+        '/some/path/file.ext', " ".join(())))
+
+
+@mock.patch('pet.bl.edit_file')
+@mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
+def test_bash_edit_shell_profiles_method(mock_pet_folder, mock_edit):
+    Bash().edit_shell_profiles()
+    mock_edit.assert_called_with(os.path.join(PET_FOLDER, "bash_profiles"))
+
+
 @mock.patch('pet.bl.lru_cache')
 @mock.patch('os.environ.get')
 def test_get_shell_command(mock_get, mock_lru, shells):
