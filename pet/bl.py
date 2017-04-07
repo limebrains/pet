@@ -71,6 +71,8 @@ def get_pet_install_folder():
 
 def get_pet_folder():
     directory = os.path.expanduser(os.environ.get('PET_FOLDER', "~/.pet/"))
+    if not directory.endswith('/'):
+        directory += '/'
     if os.path.exists(directory):
         return directory
     else:
