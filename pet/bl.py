@@ -217,13 +217,13 @@ class GeneralShellMixin(object):
         if nr == 1:
             nr = ""
         contents = new_project_rc_template.format(
-            get_pet_folder(),
+            os.path.join(get_pet_folder(), self.get_shell_profiles()),
             project_name,
-            project_root,
-            os.path.join(project_root, "tasks.sh"),
-            additional_lines,
+            os.path.join(project_root, 'start.sh'),
             nr,
-            self.get_shell_profiles(),
+            os.path.join(project_root, "tasks.sh"),
+            os.path.join(project_root, 'stop.sh'),
+            additional_lines,
         )
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
@@ -738,10 +738,10 @@ def deploy():
                 if 0 <= choice < len(available):
                     if available[choice] in possible[-2:]:
                         with open(available[choice], mode='a') as file:
-                            file.write(". {0}/complete.bash".format(path))
+                            file.write(". {0}".format(os.path.join(path, 'complete.bash')))
                     else:
                         with open(os.path.join(available[choice], 'pet'), mode='w') as file:
-                            file.write(". {0}/complete.bash".format(path))
+                            file.write(". {0}".format(os.path.join(path, 'complete.bash')))
             except ValueError:
                 raise PetException('choice not recognized')
             except NameError:
@@ -753,7 +753,7 @@ def deploy():
     elif shell == 2:
         rc_path = os.path.join(os.environ.get('ZDOTDIR', os.path.expanduser('~')), '.zshrc')
         with open(rc_path, mode='a') as file:
-            file.write(auto_complete_zsh_deploy.format(path))
+            file.write(auto_complete_zsh_deploy.format(os.path.join(path, 'complete.bash')))
         raise Info("Auto-completion should work in new zsh terminals")
     else:
         raise PetException('choice not recognized')

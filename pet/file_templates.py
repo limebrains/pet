@@ -1,20 +1,20 @@
 # bashrc
 
 new_project_rc_template = '''
-source {0}{6}
+source {0}
 export PET_ACTIVE_PROJECT='{1}'
-source {2}/start.sh
+source {2}
 PS1="[{1}] $PS1"
-echo -ne "\\033]0;{1} {5}\\007"
-source {3}
+echo -ne "\\033]0;{1} {3}\\007"
+source {4}
 if [ -z "$PET_PREV_TAB_NAME" ]; then
     tab_name_at_exit=""
 else
     tab_name_at_exit="$PET_PREV_TAB_NAME"
 fi
-trap 'echo -ne "\\033]0;$tab_name_at_exit\\007";source {2}/stop.sh' EXIT
-export PET_PREV_TAB_NAME='{1} {5}'
-{4}
+trap 'echo -ne "\\033]0;$tab_name_at_exit\\007";source {5}' EXIT
+export PET_PREV_TAB_NAME='{1} {3}'
+{6}
 '''
 
 new_start_sh_template = '''
@@ -40,5 +40,5 @@ fi
 auto_complete_zsh_deploy = """
 autoload -U +X compinit && compinit
 autoload -U +X bashcompinit && bashcompinit
-source "{0}/complete.bash"
+source "{0}"
 """
