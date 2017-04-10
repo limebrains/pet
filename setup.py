@@ -6,7 +6,7 @@ from setuptools import find_packages
 requirements = [
     line.split('==')[0]
     for line in open('requirements.txt', 'r').readlines()
-    ]
+]
 
 
 class InstallScripts(install_scripts):
