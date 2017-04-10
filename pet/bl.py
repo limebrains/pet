@@ -38,7 +38,8 @@ log = logging.getLogger(__file__)
 # TODO: where to install
 # TODO: docs with install + gif
 # TODO: installing from one command
-# TODO: zsh native-auto-completion (or use COMP_CWORD)
+# TODO: zsh native-auto-completion (or use COMP_CWORD) [or add +1 if cur = "" - check cur in zsh]
+# TODO: add to terminal tab name info about lock
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -174,10 +175,13 @@ def recreate():
     makedirs(path=os.path.join(get_pet_folder(), "archive"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "templates", "projects"), exists_ok=True)
     makedirs(path=os.path.join(get_pet_folder(), "templates", "tasks"), exists_ok=True)
-    Popen(["/bin/sh",
-           "-c",
-           "echo \"EDITOR==$EDITOR\" > {0}".format(os.path.join(get_pet_folder(), "config")),
-           ])
+    if os.path.isfile(os.path.join(get_pet_folder(), "config")):
+        print("Found config file at: {0}".format(os.path.join(get_pet_folder(), "config")))
+    else:
+        Popen(["/bin/sh",
+               "-c",
+               "echo \"EDITOR==$EDITOR\" > {0}".format(os.path.join(get_pet_folder(), "config")),
+               ])
 
 
 def lockable(check_only_projects=True, check_active=False):

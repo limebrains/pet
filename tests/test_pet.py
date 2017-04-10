@@ -233,7 +233,12 @@ def test_check_version_command(mock_popen, mock_pipe):
 @mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 @mock.patch('os.path.join')
 @mock.patch('pet.bl.Popen')
-def test_recreate_command(mock_popen, mock_join, mock_pet_folder, mock_makedirs):
+@mock.patch('os.path.isfile')
+def test_recreate_command(mock_isfile, mock_popen, mock_join, mock_pet_folder, mock_makedirs):
+    mock_isfile.return_value = True
+    recreate()
+    mock_popen.assert_not_called()
+    mock_isfile.return_value = False
     recreate()
     mock_popen.assert_called_with(["/bin/sh",
                                    "-c",
@@ -644,9 +649,6 @@ def test_register_command(mock_popen, mock_root, mock_symlink, mock_isdir, mock_
     ])
 
 
-# TODO: 7th
-
-
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('os.path.exists')
 @mock.patch('os.rename')
@@ -684,6 +686,8 @@ def test_edit_project_command(mock_edit_file, mock_exist, mock_root, project_nam
 def test_stop_command(mock_kill):
     stop()
     assert mock_kill.called
+
+# TODO: 7th
 
 
 @mock.patch('pet.bl.lockable', return_value=lockable_t)
