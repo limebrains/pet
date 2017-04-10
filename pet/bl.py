@@ -431,7 +431,6 @@ class ProjectCreator(object):
             else:
                 if project_exist(template):
                     self.templates_and_paths[template] = os.path.join(self.projects_root, template)
-                    print("{0} - is project, not template".format(template))
                 else:
                     raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
 
@@ -642,11 +641,8 @@ def print_tree():
 
 
 def print_templates():
-    """lists tasks in project"""
-    projects_templates_root = get_projects_templates_root()
-    templates = [os.path.splitext(template)[0]
-                 for template in os.listdir(projects_templates_root)]
-    return "\n".join(templates)
+    """lists templates"""
+    return print_projects_for_root(get_projects_templates_root())
 
 
 def create_task(project_name, task_name):

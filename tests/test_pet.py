@@ -8,7 +8,7 @@ from pet.bl import (
     get_file_fullname,
     get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, get_pet_install_folder, get_pet_folder, \
     get_projects_root, archive, lockable, edit_config, edit_shell_profiles, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
-    ProjectCreator, start, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
+    ProjectCreator, start, print_templates, add_to_templates, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
     print_tasks, remove_task, Zsh, task_template_exist, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
 )
 
@@ -697,14 +697,15 @@ def test_stop_command(mock_kill):
 @mock.patch('os.remove')
 @mock.patch('pet.bl.shutil.rmtree')
 def test_remove_project_command(mock_rmtree, mock_remove, mock_islink, mock_exists, mock_root, mock_lockable, project_names):
-    for project_name in project_names:
-        mock_exists.side_effect = [False]
-        with pytest.raises(NameNotFound):
-            remove_project(project_name=project_name)
-        mock_exists.side_effect = [True, True]
-        mock_islink.side_effect = [True, False]
+    project_name = project_names[0]
+    mock_exists.return_value = False
+    with pytest.raises(NameNotFound):
         remove_project(project_name=project_name)
-        remove_project(project_name=project_name)
+    mock_exists.return_value = True
+    mock_islink.return_value = True
+    remove_project(project_name=project_name)
+    mock_islink.return_value = False
+    remove_project(project_name=project_name)
 
 
 @mock.patch('pet.bl.lockable', return_value=lockable_t)
@@ -714,13 +715,36 @@ def test_remove_project_command(mock_rmtree, mock_remove, mock_islink, mock_exis
 @mock.patch('pet.bl.get_archive_root', return_value=archive_root)
 @mock.patch('pet.bl.print_old')
 def test_archive_project_command(mock_old, mock_root_archive, mock_move, mock_exists, mock_root, mock_lockable, project_names):
-    for project_name in project_names:
-        mock_exists.side_effect = [False]
-        with pytest.raises(NameNotFound):
-            archive(project_name=project_name)
-        mock_exists.side_effect = [True, True]
-        mock_old.side_effect = [""]
+    project_name = project_names[0]
+    mock_exists.return_value = False
+    with pytest.raises(NameNotFound):
         archive(project_name=project_name)
+    mock_exists.return_value = True
+    mock_old.return_value = "cancer\n{0}".format(project_name)
+    with pytest.raises(NameAlreadyTaken):
+        archive(project_name=project_name)
+    mock_old.return_value = ""
+    archive(project_name=project_name)
+
+
+@mock.patch('pet.bl.shutil.copy')
+@mock.patch('pet.bl.get_projects_templates_root', return_value=projects_templates_root)
+@mock.patch('pet.bl.get_projects_root', return_value=projects_root)
+@mock.patch('pet.bl.project_template_exist')
+@mock.patch('os.path.exists')
+def test_add_to_templates(mock_exists, mock_template_exists, mock_root, mock_templates_root, mock_copy, project_names):
+    project_name = project_names[0]
+    project_root = os.path.join(projects_root, project_name)
+    mock_exists.return_value = False
+    with pytest.raises(NameNotFound):
+        add_to_templates(project_name)
+    mock_exists.return_value = True
+    mock_template_exists.return_value = True
+    with pytest.raises(NameAlreadyTaken):
+        add_to_templates(project_name)
+    mock_template_exists.return_value = False
+    add_to_templates(project_name)
+    mock_copy.assert_called_with(project_root, os.path.join(projects_templates_root, project_name))
 
 
 @mock.patch('pet.bl.shutil.move')
@@ -729,16 +753,17 @@ def test_archive_project_command(mock_old, mock_root_archive, mock_move, mock_ex
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('os.path.exists')
 def test_restore_command(mock_exists, mock_root, mock_archive_root, mock_project_exist, mock_move, project_names):
-    for project_name in project_names:
-        mock_exists.return_value = False
-        with pytest.raises(NameNotFound):
-            restore(project_name)
-        mock_exists.return_value = True
-        mock_project_exist.return_value = True
-        with pytest.raises(NameAlreadyTaken):
-            restore(project_name)
-        mock_project_exist.return_value = False
+    project_name = project_names[0]
+    mock_exists.return_value = False
+    with pytest.raises(NameNotFound):
         restore(project_name)
+    mock_exists.return_value = True
+    mock_project_exist.return_value = True
+    with pytest.raises(NameAlreadyTaken):
+        restore(project_name)
+    mock_project_exist.return_value = False
+    restore(project_name)
+    mock_move.assert_called_with(os.path.join(archive_root, project_name), os.path.join(projects_root, project_name))
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -754,9 +779,10 @@ def test_clean_command(mock_remove, mock_exists, mock_listdir, mock_root):
         assert call in mock_remove.mock_calls
 
 
-@mock.patch('os.listdir', return_value="one\ntwo\nthree")
-def test_print_projects_for_root(mock_listdir):
-    print_projects_for_root("some root")
+@mock.patch('os.path.isdir', return_value=True)
+@mock.patch('os.listdir', return_value=['one', 'two', 'three'])
+def test_print_projects_for_root(mock_listdir, mock_isdir):
+    assert print_projects_for_root("some/root") == "one\ntwo\nthree"
 
 
 @mock.patch('pet.bl.print_projects_for_root')
@@ -773,12 +799,22 @@ def test_print_old_command(mock_root, mock_print):
     mock_print.assert_called()
 
 
-@mock.patch('pet.bl.print_projects_for_root')
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
-@mock.patch('os.listdir', return_value=['one.txt', 'two.py'])
-def test_print_tasks_command(mock_listdir, mock_root, mock_print, project_names):
-    for project_name in project_names:
-        print_tasks(project_name)
+@mock.patch('os.listdir', return_value=['one.txt', 'two.py', 'three.sh'])
+def test_print_tasks_command(mock_listdir, mock_root, project_names):
+    project_name = project_names[0]
+    assert print_tasks(project_name) == "one\ntwo\nthree"
+
+
+def test_print_tree_command():
+    pass
+
+
+@mock.patch('pet.bl.print_projects_for_root')
+@mock.patch('pet.bl.get_projects_templates_root', return_value=projects_templates_root)
+def test_print_templates_command(mock_root, mock_print):
+    print_templates()
+    mock_print.assert_called()
 
 
 @mock.patch('pet.bl.project_exist')
@@ -788,18 +824,33 @@ def test_print_tasks_command(mock_listdir, mock_root, mock_print, project_names)
 @mock.patch('pet.bl.edit_file')
 @mock.patch('pet.bl.open')
 def test_create_task_command(mock_open, mock_edit_file, mock_popen, mock_root, mock_task_exist, mock_project_exist, project_names, task_names):
-    for project_name in project_names:
-        mock_project_exist.return_value = False
-        with pytest.raises(NameNotFound):
-            create_task(project_name, task_names[0])
-        mock_project_exist.return_value = True
-        mock_task_exist.return_value = True
-        with pytest.raises(NameAlreadyTaken):
-            create_task(project_name, task_names[0])
-        mock_project_exist.return_value = True
-        mock_task_exist.return_value = False
-        with pytest.raises(Info):
-            create_task(project_name, task_names[0])
+    project_name = project_names[0]
+    project_root = os.path.join(projects_root, project_name)
+    mock_project_exist.return_value = False
+    with pytest.raises(NameNotFound):
+        create_task(project_name, task_names[0])
+    mock_project_exist.return_value = True
+    mock_task_exist.return_value = True
+    with pytest.raises(NameAlreadyTaken):
+        create_task(project_name, task_names[0])
+    mock_project_exist.return_value = True
+    mock_task_exist.return_value = False
+    task_name = 'task.py'
+    with pytest.raises(Info):
+        create_task(project_name, task_name)
+    task_file_path = os.path.join(project_root, "tasks", task_name)
+    task_name = os.path.splitext(task_name)[0]
+    mock_popen.assert_called_with(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
+    mock_edit_file.assert_called_with(task_file_path)
+    mock_open.assert_called_with(os.path.join(project_root, "tasks.sh"), mode='a')
+    task_name = 'task'
+    with pytest.raises(Info):
+        create_task(project_name, task_name)
+    task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
+    task_name = os.path.splitext(task_name)[0]
+    mock_popen.assert_called_with(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
+    mock_edit_file.assert_called_with(task_file_path)
+    mock_open.assert_called_with(os.path.join(project_root, "tasks.sh"), mode='a')
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -807,13 +858,14 @@ def test_create_task_command(mock_open, mock_edit_file, mock_popen, mock_root, m
 @mock.patch('pet.bl.edit_file')
 @mock.patch('pet.bl.task_exist')
 def test_edit_task_command(mock_exist, mock_edit, mock_fullpath, mock_root, project_names, task_names):
-    for project_name in project_names:
-        for task_name in task_names:
-            mock_exist.return_value = False
-            with pytest.raises(NameNotFound):
-                edit_task(project_name, task_name)
-            mock_exist.return_value = True
-            edit_task(project_name, task_name)
+    project_name = project_names[0]
+    task_name = task_names[0]
+    mock_exist.return_value = False
+    with pytest.raises(NameNotFound):
+        edit_task(project_name, task_name)
+    mock_exist.return_value = True
+    edit_task(project_name, task_name)
+    mock_edit.assert_called_with(mock_fullpath())
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -821,28 +873,32 @@ def test_edit_task_command(mock_exist, mock_edit, mock_fullpath, mock_root, proj
 @mock.patch('pet.bl.task_exist')
 @mock.patch('os.rename')
 def test_rename_task_command(mock_rename, mock_task_exist, mock_fullpath, mock_root, project_names, task_names):
-    for project_name in project_names:
-        mock_task_exist.side_effect = [False]
-        with pytest.raises(NameNotFound):
-            rename_task(project_name, task_names[0], task_names[1])
-        mock_task_exist.side_effect = [True, True]
-        with pytest.raises(NameAlreadyTaken):
-            rename_task(project_name, task_names[0], task_names[1])
-        mock_task_exist.side_effect = [True, False]
+    project_name = project_names[0]
+    tasks_root = os.path.join(projects_root, project_name, "tasks")
+    mock_task_exist.return_value = False
+    with pytest.raises(NameNotFound):
         rename_task(project_name, task_names[0], task_names[1])
+    mock_task_exist.return_value = True
+    with pytest.raises(NameAlreadyTaken):
+        rename_task(project_name, task_names[0], task_names[1])
+    mock_task_exist.side_effect = [True, False]
+    rename_task(project_name, task_names[0], task_names[1])
+    mock_rename.assert_called_with(mock_fullpath(), os.path.join(tasks_root, task_names[1] + ".ext"))
 
 
 @mock.patch('pet.bl.get_shell')
 @mock.patch('os.path.isfile')
 @mock.patch('pet.bl.task_exist')
 def test_run_task_command(mock_exist, mock_isfile, mock_shell, project_names, task_names):
-    for project_name in project_names:
-        mock_exist.return_value = False
-        with pytest.raises(NameNotFound):
-            run_task(project_name, task_names[0], interactive=False, args=())
-        mock_exist.return_value = True
-        mock_isfile.return_value = False
+    project_name = project_names[0]
+    mock_exist.return_value = False
+    with pytest.raises(NameNotFound):
         run_task(project_name, task_names[0], interactive=False, args=())
+    mock_exist.return_value = True
+    mock_isfile.return_value = False
+    run_task(project_name, task_names[0], interactive=False, args=())
+    assert mock_shell().create_shell_profiles.called
+    mock_shell().task_exec.assert_called_with(project_name, True, task_names[0], False, ())
 
 
 @mock.patch('pet.bl.get_file_fullname_and_path')
@@ -852,22 +908,38 @@ def test_run_task_command(mock_exist, mock_isfile, mock_shell, project_names, ta
 @mock.patch('pet.bl.PIPE')
 @mock.patch('os.remove')
 def test_remove_task_command(mock_remove, mock_pipe, mock_popen, mock_exist, mock_root, mock_fullpath, project_names, task_names):
-    for project_name in project_names:
-        mock_exist.return_value = False
-        with pytest.raises(NameNotFound):
-            remove_task(project_name, task_names[0])
-        mock_exist.return_value = True
-        mock_popen.stdout.read().return_value = b'6\n'
+    project_name = project_names[0]
+    project_root = os.path.join(projects_root, project_name)
+    mock_exist.return_value = False
+    with pytest.raises(NameNotFound):
         remove_task(project_name, task_names[0])
-
-
-@mock.patch('pet.bl.get_pet_install_folder', return_value=PET_INSTALL_FOLDER)
-@mock.patch('pet.bl.Popen')
-def test_edit_config_command(mock_popen, mock_folder):
-    edit_config()
+    mock_exist.return_value = True
+    mock_popen.stdout.read().return_value = b'6\n'
+    remove_task(project_name, task_names[0])
+    mock_popen.assert_called_with([
+        "/bin/sh",
+        "-c",
+        "sed -i -e \"/alias {0}/d\" {1}".format(
+            task_names[0],
+            os.path.join(project_root, "tasks.sh"),
+        )
+    ])
+    mock_remove.assert_called_with(mock_fullpath())
 
 
 @mock.patch('pet.bl.get_pet_install_folder', return_value=PET_INSTALL_FOLDER)
 @mock.patch('pet.bl.edit_file')
 def test_edit_config_command(mock_edit, mock_folder):
+    edit_config()
+    assert mock_edit.called
+
+
+@mock.patch('pet.bl.get_pet_install_folder', return_value=PET_INSTALL_FOLDER)
+@mock.patch('pet.bl.get_shell')
+def test_edit_shell_profiles_command(mock_shell, mock_folder):
     edit_shell_profiles()
+    assert mock_shell().edit_shell_profiles.called
+
+
+def test_deploy_command():
+    pass
