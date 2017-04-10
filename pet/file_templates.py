@@ -23,17 +23,18 @@ cd "$pet_project_folder"
 # add here shell code to be executed while entering project
 '''
 
+# TODO: why it haven't worked for Wojtek - test it on Mac? should it be "$PET_EDITOR"?
 edit_file_popen_template = """
 PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n "/EDITOR==/s/EDITOR==//p")
-if [ -z "$PET_EDITOR" ]; then
-    if [ -z "$EDITOR" ]; then
-        echo "haven't found either $EDITOR, either EDITOR in pet config - trying vi"
-        /usr/bin/vi {1}
-    else
-        $EDITOR {1}
-    fi
-else
+if [ $(command -v "$PET_EDITOR") ]; then
     $PET_EDITOR {1}
+else
+    if [ $(command -v "$EDITOR") ]; then
+        $EDITOR {1}
+    else
+        echo "haven't found either '$EDITOR', either 'EDITOR==' in pet config - trying vi"
+        /usr/bin/vi {1}
+    fi
 fi
 """
 
