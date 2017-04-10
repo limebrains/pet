@@ -233,6 +233,13 @@ class GeneralShellMixin(object):
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
             rc_file.write(contents)
+        # TODO: delete
+        if not os.path.exists(os.path.join(project_root, "local.entry.sh")):
+            with open(os.path.join(project_root, "local.entry.sh"), mode='w') as file:
+                file.write("# locals\npet_project_folder={0}\n".format(os.getcwd()))
+        if not os.path.exists(os.path.join(project_root, "local.exit.sh")):
+            with open(os.path.join(project_root, "local.exit.sh"), mode='w') as file:
+                file.write("# locals\n")
 
     def start(self, project_root, project_name):
         raise ShellNotRecognized(
@@ -443,6 +450,8 @@ class ProjectCreator(object):
     def create_additional_files(self):
         with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
             tasks_alias_file.write("# aliases for your tasks\n")
+
+    def create_locals(self):
         with open(os.path.join(self.project_root, "local.entry.sh"), mode='w') as file:
             file.write("# locals\npet_project_folder={0}\n".format(os.getcwd()))
         with open(os.path.join(self.project_root, "local.exit.sh"), mode='w') as file:
@@ -477,6 +486,7 @@ class ProjectCreator(object):
     def create(self):
         self.create_dirs()
         self.create_additional_files()
+        self.create_locals()
         self.create_files()
         self.edit()
 
