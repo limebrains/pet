@@ -641,6 +641,14 @@ def print_tree():
     return output
 
 
+def print_templates():
+    """lists tasks in project"""
+    projects_templates_root = get_projects_templates_root()
+    templates = [os.path.splitext(template)[0]
+                 for template in os.listdir(projects_templates_root)]
+    return "\n".join(templates)
+
+
 def create_task(project_name, task_name):
     """creates task"""
     if not project_exist(project_name):

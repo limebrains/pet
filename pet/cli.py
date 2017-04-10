@@ -98,10 +98,11 @@ def create_project(name, in_place, templates):
 @click.option('--old', '-o', is_flag=True, help="print projects in archive")
 @click.option('--tasks', '-t', is_flag=True, help="show tasks in active project")
 @click.option('--tree', is_flag=True, help="show tree of all tasks in projects")
-def print_list(old, tasks, tree):
+@click.option('--templates', is_flag=True, help="show all available template")
+def print_list(old, tasks, tree, templates):
     """lists all projects/ archived projects/ tasks/ all"""
     with pet_exception_manager():
-        if [old, tree, tasks].count(True) > 1:
+        if [old, tree, tasks, templates].count(True) > 1:
             click.secho("Only one flag at a time! I am not Mt Everest", fg='red')
             return 1
         if old:
@@ -119,6 +120,10 @@ def print_list(old, tasks, tree):
             tree = bl.print_tree()
             if tree:
                 click.echo(tree)
+        elif templates:
+            templates = bl.print_templates()
+            if templates:
+                click.echo(templates)
         else:
             projects = bl.print_list()
             if projects:
