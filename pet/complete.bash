@@ -67,14 +67,16 @@ _pet()
                 return 0
             esac
         fi
-    elif (( count == 4 )); then
-        case $first in run)
-            if [ -z "$PET_ACTIVE_PROJECT" ]; then
-                tasks=$(/bin/ls "$PET_FOLDER/projects/${COMP_WORDS[2]}/tasks" | cut -d "." -f 1)
-                COMPREPLY=( $(compgen -W "${tasks}" -- ${cur}) )
-                return 0
-            fi
-        esac
+    elif (( count == 4 )) && [ $first == 'run' ]; then
+        if [ -z "$PET_ACTIVE_PROJECT" ]; then
+            tasks=$(/bin/ls "$PET_FOLDER/projects/${COMP_WORDS[2]}/tasks" | cut -d "." -f 1)
+            COMPREPLY=( $(compgen -W "${tasks}" -- ${cur}) )
+            return 0
+        fi
+    elif [ $first == 'init' ] && [ $prev == '-t' ] || [ $prev == '--templates' ]; then
+        templates=$(/bin/ls "$PET_FOLDER/templates/projects/" | cut -d "." -f 1)
+        COMPREPLY=( $(compgen -W "${projects} ${templates}" -- ${cur}) )
+        return 0
     fi
 }
 complete -F _pet pet

@@ -431,7 +431,7 @@ class ProjectCreator(object):
             else:
                 if project_exist(template):
                     self.templates_and_paths[template] = os.path.join(self.projects_root, template)
-                    print("{0} - is project not template".format(template))
+                    print("{0} - is project, not template".format(template))
                 else:
                     raise NameNotFound(ExceptionMessages.template_not_found.value.format(template))
 
