@@ -31,7 +31,11 @@ fi
 printf "\n------------------------\n-auto-completion deploy-\n------------------------\n"
 printf "\n\e[1;33mAuto-completion requires sudo\e[0m\n"
 if [ "$USER" == 'root' ]; then
-    sudo python 'pet-master/pet/cli.py' 'deploy'
+    if [ -z "$shell" ]; then
+        sudo python 'pet-master/pet/cli.py' 'deploy'
+    else
+        sudo python 'pet-master/pet/cli.py' 'deploy' '-s' "$shell"
+    fi
 else
     printf "\n\e[1;33mNeeds sudo - use 'pet deploy'\e[0m\n"
 fi
