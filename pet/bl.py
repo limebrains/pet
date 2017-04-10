@@ -728,7 +728,9 @@ def edit_shell_profiles():
     get_shell().edit_shell_profiles()
 
 
-def deploy(shell):
+def deploy(shell=''):
+    if shell == '':
+        shell = os.environ.get('SHELL', '')
     path = os.path.dirname(os.path.realpath(__file__))
     if 'bash' in shell:
         possible = [

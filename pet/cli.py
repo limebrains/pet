@@ -209,7 +209,7 @@ def recreate():
 
 
 @cli.command()
-@click.argument('shell_type')
+@click.option('-s', '--shell_type', type=click.Choice(['bash', 'zsh']), default=os.environ.get('SHELL', ''))
 def deploy(shell_type):
     """Deploys auto-completion"""
     with pet_exception_manager():
