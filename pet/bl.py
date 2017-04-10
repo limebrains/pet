@@ -8,6 +8,7 @@ import os
 import shutil
 import signal
 from subprocess import PIPE, Popen
+from tabulate import tabulate
 
 from pet.exceptions import (
     ExceptionMessages,
@@ -629,15 +630,16 @@ def print_tasks(project_name):
 def print_tree():
     """prints projects and all it's tasks"""
     projects = print_list().splitlines()
-    output = ""
+    output = []
     for project in projects:
-        output += "{0}\n".format(project)
         tasks = print_tasks(project).splitlines()
-        for task in tasks:
-            output += " - {0}".format(task)
         if tasks:
-            output += "\n"
-    return output
+            output.append([project, tasks[0]])
+            for task in tasks[1:]:
+                output.append(["", task])
+        else:
+            output.append([project, ""])
+    return tabulate(output, headers=["Project", "Task"], tablefmt="fancy_grid")
 
 
 def print_templates():
