@@ -1,6 +1,8 @@
 # bashrc
 
 new_project_rc_template = '''
+dir=$(pwd)
+source './local.entry.sh'
 source {0}
 export PET_ACTIVE_PROJECT='{1}'
 source {2}
@@ -12,18 +14,21 @@ if [ -z "$PET_PREV_TAB_NAME" ]; then
 else
     tab_name_at_exit="$PET_PREV_TAB_NAME"
 fi
-trap 'echo -ne "\\033]0;$tab_name_at_exit\\007";source {5}' EXIT
+trap 'echo -ne "\\033]0;$tab_name_at_exit\\007";source "$dir/local.exit.sh";source {5}' EXIT
 export PET_PREV_TAB_NAME='{1} {3}'
 {6}
 '''
 
 new_start_sh_template = '''
-pet_project_folder='{0}'
 cd "$pet_project_folder"
 # add here shell code to be executed while entering project
 '''
 
-# TODO: why it haven't worked for Wojtek - test it on Mac? should it be "$PET_EDITOR"?
+new_stop_sh_template = '''
+# add here shell code to be executed while exiting project
+'''
+
+
 edit_file_popen_template = """
 PET_EDITOR=$(grep '^EDITOR==' {0} | sed -n "/EDITOR==/s/EDITOR==//p")
 if [ $(command -v "$PET_EDITOR") ]; then

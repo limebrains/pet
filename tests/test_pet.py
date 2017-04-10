@@ -384,10 +384,11 @@ def test_bash_start_method(mock_make_rc_file, mock_popen, mock_how_many_active, 
     mock_popen.assert_called_with(
         ["/bin/sh",
          "-c",
-         "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+         "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
              project_name,
              3 + 1,
              os.path.join(project_root, "bashrc"),
+             project_root,
          )
          ]
     )
@@ -422,18 +423,20 @@ def test_bash_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_ho
     Bash().task_exec(project_name=project_name, task_name=task_name, interactive=True)
     mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
         '/some/path/file.ext', " ".join(())))
-    mock_popen.assert_called_with(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+    mock_popen.assert_called_with(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 3 + 1,
                 os.path.join(project_root, "bashrc"),
+                project_root,
             )])
     Bash().task_exec(project_name=project_name, task_name=task_name, interactive=False)
     mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
         '/some/path/file.ext', " ".join(())))
-    mock_popen.assert_called_with(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+    mock_popen.assert_called_with(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 3 + 1,
                 os.path.join(project_root, "bashrc"),
+                project_root,
             )])
 
 
@@ -454,7 +457,7 @@ def test_zsh_start_method(mock_make_rc_file, mock_popen, mock_how_many_active, p
     mock_popen.assert_called_with(
         ["/bin/sh",
          "-c",
-         "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+         "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
              project_name,
              3 + 1,
              project_root,
@@ -498,7 +501,7 @@ def test_zsh_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how
         '/some/path/file.ext', " ".join(())))
     mock_popen.assert_called_with(["/bin/zsh",
                                    "-c",
-                                   "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                                   "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                                        project_name,
                                        3 + 1,
                                        project_root,
@@ -506,7 +509,7 @@ def test_zsh_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how
     Zsh().task_exec(project_name=project_name, task_name=task_name, interactive=False)
     mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
         '/some/path/file.ext', " ".join(())))
-    mock_popen.assert_called_with(["/bin/zsh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+    mock_popen.assert_called_with(["/bin/zsh", "-c", "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                 project_name,
                 3 + 1,
                 project_root,
@@ -627,8 +630,8 @@ def test_create_command(mock_project_creator, project_names):
 @mock.patch('os.path.isdir')
 @mock.patch('os.symlink')
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
-@mock.patch('pet.bl.Popen')
-def test_register_command(mock_popen, mock_root, mock_symlink, mock_isdir, mock_isfile, mock_exist, mock_basename, mock_getcwd):
+@mock.patch('pet.bl.edit_file')
+def test_register_command(mock_edit, mock_root, mock_symlink, mock_isdir, mock_isfile, mock_exist, mock_basename, mock_getcwd):
     mock_exist.side_effect = [True]
     with pytest.raises(NameAlreadyTaken):
         register("")
@@ -639,14 +642,7 @@ def test_register_command(mock_popen, mock_root, mock_symlink, mock_isdir, mock_
         register("")
     mock_isfile.return_value = True
     register("")
-    mock_popen.assert_called_with([
-        "/bin/sh",
-        "-c",
-        "$ sed -i 's/^pet_project_folder=.*$/pet_project_folder='{0}'/g' {1}".format(
-            "/some/path/.pet",
-            os.path.join("/some/path/.pet", "start.sh"),
-        ),
-    ])
+    mock_edit.assert_called_with(os.path.join("/some/path/.pet", "local.exit.sh"))
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)

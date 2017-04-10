@@ -23,6 +23,7 @@ from pet.exceptions import (
 from pet.file_templates import (
     new_project_rc_template,
     new_start_sh_template,
+    new_stop_sh_template,
     edit_file_popen_template,
     auto_complete_zsh_deploy,
 )
@@ -31,16 +32,12 @@ from pet.utils import makedirs
 
 log = logging.getLogger(__file__)
 
-# TODO: 7th check docs
 # TODO: rewrite logging into yields
-# TODO: what about histfiles?
 # TODO: zsh known issues: auto-completion works only for full words
-# TODO: project lock as comment in sh process?
 # TODO: where to install
 # TODO: docs with install + gif
 # TODO: installing from one command
 # TODO: zsh native-auto-completion (or use COMP_CWORD) [or add +1 if cur = "" - check cur in zsh]
-# TODO: add to terminal tab name info about lock
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -269,10 +266,11 @@ class Bash(GeneralShellMixin):
         self.make_rc_file(project_name, amount_active + 1, additional_lines="")
         Popen(["/bin/sh",
                "-c",
-               "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+               "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                    project_name,
                    amount_active + 1,
                    os.path.join(project_root, self.get_rc_filename()),
+                   project_root,
                )
                ]).communicate()
 
@@ -295,20 +293,22 @@ class Bash(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+            Popen(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 amount_active + 1,
                 os.path.join(project_root, self.get_rc_filename()),
+                project_root,
             )]).communicate()
         else:
             self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            Popen(["/bin/bash", "-c", "#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
+            Popen(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 amount_active + 1,
                 os.path.join(project_root, self.get_rc_filename()),
+                project_root,
             )]).wait()
 
     def edit_shell_profiles(self):
@@ -327,7 +327,7 @@ class Zsh(GeneralShellMixin):
         self.make_rc_file(project_name, amount_active + 1, additional_lines="")
         Popen(["/bin/sh",
                "-c",
-               "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+               "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                    project_name,
                    amount_active + 1,
                    project_root,
@@ -354,7 +354,7 @@ class Zsh(GeneralShellMixin):
             ))
             Popen(["/bin/zsh",
                    "-c",
-                   "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+                   "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                        project_name,
                        amount_active + 1,
                        project_root,
@@ -364,7 +364,7 @@ class Zsh(GeneralShellMixin):
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args)
             ))
-            Popen(["/bin/zsh", "-c", "#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
+            Popen(["/bin/zsh", "-c", "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                 project_name,
                 amount_active + 1,
                 project_root,
@@ -446,6 +446,10 @@ class ProjectCreator(object):
     def create_additional_files(self):
         with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
             tasks_alias_file.write("# aliases for your tasks\n")
+        with open(os.path.join(self.project_root, "local.entry.sh"), mode='w') as file:
+            file.write("# locals\npet_project_folder={0}\n".format(os.getcwd()))
+        with open(os.path.join(self.project_root, "local.exit.sh"), mode='w') as file:
+            file.write("# locals\n")
 
     def create_files_with_templates(self, filename, additional_lines, increasing_order):
         with open(os.path.join(self.project_root, filename), mode='w') as file:
@@ -464,8 +468,8 @@ class ProjectCreator(object):
             file.write(additional_lines)
 
     def create_files(self):
-        add_to_start = new_start_sh_template.format(os.getcwd())
-        add_to_stop = "# add here shell code to be executed while exiting project\n"
+        add_to_start = new_start_sh_template
+        add_to_stop = new_stop_sh_template
         self.create_files_with_templates(filename='start.sh', additional_lines=add_to_start, increasing_order=True)
         self.create_files_with_templates(filename='stop.sh', additional_lines=add_to_stop, increasing_order=False)
 
@@ -509,14 +513,8 @@ def register(project_name):
         raise PetException("Haven't found {{tasks.sh, start.sh, stop.sh}} and tasks folder in\n{0}".format(directory))
 
     os.symlink(directory, os.path.join(get_projects_root(), project_name))
-    Popen([
-        "/bin/sh",
-        "-c",
-        "$ sed -i 's/^pet_project_folder=.*$/pet_project_folder='{0}'/g' {1}".format(
-            directory,
-            os.path.join(directory, "start.sh"),
-        ),
-    ])
+    edit_file(os.path.join(directory, "local.entry.sh"))
+    edit_file(os.path.join(directory, "local.exit.sh"))
 
 
 def rename_project(old_project_name, new_project_name):
@@ -537,6 +535,16 @@ def edit_project(project_name):
 
     edit_file(os.path.join(projects_root, project_name, "start.sh"))
     edit_file(os.path.join(projects_root, project_name, "stop.sh"))
+
+
+def edit_project_locals(project_name):
+    """edits projects local files"""
+    projects_root = get_projects_root()
+    if not project_exist(project_name):
+        raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
+
+    edit_file(os.path.join(projects_root, project_name, "local.entry.sh"))
+    edit_file(os.path.join(projects_root, project_name, "local.exit.sh"))
 
 
 def stop():

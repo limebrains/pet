@@ -286,11 +286,15 @@ else:
             bl.rename_project(old_project_name, new_project_name)
 
     @cli.command()
+    @click.option('-l', '--local')
     @click.argument('project_name')
-    def edit(project_name):
+    def edit(project_name, local):
         """edits project"""
         with pet_exception_manager():
-            bl.edit_project(project_name)
+            if local:
+                bl.edit_project_locals(project_name)
+            else:
+                bl.edit_project(project_name)
 
 
 def main():
