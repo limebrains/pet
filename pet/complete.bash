@@ -6,7 +6,7 @@ _pet()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="archive config edit init list recreate register remove rename restore run -v --version --help "
+    opts="archive config deploy edit init list recreate register remove rename restore run -v --version --help "
     if [ -z "$PET_FOLDER" ]; then
         PET_FOLDER="${HOME}/.pet"
     else
