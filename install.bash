@@ -16,7 +16,7 @@ if [ ! -f pet.zip ]; then
     printf "\n\e[1;31mInstallation unsuccessful due to failed download\e[0m\n"
     return 1
 fi
-unzip pet.zip
+unzip -o pet.zip
 if [ ! -d "pet-master" ]; then
     printf "\n\e[1;31mInstallation unsuccessful due to failed unzip\e[0m\n"
     return 1
@@ -30,5 +30,5 @@ else
 fi
 printf "\n------------------------\n-auto-completion deploy-\n------------------------\n"
 printf "\n\e[1;33mAuto-completion requires sudo\e[0m\n"
-sudo python 'pet-master/pet/cli.py' 'deploy'
+sudo python 'pet-master/pet/cli.py' 'deploy' "$1"
 printf "\n\e[1;32mInstallation completed\e[0m\n"

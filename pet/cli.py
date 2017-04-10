@@ -209,10 +209,11 @@ def recreate():
 
 
 @cli.command()
-def deploy():
+@click.argument('shell_type')
+def deploy(shell_type):
     """Deploys auto-completion"""
     with pet_exception_manager():
-        bl.deploy()
+        bl.deploy(shell_type)
 
 
 if active_project:

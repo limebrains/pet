@@ -33,11 +33,8 @@ from pet.utils import makedirs
 log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
-# TODO: zsh known issues: auto-completion works only for full words
-# TODO: where to install
 # TODO: docs with install + gif
-# TODO: installing from one command
-# TODO: zsh native-auto-completion (or use COMP_CWORD) [or add +1 if cur = "" - check cur in zsh]
+# TODO: where to install
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -731,17 +728,9 @@ def edit_shell_profiles():
     get_shell().edit_shell_profiles()
 
 
-def deploy():
-    try:
-        shell = input("Give name of shell you are using\n(1) bash\n(2) zsh\n")
-    except ValueError:
-        raise PetException('choice not recognized')
-    except NameError:
-        raise PetException('choice not recognized')
-    except SyntaxError:
-        raise PetException('choice not recognized')
+def deploy(shell):
     path = os.path.dirname(os.path.realpath(__file__))
-    if shell == 1:
+    if 'bash' in shell:
         possible = [
             '/etc/bash_completion.d',
             '/usr/local/etc/bash_completion.d',
@@ -753,31 +742,20 @@ def deploy():
             if os.path.exists(directory):
                 available.append(directory)
         if available:
-            print('Deploy auto-completion to:')
-            for i, directory in enumerate(available):
-                print('({0}) - {1}'.format(i, directory))
-            try:
-                choice = input()
-                choice = int(choice)
-                if 0 <= choice < len(available):
-                    if available[choice] in possible[-2:]:
-                        with open(available[choice], mode='a') as file:
-                            file.write(". {0}".format(os.path.join(path, 'complete.bash')))
-                    else:
-                        with open(os.path.join(available[choice], 'pet'), mode='w') as file:
-                            file.write(". {0}".format(os.path.join(path, 'complete.bash')))
-            except ValueError:
-                raise PetException('choice not recognized')
-            except NameError:
-                raise PetException('choice not recognized')
-            except SyntaxError:
-                raise PetException('choice not recognized')
+            if available[0] in possible[-2:]:
+                with open(available[0], mode='a') as file:
+                    file.write(". {0}".format(os.path.join(path, 'complete.bash')))
+                raise Info('Deployed auto-completion to {0}'.format(available[0]))
+            else:
+                with open(os.path.join(available[0], 'pet'), mode='w') as file:
+                    file.write(". {0}".format(os.path.join(path, 'complete.bash')))
+                raise Info('Deployed auto-completion to {0}'.format(os.path.join(available[0], 'pet')))
         else:
             raise PetException("Haven't found correct path to deploy auto-completions")
-    elif shell == 2:
+    elif 'zsh' in shell:
         rc_path = os.path.join(os.environ.get('ZDOTDIR', os.path.expanduser('~')), '.zshrc')
         with open(rc_path, mode='a') as file:
             file.write(auto_complete_zsh_deploy.format(os.path.join(path, 'complete.bash')))
         raise Info("Auto-completion should work in new zsh terminals")
     else:
-        raise PetException('choice not recognized')
+        raise ShellNotRecognized(ExceptionMessages.shell_not_supported.value.format(shell))
