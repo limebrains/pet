@@ -683,7 +683,8 @@ def print_tasks(project_name):
     """lists tasks in project"""
     projects_tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
     tasks = [os.path.splitext(os.path.splitext(task)[0])[0]
-             for task in os.listdir(projects_tasks_root)]
+             for task in os.listdir(projects_tasks_root)
+             if '.local' not in os.path.splitext(os.path.splitext(task)[0])[0]]
     return "\n".join(tasks)
 
 
