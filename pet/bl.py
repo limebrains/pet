@@ -35,8 +35,6 @@ log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
 # TODO: docs with install + gif
-# TODO: make tasks with diff ext work
-# TODO: list current WORKING projects
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -257,13 +255,15 @@ class GeneralShellMixin(object):
     def get_shell_profiles(self):
         return self.shell_profiles
 
-    def make_rc_file(self, project_name, nr, additional_lines=""):
+    def make_rc_file(self, project_name, nr, additional_lines="", prompt=""):
         project_root = os.path.join(get_projects_root(), project_name)
         if nr == 1:
             nr = ""
+        if not prompt:
+            prompt = project_name
         contents = new_project_rc_template.format(
             os.path.join(get_pet_folder(), self.get_shell_profiles()),
-            project_name,
+            prompt,
             os.path.join(project_root, 'start.sh'),
             nr,
             os.path.join(project_root, 'stop.sh'),
@@ -325,14 +325,16 @@ class Bash(GeneralShellMixin):
         amount_active = how_many_active(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
         tasks_root = os.path.join(project_root, "tasks")
+        # TODO: delete (tmp)
+        os.chmod(get_file_fullname_and_path(tasks_root, task_name), 0o755)
         if interactive:
-            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
+            self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
                 get_file_fullname_and_path(tasks_root, task_name),
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
                 "",
-            ))
+            ), prompt=project_name + " - " + task_name)
             Popen(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 amount_active + 1,
@@ -340,13 +342,13 @@ class Bash(GeneralShellMixin):
                 project_root,
             )]).communicate()
         else:
-            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
+            self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
                 "exit"
-            ))
+            ), prompt=project_name + " - " + task_name)
             Popen(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 amount_active + 1,
@@ -391,14 +393,16 @@ class Zsh(GeneralShellMixin):
         amount_active = how_many_active(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
         tasks_root = os.path.join(project_root, "tasks")
+        # TODO: delete (tmp)
+        os.chmod(get_file_fullname_and_path(tasks_root, task_name), 0o755)
         if interactive:
-            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
+            self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
                 get_file_fullname_and_path(tasks_root, task_name),
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
                 "",
-            ))
+            ), prompt=project_name + " - " + task_name)
             Popen(["/bin/zsh",
                    "-c",
                    "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
@@ -407,13 +411,13 @@ class Zsh(GeneralShellMixin):
                        project_root,
                    )]).communicate()
         else:
-            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
+            self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
                 "exit",
-            ))
+            ), prompt=project_name + " - " + task_name)
             Popen(["/bin/zsh", "-c", "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                 project_name,
                 amount_active + 1,
@@ -734,7 +738,6 @@ def create_task(project_name, task_name, no_alias, how):
         else:
             task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
             Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
-        edit_file(task_file_path)
     elif how == 'local':
         if '.' in task_name:
             task_ext = os.path.splitext(task_name)[1]
@@ -744,9 +747,10 @@ def create_task(project_name, task_name, no_alias, how):
         else:
             task_file_path = os.path.join(project_root, "tasks", task_name + ".local" + ".sh")
             Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
-        edit_file(task_file_path)
     else:
         raise PetException("Choose either --save to save as normal task\neither --local to save as local task")
+    edit_file(task_file_path)
+    os.chmod(task_file_path, 0o755)
     if no_alias:
         raise Info("You can invoke your task by: pet {0}".format(task_name))
     else:
