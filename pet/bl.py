@@ -51,16 +51,30 @@ def get_file_fullname(searching_root, file_name):
     output = glob.glob(os.path.join(searching_root, file_name + '.*'))
     if output:
         return output[0]
-    else:
-        return glob.glob(os.path.join(searching_root, file_name))[0]
+    output = glob.glob(os.path.join(searching_root, file_name))
+    if output:
+        return output[0]
+    output = glob.glob(os.path.join(searching_root, file_name + '.local.*'))
+    if output:
+        return output[0]
+    output = glob.glob(os.path.join(searching_root, file_name + '.local'))
+    if output:
+        return output[0]
 
 
 def get_file_fullname_and_path(searching_root, file_name):
     name = glob.glob(os.path.join(searching_root, file_name + '.*'))
     if name:
         return os.path.join(searching_root, name[0])
-    else:
-        return os.path.join(searching_root, glob.glob(os.path.join(searching_root, file_name))[0])
+    name = glob.glob(os.path.join(searching_root, file_name))
+    if name:
+        return os.path.join(searching_root, name[0])
+    name = glob.glob(os.path.join(searching_root, file_name + '.local.*'))
+    if name:
+        return os.path.join(searching_root, name[0])
+    name = glob.glob(os.path.join(searching_root, file_name + '.local'))
+    if name:
+        return os.path.join(searching_root, name[0])
 
 
 def get_pet_install_folder():
@@ -227,7 +241,6 @@ class GeneralShellMixin(object):
             project_name,
             os.path.join(project_root, 'start.sh'),
             nr,
-            os.path.join(project_root, "tasks.sh"),
             os.path.join(project_root, 'stop.sh'),
             additional_lines,
         )
@@ -441,10 +454,6 @@ class ProjectCreator(object):
             os.symlink(self.project_root, os.path.join(get_projects_root(), self.project_name))
         get_shell().make_rc_file(self.project_name, nr=0)
 
-    def create_additional_files(self):
-        with open(os.path.join(self.project_root, "tasks.sh"), mode='w') as tasks_alias_file:
-            tasks_alias_file.write("# aliases for your tasks\n")
-
     def create_locals(self):
         with open(os.path.join(self.project_root, "start.local.entry.sh"), mode='w') as file:
             file.write("# locals\npet_project_folder={0}\n".format(os.getcwd()))
@@ -483,7 +492,6 @@ class ProjectCreator(object):
 
     def create(self):
         self.create_dirs()
-        self.create_additional_files()
         self.create_locals()
         self.create_files()
         self.edit()
@@ -513,9 +521,8 @@ def register(project_name):
 
     if not (os.path.isfile(os.path.join(directory, "start.sh")) and
                 os.path.isfile(os.path.join(directory, "stop.sh")) and
-                os.path.isfile(os.path.join(directory, "tasks.sh")) and
                 os.path.isdir(os.path.join(directory, "tasks"))):
-        raise PetException("Haven't found {{tasks.sh, start.sh, stop.sh}} and tasks folder in\n{0}".format(directory))
+        raise PetException("Haven't found {{start.sh, stop.sh}} and tasks folder in\n{0}".format(directory))
 
     os.symlink(directory, os.path.join(get_projects_root(), project_name))
     raise Info("If you want to edit locals do 'pet edit {0} --local".format(project_name))
@@ -636,7 +643,7 @@ def print_old():
 def print_tasks(project_name):
     """lists tasks in project"""
     projects_tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
-    tasks = [os.path.splitext(task)[0]
+    tasks = [os.path.splitext(os.path.splitext(task)[0])[0]
              for task in os.listdir(projects_tasks_root)]
     return "\n".join(tasks)
 
@@ -661,7 +668,7 @@ def print_templates():
     return print_projects_for_root(get_projects_templates_root())
 
 
-def create_task(project_name, task_name):
+def create_task(project_name, task_name, no_alias, how):
     """creates task"""
     if not project_exist(project_name):
         raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
@@ -669,17 +676,38 @@ def create_task(project_name, task_name):
         raise NameAlreadyTaken(ExceptionMessages.task_already_exists.value.format(task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
-    if '.' in task_name:
-        task_file_path = os.path.join(project_root, "tasks", task_name)
-        task_name = os.path.splitext(task_name)[0]
-        Popen(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
+    if how == 'save':
+        if '.' in task_name:
+            task_file_path = os.path.join(project_root, "tasks", task_name)
+            task_name = os.path.splitext(task_name)[0]
+            Popen(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
+        else:
+            task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
+            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
+        edit_file(task_file_path)
+    elif how == 'local':
+        if '.' in task_name:
+            task_ext = os.path.splitext(task_name)[1]
+            task_name = os.path.splitext(task_name)[0]
+            task_file_path = os.path.join(project_root, "tasks", task_name + ".local" + task_ext)
+            Popen(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
+        else:
+            task_file_path = os.path.join(project_root, "tasks", task_name + ".local" + ".sh")
+            Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
+        edit_file(task_file_path)
     else:
-        task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
-        Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
-    edit_file(task_file_path)
-    with open(os.path.join(project_root, "tasks.sh"), mode='a') as tasks_alias_file:
-        tasks_alias_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
-    raise Info("alias available during next boot of project.\nRight now you can invoke it: pet {0}".format(task_name))
+        raise PetException("Choose either --save to save as normal task\neither --local to save as local task")
+    if no_alias:
+        raise Info("You can invoke your task by: pet {0}".format(task_name))
+    else:
+        if how == 'save':
+            alias_file = os.path.join(project_root, "start.sh")
+        else:
+            alias_file = os.path.join(project_root, "start.local.entry.sh")
+        # TODO: find a nice place for this alias to be placed
+        with open(alias_file, mode='a') as start_file:
+            start_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
+        raise Info("alias available during next boot of project.\nRight now you can invoke it: pet {0}".format(task_name))
 
 
 def edit_task(project_name, task_name):
@@ -700,7 +728,9 @@ def rename_task(project_name, old_task_name, new_task_name):
 
     old_task_full_path = get_file_fullname_and_path(tasks_root, old_task_name)
     task_extension = os.path.splitext(old_task_full_path)[1]
-    os.rename(old_task_full_path, os.path.join(tasks_root, new_task_name + task_extension))
+    local = os.path.splitext(os.path.splitext(old_task_full_path)[0])[1]
+    os.rename(old_task_full_path, os.path.join(tasks_root, new_task_name + local + task_extension))
+    # TODO: look for alias to rename
 
 
 def run_task(project_name, task_name, interactive, args=()):
@@ -717,15 +747,20 @@ def remove_task(project_name, task_name):
         raise NameNotFound("{0}/{1} - task not found in this project".format(project_name, task_name))
 
     project_root = os.path.join(get_projects_root(), project_name)
+    searching_root = os.path.join(project_root, "tasks")
+    if '.local' in get_file_fullname(searching_root, task_name):
+        start_file = "start.local.entry.sh"
+    else:
+        start_file = "start.sh"
     Popen([
         "/bin/sh",
         "-c",
         "sed -i -e \"/alias {0}/d\" {1}".format(
             task_name,
-            os.path.join(project_root, "tasks.sh"),
+            os.path.join(project_root, start_file),
         )
     ])
-    os.remove(get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name))
+    os.remove(get_file_fullname_and_path(searching_root, task_name))
 
 
 def edit_config():

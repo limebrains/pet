@@ -13,7 +13,6 @@ if [ -f "$project_root/start.local.exit.sh" ]; then
 fi
 PS1="[{1}] $PS1"
 echo -ne "\\033]0;{1} {3}\\007"
-source {4}
 if [ -z "$PET_PREV_TAB_NAME" ]; then
     tab_name_at_exit=""
 else
@@ -27,9 +26,9 @@ fi
 if [ -f "$project_root/stop.local.exit.sh" ]; then
     source "$project_root/stop.local.exit.sh"
 fi
-source {5}' EXIT
+source {4}' EXIT
 export PET_PREV_TAB_NAME='{1} {3}'
-{6}
+{5}
 '''
 
 new_start_sh_template = '''

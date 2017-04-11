@@ -218,11 +218,18 @@ def deploy(shell_type):
 
 if active_project:
     @cli.command()
+    @click.option('-s', '--save', 'how', flag_value='save', help="save as normal task")
+    @click.option('-l', '--local', 'how', flag_value='local', help="save as local task")
+    @click.option('-a', '--no_alias', is_flag=True, help="don't add alias [task_name]=...")
     @click.argument('task_name', metavar='TASK_NAME[.<extension>]')
-    def task(task_name):
+    def task(task_name, no_alias, how):
         """creates new task"""
-        with pet_exception_manager():
-            bl.create_task(active_project, task_name)
+        if how:
+            with pet_exception_manager():
+                bl.create_task(active_project, task_name, no_alias, how)
+        else:
+            click.secho("Choose either --save to save as normal task\n"
+                        "either --local to save as local task", fg="magenta")
 
     @cli.command()
     def stop():
