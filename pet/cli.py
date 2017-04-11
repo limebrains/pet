@@ -287,7 +287,7 @@ else:
             bl.rename_project(old_project_name, new_project_name)
 
     @cli.command()
-    @click.option('-l', '--local')
+    @click.option('-l', '--local', is_flag=True)
     @click.argument('project_name')
     def edit(project_name, local):
         """edits project"""

@@ -34,7 +34,8 @@ log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
 # TODO: docs with install + gif
-# TODO: where to install
+# TODO: locals
+# TODO: Q: editing locals only after edit locals or after register too?
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -233,13 +234,6 @@ class GeneralShellMixin(object):
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:
             rc_file.write(contents)
-        # TODO: delete
-        if not os.path.exists(os.path.join(project_root, "local.entry.sh")):
-            with open(os.path.join(project_root, "local.entry.sh"), mode='w') as file:
-                file.write("# locals\npet_project_folder={0}\n".format(os.getcwd()))
-        if not os.path.exists(os.path.join(project_root, "local.exit.sh")):
-            with open(os.path.join(project_root, "local.exit.sh"), mode='w') as file:
-                file.write("# locals\n")
 
     def start(self, project_root, project_name):
         raise ShellNotRecognized(
@@ -452,9 +446,13 @@ class ProjectCreator(object):
             tasks_alias_file.write("# aliases for your tasks\n")
 
     def create_locals(self):
-        with open(os.path.join(self.project_root, "local.entry.sh"), mode='w') as file:
+        with open(os.path.join(self.project_root, "start.local.entry.sh"), mode='w') as file:
             file.write("# locals\npet_project_folder={0}\n".format(os.getcwd()))
-        with open(os.path.join(self.project_root, "local.exit.sh"), mode='w') as file:
+        with open(os.path.join(self.project_root, "start.local.exit.sh"), mode='w') as file:
+            file.write("# locals\n")
+        with open(os.path.join(self.project_root, "stop.local.entry.sh"), mode='w') as file:
+            file.write("# locals\n")
+        with open(os.path.join(self.project_root, "stop.local.exit.sh"), mode='w') as file:
             file.write("# locals\n")
 
     def create_files_with_templates(self, filename, additional_lines, increasing_order):
@@ -520,8 +518,7 @@ def register(project_name):
         raise PetException("Haven't found {{tasks.sh, start.sh, stop.sh}} and tasks folder in\n{0}".format(directory))
 
     os.symlink(directory, os.path.join(get_projects_root(), project_name))
-    edit_file(os.path.join(directory, "local.entry.sh"))
-    edit_file(os.path.join(directory, "local.exit.sh"))
+    raise Info("If you want to edit locals do 'pet edit {0} --local".format(project_name))
 
 
 def rename_project(old_project_name, new_project_name):
@@ -550,8 +547,10 @@ def edit_project_locals(project_name):
     if not project_exist(project_name):
         raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
 
-    edit_file(os.path.join(projects_root, project_name, "local.entry.sh"))
-    edit_file(os.path.join(projects_root, project_name, "local.exit.sh"))
+    edit_file(os.path.join(projects_root, project_name, "start.local.entry.sh"))
+    edit_file(os.path.join(projects_root, project_name, "start.local.exit.sh"))
+    edit_file(os.path.join(projects_root, project_name, "stop.local.entry.sh"))
+    edit_file(os.path.join(projects_root, project_name, "stop.local.exit.sh"))
 
 
 def stop():

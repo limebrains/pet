@@ -1,11 +1,16 @@
 # bashrc
 
 new_project_rc_template = '''
-dir=$(pwd)
-source './local.entry.sh'
+project_root=$(pwd)
 source {0}
 export PET_ACTIVE_PROJECT='{1}'
+if [ -f "$project_root/start.local.entry.sh" ]; then
+    source "$project_root/start.local.entry.sh"
+fi
 source {2}
+if [ -f "$project_root/start.local.exit.sh" ]; then
+    source "$project_root/start.local.exit.sh"
+fi
 PS1="[{1}] $PS1"
 echo -ne "\\033]0;{1} {3}\\007"
 source {4}
@@ -14,13 +19,23 @@ if [ -z "$PET_PREV_TAB_NAME" ]; then
 else
     tab_name_at_exit="$PET_PREV_TAB_NAME"
 fi
-trap 'echo -ne "\\033]0;$tab_name_at_exit\\007";source "$dir/local.exit.sh";source {5}' EXIT
+trap '
+echo -ne "\\033]0;$tab_name_at_exit\\007"
+if [ -f "$project_root/stop.local.entry.sh" ]; then
+    source "$project_root/stop.local.entry.sh"
+fi
+if [ -f "$project_root/stop.local.exit.sh" ]; then
+    source "$project_root/stop.local.exit.sh"
+fi
+source {5}' EXIT
 export PET_PREV_TAB_NAME='{1} {3}'
 {6}
 '''
 
 new_start_sh_template = '''
-cd "$pet_project_folder"
+if [ -z "$pet_project_folder" ]; then
+    cd "$pet_project_folder"
+fi
 # add here shell code to be executed while entering project
 '''
 
