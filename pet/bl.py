@@ -263,11 +263,12 @@ class GeneralShellMixin(object):
             prompt = project_name
         contents = new_project_rc_template.format(
             os.path.join(get_pet_folder(), self.get_shell_profiles()),
-            prompt,
+            project_name,
             os.path.join(project_root, 'start.sh'),
             nr,
             os.path.join(project_root, 'stop.sh'),
             additional_lines,
+            prompt,
         )
         rc = os.path.join(project_root, self.get_rc_filename())
         with open(rc, mode='w') as rc_file:

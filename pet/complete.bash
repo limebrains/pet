@@ -46,7 +46,7 @@ _pet()
             return 0
         esac
         case $prev in list)
-            COMPREPLY=( $(compgen -W "-t -o --tasks --old --tree --templates" -- ${cur}) )
+            COMPREPLY=( $(compgen -W "-a -t -o --active --tasks --old --tree --templates" -- ${cur}) )
             return 0
         esac
         case $prev in restore)

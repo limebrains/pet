@@ -11,8 +11,8 @@ source {2}
 if [ -f "$project_root/start.local.exit.sh" ]; then
     source "$project_root/start.local.exit.sh"
 fi
-PS1="[{1}] $PS1"
-echo -ne "\\033]0;{1} {3}\\007"
+PS1="[{6}] $PS1"
+echo -ne "\\033]0;{6} {3}\\007"
 if [ -z "$PET_PREV_TAB_NAME" ]; then
     tab_name_at_exit=""
 else
