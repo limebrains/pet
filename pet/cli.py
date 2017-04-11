@@ -261,14 +261,21 @@ if active_project:
             bl.rename_task(active_project, old_task_name, new_task_name)
 
     @cli.command()
+    @click.option('-l', '--local', is_flag=True)
     @click.argument('task_name', nargs=-1)
-    def edit(task_name):
+    def edit(task_name, local):
         """edits task if given name else active project"""
         with pet_exception_manager():
             if len(task_name) > 0:
-                bl.edit_task(active_project, task_name[0])
+                if local:
+                    bl.edit_task_locals(active_project, task_name[0])
+                else:
+                    bl.edit_task(active_project, task_name[0])
             else:
-                bl.edit_project(active_project)
+                if local:
+                    bl.edit_project_locals(active_project)
+                else:
+                    bl.edit_project(active_project)
 else:
     @cli.command('remove')
     @click.option('-l', '--locks', is_flag=True, help="unlocks all projects")

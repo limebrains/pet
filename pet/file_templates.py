@@ -62,3 +62,15 @@ autoload -U +X compinit && compinit
 autoload -U +X bashcompinit && bashcompinit
 source "{0}"
 """
+
+
+task_exec_template = """
+if [ -f "{2}" ]; then
+    source "{2}"
+fi
+. {0} {1}
+if [ -f "{3}" ]; then
+    source "{3}"
+fi
+{4}
+"""

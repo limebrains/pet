@@ -26,6 +26,7 @@ from pet.file_templates import (
     new_stop_sh_template,
     edit_file_popen_template,
     auto_complete_zsh_deploy,
+    task_exec_template,
 )
 
 from pet.utils import makedirs
@@ -34,8 +35,8 @@ log = logging.getLogger(__file__)
 
 # TODO: rewrite logging into yields
 # TODO: docs with install + gif
-# TODO: locals
-# TODO: Q: editing locals only after edit locals or after register too?
+# TODO: make tasks with diff ext work
+# TODO: list current WORKING projects
 
 
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
@@ -50,13 +51,25 @@ SETUP_FILE_FOR_VERSION = "https://raw.githubusercontent.com/dmydlo/pet/master/se
 def get_file_fullname(searching_root, file_name):
     output = glob.glob(os.path.join(searching_root, file_name + '.*'))
     if output:
-        return output[0]
+        choice = output[0]
+        dots = output[0].count('.')
+        for possible in output:
+            if possible.count('.') < dots:
+                dots = possible.count('.')
+                choice = possible
+        return choice
     output = glob.glob(os.path.join(searching_root, file_name))
     if output:
         return output[0]
     output = glob.glob(os.path.join(searching_root, file_name + '.local.*'))
     if output:
-        return output[0]
+        choice = output[0]
+        dots = output[0].count('.')
+        for possible in output:
+            if possible.count('.') < dots:
+                dots = possible.count('.')
+                choice = possible
+        return choice
     output = glob.glob(os.path.join(searching_root, file_name + '.local'))
     if output:
         return output[0]
@@ -65,13 +78,25 @@ def get_file_fullname(searching_root, file_name):
 def get_file_fullname_and_path(searching_root, file_name):
     name = glob.glob(os.path.join(searching_root, file_name + '.*'))
     if name:
-        return os.path.join(searching_root, name[0])
+        choice = name[0]
+        dots = name[0].count('.')
+        for possible in name:
+            if possible.count('.') < dots:
+                dots = possible.count('.')
+                choice = possible
+        return os.path.join(searching_root, choice)
     name = glob.glob(os.path.join(searching_root, file_name))
     if name:
         return os.path.join(searching_root, name[0])
     name = glob.glob(os.path.join(searching_root, file_name + '.local.*'))
     if name:
-        return os.path.join(searching_root, name[0])
+        choice = name[0]
+        dots = name[0].count('.')
+        for possible in name:
+            if possible.count('.') < dots:
+                dots = possible.count('.')
+                choice = possible
+        return os.path.join(searching_root, choice)
     name = glob.glob(os.path.join(searching_root, file_name + '.local'))
     if name:
         return os.path.join(searching_root, name[0])
@@ -299,10 +324,14 @@ class Bash(GeneralShellMixin):
     def task_exec(self, project_name, task_name, interactive, args=()):
         amount_active = how_many_active(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
+        tasks_root = os.path.join(project_root, "tasks")
         if interactive:
-            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\n".format(
-                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                " ".join(args)
+            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
+                get_file_fullname_and_path(tasks_root, task_name),
+                " ".join(args),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "",
             ))
             Popen(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
@@ -311,9 +340,12 @@ class Bash(GeneralShellMixin):
                 project_root,
             )]).communicate()
         else:
-            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
+            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                " ".join(args)
+                " ".join(args),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "exit"
             ))
             Popen(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
@@ -358,10 +390,14 @@ class Zsh(GeneralShellMixin):
     def task_exec(self, project_name, task_name, interactive, args=()):
         amount_active = how_many_active(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
+        tasks_root = os.path.join(project_root, "tasks")
         if interactive:
-            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\n".format(
-                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                " ".join(args)
+            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
+                get_file_fullname_and_path(tasks_root, task_name),
+                " ".join(args),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "",
             ))
             Popen(["/bin/zsh",
                    "-c",
@@ -371,9 +407,12 @@ class Zsh(GeneralShellMixin):
                        project_root,
                    )]).communicate()
         else:
-            self.make_rc_file(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
+            self.make_rc_file(project_name, nr=task_name, additional_lines=task_exec_template.format(
                 get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
-                " ".join(args)
+                " ".join(args),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "exit",
             ))
             Popen(["/bin/zsh", "-c", "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                 project_name,
@@ -716,6 +755,16 @@ def edit_task(project_name, task_name):
         raise NameNotFound(ExceptionMessages.task_not_found.value.format(task_name))
 
     edit_file(get_file_fullname_and_path(os.path.join(get_projects_root(), project_name, "tasks"), task_name))
+
+
+def edit_task_locals(project_name, task_name):
+    """edits task"""
+    if not task_exist(project_name, task_name):
+        raise NameNotFound(ExceptionMessages.task_not_found.value.format(task_name))
+
+    tasks_root = os.path.join(get_projects_root(), project_name, "tasks")
+    edit_file(os.path.join(tasks_root, task_name + ".local.entry.sh"))
+    edit_file(os.path.join(tasks_root, task_name + ".local.exit.sh"))
 
 
 def rename_task(project_name, old_task_name, new_task_name):
