@@ -28,6 +28,7 @@ from pet.file_templates import (
     new_project_rc_template,
     new_start_sh_template,
     auto_complete_zsh_deploy,
+    task_exec_template,
 )
 
 
@@ -335,9 +336,9 @@ def test_general_shell_mixin_make_rc_file_method(mock_root, mock_pet_folder, pro
                 project_name,
                 os.path.join(project_root, 'start.sh'),
                 nr,
-                os.path.join(project_root, "tasks.sh"),
                 os.path.join(project_root, 'stop.sh'),
                 additional_lines,
+                project_name,
             )
         )
     nr = 1
@@ -352,9 +353,9 @@ def test_general_shell_mixin_make_rc_file_method(mock_root, mock_pet_folder, pro
                 project_name,
                 os.path.join(project_root, 'start.sh'),
                 "",
-                os.path.join(project_root, "tasks.sh"),
                 os.path.join(project_root, 'stop.sh'),
                 additional_lines,
+                project_name,
             )
         )
 
@@ -416,13 +417,20 @@ def test_bash_create_shell_profiles_method(mock_pet_folder, mock_isfile):
 @mock.patch('pet.bl.GeneralShellMixin.make_rc_file')
 @mock.patch('pet.bl.get_file_fullname_and_path', return_value='/some/path/file.ext')
 @mock.patch('pet.bl.Popen')
-def test_bash_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
+@mock.patch('os.chmod')
+def test_bash_task_exec_method(mock_chmod, mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
     project_name = project_names[0]
     task_name = task_names[0]
     project_root = os.path.join(get_projects_root(), project_name)
+    tasks_root = os.path.join(project_root, "tasks")
     Bash().task_exec(project_name=project_name, task_name=task_name, interactive=True)
-    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
-        '/some/path/file.ext', " ".join(())))
+    mock_make_rc_file.assert_called_with(project_name, nr=1, additional_lines=task_exec_template.format(
+                '/some/path/file.ext',
+                " ".join(()),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "",
+            ), prompt=project_name + " - " + task_name)
     mock_popen.assert_called_with(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 3 + 1,
@@ -430,8 +438,13 @@ def test_bash_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_ho
                 project_root,
             )])
     Bash().task_exec(project_name=project_name, task_name=task_name, interactive=False)
-    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
-        '/some/path/file.ext', " ".join(())))
+    mock_make_rc_file.assert_called_with(project_name, nr=1, additional_lines=task_exec_template.format(
+                '/some/path/file.ext',
+                " ".join(()),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "exit",
+            ), prompt=project_name + " - " + task_name)
     mock_popen.assert_called_with(["/bin/bash", "-c", "cd {3}\n#pet {0}={1}\n$SHELL --rcfile {2}\nprintf ''".format(
                 project_name,
                 3 + 1,
@@ -492,13 +505,20 @@ def test_zsh_create_shell_profiles_method(mock_get, mock_pet_folder, mock_isfile
 @mock.patch('pet.bl.GeneralShellMixin.make_rc_file')
 @mock.patch('pet.bl.get_file_fullname_and_path', return_value='/some/path/file.ext')
 @mock.patch('pet.bl.Popen')
-def test_zsh_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
+@mock.patch('os.chmod')
+def test_zsh_task_exec_method(mock_chmod, mock_popen, mock_path, mock_make_rc_file, mock_how_many_active, mock_pet_folder, mock_projects_root, mock_isfile, project_names, task_names):
     project_name = project_names[0]
     task_name = task_names[0]
     project_root = os.path.join(projects_root, project_name)
+    tasks_root = os.path.join(project_root, "tasks")
     Zsh().task_exec(project_name=project_name, task_name=task_name, interactive=True)
-    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\n".format(
-        '/some/path/file.ext', " ".join(())))
+    mock_make_rc_file.assert_called_with(project_name, nr=1, additional_lines=task_exec_template.format(
+                '/some/path/file.ext',
+                " ".join(()),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "",
+            ), prompt=project_name + " - " + task_name)
     mock_popen.assert_called_with(["/bin/zsh",
                                    "-c",
                                    "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
@@ -507,8 +527,13 @@ def test_zsh_task_exec_method(mock_popen, mock_path, mock_make_rc_file, mock_how
                                        project_root,
                                    )])
     Zsh().task_exec(project_name=project_name, task_name=task_name, interactive=False)
-    mock_make_rc_file.assert_called_with(project_name, nr=0, additional_lines=". {0} {1}\nexit\n".format(
-        '/some/path/file.ext', " ".join(())))
+    mock_make_rc_file.assert_called_with(project_name, nr=1, additional_lines=task_exec_template.format(
+                '/some/path/file.ext',
+                " ".join(()),
+                os.path.join(tasks_root, task_name + ".local.entry.sh"),
+                os.path.join(tasks_root, task_name + ".local.exit.sh"),
+                "exit",
+            ), prompt=project_name + " - " + task_name)
     mock_popen.assert_called_with(["/bin/zsh", "-c", "cd {2}\n#pet {0}={1}\nZDOTDIR={2} $SHELL\nprintf ''".format(
                 project_name,
                 3 + 1,
@@ -634,15 +659,15 @@ def test_create_command(mock_project_creator, project_names):
 def test_register_command(mock_edit, mock_root, mock_symlink, mock_isdir, mock_isfile, mock_exist, mock_basename, mock_getcwd):
     mock_exist.side_effect = [True]
     with pytest.raises(NameAlreadyTaken):
-        register("")
+        register("x")
     mock_exist.side_effect = [False, False]
     mock_isdir.return_value = True
     mock_isfile.return_value = False
     with pytest.raises(PetException):
-        register("")
+        register("x")
     mock_isfile.return_value = True
-    register("")
-    mock_edit.assert_called_with(os.path.join("/some/path/.pet", "local.exit.sh"))
+    with pytest.raises(Info):
+        register("x")
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -819,34 +844,33 @@ def test_print_templates_command(mock_root, mock_print):
 @mock.patch('pet.bl.Popen')
 @mock.patch('pet.bl.edit_file')
 @mock.patch('pet.bl.open')
-def test_create_task_command(mock_open, mock_edit_file, mock_popen, mock_root, mock_task_exist, mock_project_exist, project_names, task_names):
+@mock.patch('os.chmod')
+def test_create_task_command(mock_chmod, mock_open, mock_edit_file, mock_popen, mock_root, mock_task_exist, mock_project_exist, project_names, task_names):
     project_name = project_names[0]
     project_root = os.path.join(projects_root, project_name)
     mock_project_exist.return_value = False
     with pytest.raises(NameNotFound):
-        create_task(project_name, task_names[0])
+        create_task(project_name, task_names[0], no_alias=True, how='save')
     mock_project_exist.return_value = True
     mock_task_exist.return_value = True
     with pytest.raises(NameAlreadyTaken):
-        create_task(project_name, task_names[0])
+        create_task(project_name, task_names[0], no_alias=True, how='save')
     mock_project_exist.return_value = True
     mock_task_exist.return_value = False
     task_name = 'task.py'
     with pytest.raises(Info):
-        create_task(project_name, task_name)
+        create_task(project_name, task_name, no_alias=True, how='save')
     task_file_path = os.path.join(project_root, "tasks", task_name)
     task_name = os.path.splitext(task_name)[0]
     mock_popen.assert_called_with(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
     mock_edit_file.assert_called_with(task_file_path)
-    mock_open.assert_called_with(os.path.join(project_root, "tasks.sh"), mode='a')
     task_name = 'task'
     with pytest.raises(Info):
-        create_task(project_name, task_name)
+        create_task(project_name, task_name, no_alias=True, how='save')
     task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
     task_name = os.path.splitext(task_name)[0]
     mock_popen.assert_called_with(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
     mock_edit_file.assert_called_with(task_file_path)
-    mock_open.assert_called_with(os.path.join(project_root, "tasks.sh"), mode='a')
 
 
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
@@ -897,15 +921,17 @@ def test_run_task_command(mock_exist, mock_isfile, mock_shell, project_names, ta
     mock_shell().task_exec.assert_called_with(project_name, True, task_names[0], False, ())
 
 
+@mock.patch('pet.bl.get_file_fullname')
 @mock.patch('pet.bl.get_file_fullname_and_path')
 @mock.patch('pet.bl.get_projects_root', return_value=projects_root)
 @mock.patch('pet.bl.task_exist')
 @mock.patch('pet.bl.Popen')
 @mock.patch('pet.bl.PIPE')
 @mock.patch('os.remove')
-def test_remove_task_command(mock_remove, mock_pipe, mock_popen, mock_exist, mock_root, mock_fullpath, project_names, task_names):
+def test_remove_task_command(mock_remove, mock_pipe, mock_popen, mock_exist, mock_root, mock_fullpath, mock_fullname, project_names, task_names):
     project_name = project_names[0]
     project_root = os.path.join(projects_root, project_name)
+    mock_fullname.return_value = task_names[0]
     mock_exist.return_value = False
     with pytest.raises(NameNotFound):
         remove_task(project_name, task_names[0])
@@ -917,7 +943,7 @@ def test_remove_task_command(mock_remove, mock_pipe, mock_popen, mock_exist, moc
         "-c",
         "sed -i -e \"/alias {0}/d\" {1}".format(
             task_names[0],
-            os.path.join(project_root, "tasks.sh"),
+            os.path.join(project_root, "start.sh"),
         )
     ])
     mock_remove.assert_called_with(mock_fullpath())
