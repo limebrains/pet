@@ -702,6 +702,16 @@ def print_tree():
     return tabulate(output, headers=["Project", "Task"], tablefmt="fancy_grid")
 
 
+def print_active():
+    active_list = Popen([
+        "/bin/sh",
+        "-c",
+        "ps aux | grep \"#pet\" | sed -n \"s/.*#pet\( .*\)=.*/\\1/p\"",
+    ], stdout=PIPE
+    ).stdout.read()
+    return active_list
+
+
 def print_templates():
     """lists templates"""
     return print_projects_for_root(get_projects_templates_root())
