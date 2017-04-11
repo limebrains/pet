@@ -17,5 +17,5 @@ which stands for interactive mod
 .. code::
 
     $ pet run project_name task_name
-    or
+    # or
     $ pet run project_name task_name -i

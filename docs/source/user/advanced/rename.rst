@@ -12,5 +12,5 @@ Using rename
 .. code::
 
     [project] $ pet rename old_task_name new_task_name
-    or
+    # or
     $ pet rename old_project_name new_project_name

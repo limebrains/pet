@@ -10,4 +10,5 @@ This part covers basic usage of a |pet|
     create
     edit
     list
+    recreate
     stop

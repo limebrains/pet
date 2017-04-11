@@ -19,7 +19,13 @@ To install |pet|, open an interactive shell and run:
 
 .. code::
 
-    pip install pet
+    bash -c "$(curl -fsSL https://raw.githubusercontent.com/limebrains/pet/master/install.bash)"
+
+Or to specify installation directory and type of shell:
+
+.. code::
+
+    bash -c "shell='bash_or_zsh';install_dir='absolute_path';$(curl -fsSL https://raw.githubusercontent.com/limebrains/pet/master/install.bash)"
 
 Using Pet
 ---------

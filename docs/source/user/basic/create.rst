@@ -17,6 +17,9 @@ You can provide one with use of ``-n`` flag:
 
     pet init -n my_awesome_project
 
+Create with templates
+=====================
+
 During creation you can specify which templates to use with ``-t`` flag.
 Templates contain files that are going to be integrated to your project.
 
@@ -28,8 +31,19 @@ To do that execute:
 .. code::
 
     $ pet init -t first_template -t secound_template...
-    #or
+    # or
     $ pet init -t=first_template,secound_template...
 
 After accumulating commands from given templates it passes editing to you
 with notes from which template which part of a code comes from.
+
+Create in place
+===============
+
+You can create project and store it's files in .pet folder in project
+directory by using -i flag. This can be very useful if you want to
+share pet project with others by adding .pet folder to repository
+
+.. code::
+
+    $ pet init -i

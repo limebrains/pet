@@ -15,5 +15,5 @@ each templates name.
 .. code::
 
     $ pet init -t first_template -t secound_template...
-    #or
+    # or
     $ pet init -t=first_template,secound_template...

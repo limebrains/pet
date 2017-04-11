@@ -164,7 +164,7 @@ def shell():
 def projects_folder():
     """helps you add PET_FOLDER variable"""
     with pet_exception_manager():
-        click.secho("Current folder for pet projects is:\n{0}".format(bl.get_projects_root()), fg='green')
+        click.secho("Current folder used for pet files is:\n{0}".format(bl.get_pet_folder()), fg='green')
     click.secho("You can change folder that is going to be recognized by pet, by adding\n"
                 "export PET_FOLDER='path'\nto your shell profile file", fg='green')
 
