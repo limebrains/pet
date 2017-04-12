@@ -65,8 +65,12 @@ This part provides examples of use and explores all |pet| commands and its possi
 
     user/index
 
+.. toctree::
+    :maxdepth: 2
+
+    modules/index
+
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`

@@ -7,6 +7,9 @@ __all__ = [
 
 @unique
 class ExceptionMessages(Enum):
+    """
+    Messages shown by pet in it's exceptions
+    """
     project_not_found = "{0} - project not found"
     project_is_active = "{0} - project is active"
     project_is_locked = "{0} - project is locked"
