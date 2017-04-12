@@ -7,6 +7,8 @@
 Pet: Project Environment Tool
 =============================
 
+.. image:: pet.gif
+
 Quickstart
 ==========
 
