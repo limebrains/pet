@@ -459,11 +459,14 @@ class Bash(GeneralShellMixin):
         amount_active = how_many_active(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
         tasks_root = os.path.join(project_root, "tasks")
+        file_to_exec = get_file_fullname_and_path(tasks_root, task_name)
+        if os.path.splitext(file_to_exec)[1] in ['.bash', '.sh', '.zsh']:
+            file_to_exec = ". " + file_to_exec
         # TODO: delete (tmp)
         os.chmod(get_file_fullname_and_path(tasks_root, task_name), 0o755)
         if interactive:
             self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
-                get_file_fullname_and_path(tasks_root, task_name),
+                file_to_exec,
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
@@ -477,7 +480,7 @@ class Bash(GeneralShellMixin):
             )]).communicate()
         else:
             self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
-                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                file_to_exec,
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
@@ -552,11 +555,14 @@ class Zsh(GeneralShellMixin):
         amount_active = how_many_active(project_name)
         project_root = os.path.join(get_projects_root(), project_name)
         tasks_root = os.path.join(project_root, "tasks")
+        file_to_exec = get_file_fullname_and_path(tasks_root, task_name)
+        if os.path.splitext(file_to_exec)[1] in ['.bash', '.sh', '.zsh']:
+            file_to_exec = ". " + file_to_exec
         # TODO: delete (tmp)
         os.chmod(get_file_fullname_and_path(tasks_root, task_name), 0o755)
         if interactive:
             self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
-                get_file_fullname_and_path(tasks_root, task_name),
+                file_to_exec,
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
@@ -571,7 +577,7 @@ class Zsh(GeneralShellMixin):
                    )]).communicate()
         else:
             self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
-                get_file_fullname_and_path(os.path.join(project_root, "tasks"), task_name),
+                file_to_exec,
                 " ".join(args),
                 os.path.join(tasks_root, task_name + ".local.entry.sh"),
                 os.path.join(tasks_root, task_name + ".local.exit.sh"),
