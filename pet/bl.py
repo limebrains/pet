@@ -8,27 +8,27 @@ import os
 import shutil
 import signal
 from subprocess import PIPE, Popen
+
 from tabulate import tabulate
 
 from pet.exceptions import (
     ExceptionMessages,
+    FolderNotFound,
     Info,
     NameAlreadyTaken,
     NameNotFound,
     PetException,
     ProjectActivated,
     ShellNotRecognized,
-    FolderNotFound,
 )
 from pet.file_templates import (
+    auto_complete_zsh_deploy,
+    edit_file_popen_template,
     new_project_rc_template,
     new_start_sh_template,
     new_stop_sh_template,
-    edit_file_popen_template,
-    auto_complete_zsh_deploy,
     task_exec_template,
 )
-
 from pet.utils import makedirs
 
 log = logging.getLogger(__file__)

@@ -1,36 +1,26 @@
 import builtins
 import os
-import mock
 
+import mock
 import pytest
 
 from pet.bl import (
-    get_file_fullname,
-    get_file_fullname_and_path, check_version, recreate, get_tasks_templates_root, GeneralShellMixin, Bash, get_shell, get_pet_install_folder, get_pet_folder, \
-    get_projects_root, archive, lockable, edit_config, edit_shell_profiles, get_archive_root, get_projects_templates_root, get_projects_templates_root, project_template_exist, get_archive_root, edit_file, ProjectLock, \
-    ProjectCreator, start, print_templates, add_to_templates, print_projects_for_root, project_exist, task_exist, stop, create, create_task, print_list, print_old, \
-    print_tasks, remove_task, Zsh, task_template_exist, how_many_active, restore, rename_project, rename_task, register, clean, edit_project, run_task, edit_task, remove_project,
+    Bash, GeneralShellMixin, ProjectCreator, ProjectLock, Zsh, add_to_templates, archive, check_version, clean, create,
+    create_task, edit_config, edit_file, edit_project, edit_shell_profiles, edit_task, get_archive_root,
+    get_file_fullname, get_file_fullname_and_path, get_pet_folder, get_pet_install_folder, get_projects_root,
+    get_projects_templates_root, get_shell, get_tasks_templates_root, how_many_active, lockable, print_list, print_old,
+    print_projects_for_root, print_tasks, print_templates, project_exist, project_template_exist, recreate, register,
+    remove_project, remove_task, rename_project, rename_task, restore, run_task, start, stop, task_exist,
+    task_template_exist
 )
-
 from pet.exceptions import (
-    ExceptionMessages,
-    NameAlreadyTaken,
-    NameNotFound,
-    PetException,
-    ProjectActivated,
-    Info,
-    ShellNotRecognized,
-    FolderNotFound,
+    ExceptionMessages, FolderNotFound, Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated,
+    ShellNotRecognized
 )
-
 from pet.file_templates import (
-    edit_file_popen_template,
-    new_project_rc_template,
-    new_start_sh_template,
-    auto_complete_zsh_deploy,
-    task_exec_template,
+    auto_complete_zsh_deploy, edit_file_popen_template, new_project_rc_template, new_start_sh_template,
+    task_exec_template
 )
-
 
 PET_INSTALL_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pet")
 PET_FOLDER = os.environ.get('PET_FOLDER', os.path.join(os.path.expanduser("~"), ".pet/"))

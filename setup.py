@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from distutils.command.install_scripts import install_scripts
 from distutils.core import setup
+
 from setuptools import find_packages
 
 requirements = [
