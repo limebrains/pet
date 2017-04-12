@@ -1,0 +1,38 @@
+
+project_root=$(pwd)
+source /home/dawid/.pet/bash_profiles
+export PET_ACTIVE_PROJECT='pet_dev'
+if [ -f "$project_root/start.local.entry.sh" ]; then
+    source "$project_root/start.local.entry.sh"
+fi
+source /home/dawid/.pet/projects/pet_dev/start.sh
+if [ -f "$project_root/start.local.exit.sh" ]; then
+    source "$project_root/start.local.exit.sh"
+fi
+PS1="[pet_dev - docs] $PS1"
+echo -ne "\033]0;pet_dev - docs \007"
+if [ -z "$PET_PREV_TAB_NAME" ]; then
+    tab_name_at_exit=""
+else
+    tab_name_at_exit="$PET_PREV_TAB_NAME"
+fi
+trap '
+echo -ne "\033]0;$tab_name_at_exit\007"
+if [ -f "$project_root/stop.local.entry.sh" ]; then
+    source "$project_root/stop.local.entry.sh"
+fi
+if [ -f "$project_root/stop.local.exit.sh" ]; then
+    source "$project_root/stop.local.exit.sh"
+fi
+source /home/dawid/.pet/projects/pet_dev/stop.sh' EXIT
+export PET_PREV_TAB_NAME='pet_dev '
+
+if [ -f "/home/dawid/.pet/projects/pet_dev/tasks/docs.local.entry.sh" ]; then
+    source "/home/dawid/.pet/projects/pet_dev/tasks/docs.local.entry.sh"
+fi
+/home/dawid/.pet/projects/pet_dev/tasks/docs.sh 
+if [ -f "/home/dawid/.pet/projects/pet_dev/tasks/docs.local.exit.sh" ]; then
+    source "/home/dawid/.pet/projects/pet_dev/tasks/docs.local.exit.sh"
+fi
+exit
+

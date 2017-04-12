@@ -6,6 +6,8 @@ If you want to use relative paths or have some additional
 settings but eg. you share pet project in repository you can
 achieve that by using *local* files.
 
+Add `*.local*` to .gitignore to not share local files
+
 Locals in projects
 ==================
 
