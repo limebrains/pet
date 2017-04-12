@@ -32,7 +32,7 @@ export PET_PREV_TAB_NAME='{1} {3}'
 '''
 
 new_start_sh_template = '''
-if [ -z "$pet_project_folder" ]; then
+if [ ! -z "$pet_project_folder" ]; then
     cd "$pet_project_folder"
 fi
 # add here shell code to be executed while entering project
