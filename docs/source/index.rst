@@ -7,7 +7,9 @@
 Pet: Project Environment Tool
 =============================
 
-.. image:: pet.gif
+.. raw:: html
+
+    <iframe src="https://showterm.io/5ce94c75126066ac40688#fast" width="640" height="480"></iframe>
 
 Quickstart
 ==========

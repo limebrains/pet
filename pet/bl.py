@@ -33,22 +33,17 @@ from pet.utils import makedirs
 
 log = logging.getLogger(__file__)
 
-# TODO: rewrite logging into yields
-# TODO: docs with install + gif
-
-
 COMMANDS = "pet archive edit init list register remove rename restore stop task run".split()
 BASH_RC_FILENAME = "bashrc"
 ZSH_RC_FILENAME = ".zshrc"
 BASH_PROFILES_FILENAME = "bash_profiles"
 ZSH_PROFILES_FILENAME = "zsh_profiles"
-# TODO: github:dmydlo also in install.bash
-SETUP_FILE_FOR_VERSION = "https://raw.githubusercontent.com/dmydlo/pet/master/setup.py"
+SETUP_FILE_FOR_VERSION = "https://raw.githubusercontent.com/limebrains/pet/master/setup.py"
 
 
 def get_file_fullname(searching_root, file_name):
     """
-    :param searching_root: directory in which file is going to be searched 
+    :param searching_root: directory in which file is going to be searched
     :param file_name: name of a file without extension
     :return: file name with it's extension
     """
@@ -80,7 +75,7 @@ def get_file_fullname(searching_root, file_name):
 
 def get_file_fullname_and_path(searching_root, file_name):
     """
-    :param searching_root: directory in which file is going to be searched 
+    :param searching_root: directory in which file is going to be searched
     :param file_name: name of a file without extension
     :return: path to file with it's extension
     """
@@ -156,7 +151,7 @@ def get_projects_templates_root():
 
 def get_tasks_templates_root():
     """
-    :return: directory inside of pet_folder in which task templates are stored or raises exception if not found 
+    :return: directory inside of pet_folder in which task templates are stored or raises exception if not found
     """
     directory = os.path.join(get_pet_folder(), "templates", "tasks")
     if os.path.exists(directory):
@@ -178,20 +173,21 @@ def get_archive_root():
 
 def edit_file(path):
     """
-        Edits file using EDITOR variable from config file or EDITOR variable from shell environment or vi if all
-        previous where unset.
+    Edits file using EDITOR variable from config file or EDITOR variable from shell environment or vi if all
+    previous where unset.
+
     :param path: path to file to be edited
     :return: None
     """
     Popen(["/bin/sh",
            "-c",
-           edit_file_popen_template.format(
-                os.path.join(get_pet_folder(), "config"), path)]).communicate()
+           edit_file_popen_template.format(os.path.join(get_pet_folder(), "config"), path)]).communicate()
 
 
 def project_exist(project_name):
     """
-        Checks existence of project.
+    Checks existence of project.
+
     :param project_name: name of project whose existence we are checking
     :return: boolean
     """
@@ -200,7 +196,8 @@ def project_exist(project_name):
 
 def project_template_exist(template_name):
     """
-        Checks existence of project template.
+    Checks existence of project template.
+
     :param template_name: name of project template whose existence we are checking
     :return: boolean
     """
@@ -209,7 +206,8 @@ def project_template_exist(template_name):
 
 def task_template_exist(template_name):
     """
-        Checks existence of task template.
+    Checks existence of task template.
+
     :param template_name: name of task template whose existence we are checking
     :return: boolean
     """
@@ -218,9 +216,10 @@ def task_template_exist(template_name):
 
 def task_exist(project_name, task_name):
     """
-        Checks existence of task.
+    Checks existence of task.
+
     :param project_name: name of project whose task we are going to be looking for
-    :param task_name: name of task that we are looking for 
+    :param task_name: name of task that we are looking for
     :return: boolean
     """
     if '.' in task_name:
@@ -230,7 +229,8 @@ def task_exist(project_name, task_name):
 
 def how_many_active(project_name):
     """
-        Checks - using ps, grep and sed - what is the highest counter of a given project.
+    Checks - using ps, grep and sed - what is the highest counter of a given project.
+
     :param project_name: name of a project whose active amount we are checking
     :return: highest counter of a given project or 0 if none are active
     """
@@ -250,7 +250,8 @@ def how_many_active(project_name):
 
 def check_version():
     """
-        Checks version of a pet by using curl, grep and sed from setup.py file in main pet repository.
+    Checks version of a pet by using curl, grep and sed from setup.py file in main pet repository.
+
     :return: newest pet version as a string
     """
     newest_version = Popen([
@@ -263,8 +264,9 @@ def check_version():
 
 def recreate():
     """
-        Creates necessary directories and config file in pet_folder.
-    :return: None 
+    Creates necessary directories and config file in pet_folder.
+
+    :return: None
     """
     print("Creating pet files in {0}".format(get_pet_folder()))
     makedirs(path=os.path.join(get_pet_folder(), "projects"), exists_ok=True)
@@ -282,9 +284,10 @@ def recreate():
 
 def lockable(check_only_projects=True, check_active=False):
     """
-        Decorator to check if project was locked or activated.
+    Decorator to check if project was locked or activated.
+
     :param check_only_projects: boolean that indicates should we just check is project locked or check and lock it,
-        can be overwritten by 'lock' variable in kwargs 
+        can be overwritten by 'lock' variable in kwargs
     :param check_active: boolean that indicates should we check if there is active project
     :return: invoked function or method or raises exception if project is locked
     """
@@ -324,7 +327,7 @@ class GeneralShellMixin(object):
 
     def get_rc_filename(self):
         """
-        :return: corresponding to used shell name of rc file (.bashrc, .zshrc) 
+        :return: corresponding to used shell name of rc file (.bashrc, .zshrc)
         """
         return self.rc_filename
 
@@ -337,7 +340,8 @@ class GeneralShellMixin(object):
 
     def make_rc_file(self, project_name, nr, additional_lines="", prompt=""):
         """
-            Creates file that is going to be used to invoke correct shell.
+        Creates file that is going to be used to invoke correct shell.
+
         :param project_name: name of a project
         :param nr: amount of already active instances of same project
         :param additional_lines: additional lines that are going to be written at the end of file
@@ -364,7 +368,8 @@ class GeneralShellMixin(object):
 
     def start(self, project_root, project_name):
         """
-            Base method for inherited classes. Starts a project.
+        Base method for inherited classes. Starts a project.
+
         :param project_root: directory in which necessary files to start a project are stored
         :param project_name: name of a project that is going to be started
         :return: in this class raises exception, in inherited classes None
@@ -374,8 +379,9 @@ class GeneralShellMixin(object):
 
     def create_shell_profiles(self):
         """
-            Base method for inherited classes. Creates file that stores links to existing standard files used to
-            invoke shell. 
+        Base method for inherited classes. Creates file that stores links to existing standard files used to
+        invoke shell.
+
         :return: in this class raises exception, in inherited classes None
         """
         raise ShellNotRecognized(
@@ -383,7 +389,8 @@ class GeneralShellMixin(object):
 
     def task_exec(self, project_name, task_name, interactive, args=()):
         """
-            Base method for inherited classes. Executes task in correctly prepared shell.
+        Base method for inherited classes. Executes task in correctly prepared shell.
+
         :param project_name: name of a project whose task we are going to execute
         :param task_name: name of a task
         :param interactive: boolean that indicates do we want to stay in shell after task completes
@@ -395,8 +402,9 @@ class GeneralShellMixin(object):
 
     def edit_shell_profiles(self):
         """
-            Base method for inherited classes. Helps you edit file that stores links to existing standard files used to
-            invoke shell.
+        Base method for inherited classes. Helps you edit file that stores links to existing standard files used to
+        invoke shell.
+
         :return: in this class raises exception, in inherited classes None
         """
         raise ShellNotRecognized(
@@ -415,7 +423,8 @@ class Bash(GeneralShellMixin):
 
     def start(self, project_root, project_name):
         """
-            Starts a project.
+        Starts a project.
+
         :param project_root: directory in which necessary files to start a project are stored
         :param project_name: name of a project that is going to be started
         :return: None
@@ -434,7 +443,8 @@ class Bash(GeneralShellMixin):
 
     def create_shell_profiles(self):
         """
-            Creates file that stores links to existing standard files used to invoke shell. 
+        Creates file that stores links to existing standard files used to invoke shell.
+
         :return: None
         """
         if not os.path.isfile(os.path.join(get_pet_folder(), BASH_PROFILES_FILENAME)):
@@ -449,7 +459,8 @@ class Bash(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         """
-            Executes task in correctly prepared shell.
+        Executes task in correctly prepared shell.
+
         :param project_name: name of a project whose task we are going to execute
         :param task_name: name of a task
         :param interactive: boolean that indicates do we want to stay in shell after task completes
@@ -462,7 +473,6 @@ class Bash(GeneralShellMixin):
         file_to_exec = get_file_fullname_and_path(tasks_root, task_name)
         if os.path.splitext(file_to_exec)[1] in ['.bash', '.sh', '.zsh']:
             file_to_exec = ". " + file_to_exec
-        # TODO: delete (tmp)
         os.chmod(get_file_fullname_and_path(tasks_root, task_name), 0o755)
         if interactive:
             self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
@@ -495,7 +505,8 @@ class Bash(GeneralShellMixin):
 
     def edit_shell_profiles(self):
         """
-            Helps you edit file that stores links to existing standard files used to invoke shell.
+        Helps you edit file that stores links to existing standard files used to invoke shell.
+
         :return: None
         """
         edit_file(os.path.join(get_pet_folder(), BASH_PROFILES_FILENAME))
@@ -513,7 +524,8 @@ class Zsh(GeneralShellMixin):
 
     def start(self, project_root, project_name):
         """
-            Starts a project.
+        Starts a project.
+
         :param project_root: directory in which necessary files to start a project are stored
         :param project_name: name of a project that is going to be started
         :return: None
@@ -531,7 +543,8 @@ class Zsh(GeneralShellMixin):
 
     def create_shell_profiles(self):
         """
-            Creates file that stores links to existing standard files used to invoke shell. 
+        Creates file that stores links to existing standard files used to invoke shell.
+
         :return: None
         """
         if not os.path.isfile(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME)):
@@ -545,7 +558,8 @@ class Zsh(GeneralShellMixin):
     @lockable()
     def task_exec(self, project_name, task_name, interactive, args=()):
         """
-            Executes task in correctly prepared shell.
+        Executes task in correctly prepared shell.
+
         :param project_name: name of a project whose task we are going to execute
         :param task_name: name of a task
         :param interactive: boolean that indicates do we want to stay in shell after task completes
@@ -558,7 +572,6 @@ class Zsh(GeneralShellMixin):
         file_to_exec = get_file_fullname_and_path(tasks_root, task_name)
         if os.path.splitext(file_to_exec)[1] in ['.bash', '.sh', '.zsh']:
             file_to_exec = ". " + file_to_exec
-        # TODO: delete (tmp)
         os.chmod(get_file_fullname_and_path(tasks_root, task_name), 0o755)
         if interactive:
             self.make_rc_file(project_name, nr=1, additional_lines=task_exec_template.format(
@@ -591,7 +604,8 @@ class Zsh(GeneralShellMixin):
 
     def edit_shell_profiles(self):
         """
-            Helps you edit file that stores links to existing standard files used to invoke shell.
+        Helps you edit file that stores links to existing standard files used to invoke shell.
+
         :return: None
         """
         edit_file(os.path.join(get_pet_folder(), ZSH_PROFILES_FILENAME))
@@ -616,13 +630,11 @@ def get_shell():
 class ProjectLock(object):
     """
     Context manager to lock (prevent from creating new instances of) given project.
+
+    :param project_name: name of project to be locked
     """
 
     def __init__(self, project_name):
-        """
-        :param project_name: name of project to be locked 
-        """
-
         if not os.path.exists(os.path.join(get_projects_root(), project_name)):
             raise NameNotFound(ExceptionMessages.project_not_found.value.format(project_name))
         self.filepath = os.path.join(get_projects_root(), project_name, "_lock")
@@ -638,16 +650,16 @@ class ProjectLock(object):
 class ProjectCreator(object):
     """
     Class that creates project - it's files.
+
+    Checks is given name available and do all given templates exist.
+
+    :param project_name: name of a project to be created
+    :param in_place: boolean that indicates do you want to create project in pet_folder or just link to .pet folder
+        in current location
+    :param templates: list of templates to use while creating a project
     """
 
     def __init__(self, project_name, in_place, templates=()):
-        """
-            Checks is given name available and do all given templates exist.
-        :param project_name: name of a project to be created 
-        :param in_place: boolean that indicates do you want to create project in pet_folder or just link to .pet folder
-            in current location
-        :param templates: list of templates to use while creating a project
-        """
         self.projects_root = get_projects_root()
         self.templates_root = get_projects_templates_root()
         self.project_name = project_name
@@ -663,7 +675,8 @@ class ProjectCreator(object):
 
     def check_name(self):
         """
-            Checks if given name is available.
+        Checks if given name is available.
+
         :return: None or raises exception if name is already taken
         """
         if project_exist(self.project_name):
@@ -673,7 +686,8 @@ class ProjectCreator(object):
 
     def check_templates(self):
         """
-            Checks if given templates exist.
+        Checks if given templates exist.
+
         :return: None or raises exception if any of templates do not exist
         """
         for template in self.templates:
@@ -687,7 +701,8 @@ class ProjectCreator(object):
 
     def create_dirs(self):
         """
-            Creates necessary directories in pet_folder.
+        Creates necessary directories in pet_folder.
+
         :return: None
         """
         get_shell().create_shell_profiles()
@@ -699,7 +714,8 @@ class ProjectCreator(object):
 
     def create_locals(self):
         """
-            Creates local files used while turing on and off project.
+        Creates local files used while turing on and off project.
+
         :return: None
         """
         with open(os.path.join(self.project_root, "start.local.entry.sh"), mode='w') as file:
@@ -713,7 +729,8 @@ class ProjectCreator(object):
 
     def create_files_with_templates(self, filename, additional_lines, increasing_order):
         """
-            Creates given file while using corresponding files from given templates.
+        Creates given file while using corresponding files from given templates.
+
         :param filename: name of a file to create
         :param additional_lines: additional lines to add to file at the end
         :param increasing_order: boolean that indicates should templates be used in increasing or decreasing order
@@ -728,7 +745,10 @@ class ProjectCreator(object):
                     templates = reversed(self.templates)
                 for template in templates:
                     file.write("# from template: {0}\n".format(template))
-                    with open(os.path.join(self.templates_and_paths[template], filename)) as corresponding_template_file:
+                    with open(
+                            os.path.join(self.templates_and_paths[template],
+                                         filename)
+                    ) as corresponding_template_file:
                         file.write(corresponding_template_file.read())
                     file.write("\n")
                 file.write("# check if correctly imported templates\n")
@@ -736,7 +756,8 @@ class ProjectCreator(object):
 
     def create_files(self):
         """
-            Creates start and stop files.
+        Creates start and stop files.
+
         :return: None
         """
         add_to_start = new_start_sh_template
@@ -746,7 +767,8 @@ class ProjectCreator(object):
 
     def edit(self):
         """
-            Helps you edits start and stop files.
+        Helps you edits start and stop files.
+
         :return: None
         """
         edit_file(os.path.join(self.project_root, "start.sh"))
@@ -754,7 +776,8 @@ class ProjectCreator(object):
 
     def create(self):
         """
-            Turns on creation of files and directories that are going to be used as project.
+        Turns on creation of files and directories that are going to be used as project.
+
         :return: None
         """
         self.create_dirs()
@@ -766,8 +789,9 @@ class ProjectCreator(object):
 @lockable()
 def start(project_name):
     """
-        Starts new project.
-    :param project_name: name of a project to start 
+    Starts new project.
+
+    :param project_name: name of a project to start
     :return: None
     """
     get_shell().create_shell_profiles()
@@ -777,8 +801,9 @@ def start(project_name):
 
 def create(project_name, in_place, templates=()):
     """
-        Creates new project.
-    :param project_name: name of a project to create 
+    Creates new project.
+
+    :param project_name: name of a project to create
     :param in_place: boolean that indicates should we put project files in pet_folder or just add link to .pet directory
         in current directory
     :param templates: names of templates to used during creation
@@ -789,7 +814,8 @@ def create(project_name, in_place, templates=()):
 
 def register(project_name):
     """
-        Adds symbolic link to .pet folder in projects - which means the project is registered.
+    Adds symbolic link to .pet folder in projects - which means the project is registered.
+
     :param project_name: name that is going to be used while registering project
     :return: None or raises exception if name is taken or not all files exist
     """
@@ -801,8 +827,8 @@ def register(project_name):
         raise NameAlreadyTaken(ExceptionMessages.project_exists.value.format(project_name))
 
     if not (os.path.isfile(os.path.join(directory, "start.sh")) and
-                os.path.isfile(os.path.join(directory, "stop.sh")) and
-                os.path.isdir(os.path.join(directory, "tasks"))):
+            os.path.isfile(os.path.join(directory, "stop.sh")) and
+            os.path.isdir(os.path.join(directory, "tasks"))):
         raise PetException("Haven't found {{start.sh, stop.sh}} and tasks folder in\n{0}".format(directory))
 
     os.symlink(directory, os.path.join(get_projects_root(), project_name))
@@ -811,8 +837,9 @@ def register(project_name):
 
 def rename_project(old_project_name, new_project_name):
     """
-        Renames projects.
-    :param old_project_name: name of a existing project 
+    Renames projects.
+
+    :param old_project_name: name of a existing project
     :param new_project_name: name that is going to be used as new name for this project
     :return: None or raises exception if project to rename doesn't exist or new name is taken
     """
@@ -826,7 +853,8 @@ def rename_project(old_project_name, new_project_name):
 
 def edit_project(project_name):
     """
-        Edits project start and stop files.
+    Edits project start and stop files.
+
     :param project_name: name of a project whose files are going to be edited
     :return: None or raises exception if project haven't been found
     """
@@ -840,7 +868,8 @@ def edit_project(project_name):
 
 def edit_project_locals(project_name):
     """
-        Edits projects local files.
+    Edits projects local files.
+
     :param project_name: name of a project whose local files are going to be edited
     :return: None or raises exception if project haven't been found
     """
@@ -856,7 +885,8 @@ def edit_project_locals(project_name):
 
 def stop():
     """
-        Stops project by sending SIGKILL.
+    Stops project by sending SIGKILL.
+
     :return: None
     """
     os.kill(os.getppid(), signal.SIGKILL)
@@ -865,7 +895,8 @@ def stop():
 @lockable(check_active=True)
 def remove_project(project_name):
     """
-        Removes project.
+    Removes project.
+
     :param project_name: name of a project to be removed
     :return: None or raises exception if project haven't been found
     """
@@ -882,7 +913,8 @@ def remove_project(project_name):
 @lockable(check_active=True)
 def archive(project_name):
     """
-        Archives project.
+    Archives project.
+
     :param project_name: name of a project to be archived
     :return: None or raises exception if project haven't been found or there already exists project of this name in
         archive
@@ -899,8 +931,9 @@ def archive(project_name):
 
 def add_to_templates(project_name):
     """
-        Copies project to templates.
-    :param project_name: name of a project to be added to templates 
+    Copies project to templates.
+
+    :param project_name: name of a project to be added to templates
     :return: None or raises exception if project haven't been found or template of a given name already exists
     """
     project_root = os.path.join(get_projects_root(), project_name)
@@ -915,7 +948,8 @@ def add_to_templates(project_name):
 
 def restore(project_name):
     """
-        Restores project from archive.
+    Restores project from archive.
+
     :param project_name: name of a project to be restored from archive
     :return: None or exception if project haven't been found in archive or there is already available project of a given
         name
@@ -930,8 +964,9 @@ def restore(project_name):
 
 def clean():
     """
-        Unlocks all projects, by removing '_lock' files.
-    :return: None 
+    Unlocks all projects, by removing '_lock' files.
+
+    :return: None
     """
     projects_root = get_projects_root()
     for dirname in os.listdir(projects_root):
@@ -954,15 +989,17 @@ def print_projects_for_root(projects_root):
 
 def print_list():
     """
-        Lists all projects.
-    :return: names of available projects  
+    Lists all projects.
+
+    :return: names of available projects
     """
     return print_projects_for_root(get_projects_root())
 
 
 def print_old():
     """
-        Lists archived projects.
+    Lists archived projects.
+
     :return: names of projects in archive
     """
     return print_projects_for_root(get_archive_root())
@@ -970,7 +1007,8 @@ def print_old():
 
 def print_tasks(project_name):
     """
-        Lists tasks in project.
+    Lists tasks in project.
+
     :param project_name: name of a project whose tasks are going to be listed
     :return: names of available tasks in given project
     """
@@ -983,7 +1021,8 @@ def print_tasks(project_name):
 
 def print_tree():
     """
-        Prints projects and all it's tasks using tabulate.
+    Prints projects and all it's tasks using tabulate.
+
     :return: All tasks and projects available in a table
     """
     projects = print_list().splitlines()
@@ -1001,7 +1040,8 @@ def print_tree():
 
 def print_active():
     """
-        Prints names of active projects.
+    Prints names of active projects.
+
     :return: list of active projects
     """
     active_list = Popen([
@@ -1015,16 +1055,18 @@ def print_active():
 
 def print_templates():
     """
-        Lists templates.
-    :return: names of available templates 
+    Lists templates.
+
+    :return: names of available templates
     """
     return print_projects_for_root(get_projects_templates_root())
 
 
 def create_task(project_name, task_name, no_alias, how):
     """
-        Creates task.
-    :param project_name: name of a project in which task is going to be created 
+    Creates task.
+
+    :param project_name: name of a project in which task is going to be created
     :param task_name: name of a task to be created
     :param no_alias: boolean that indicates do you want to add alias "task_name"="pet task_name"
     :param how: is task going to be normal or local
@@ -1041,7 +1083,9 @@ def create_task(project_name, task_name, no_alias, how):
         if '.' in task_name:
             task_file_path = os.path.join(project_root, "tasks", task_name)
             task_name = os.path.splitext(task_name)[0]
-            Popen(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
+            Popen(["/bin/sh",
+                   "-c",
+                   "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
         else:
             task_file_path = os.path.join(project_root, "tasks", task_name + ".sh")
             Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
@@ -1050,7 +1094,9 @@ def create_task(project_name, task_name, no_alias, how):
             task_ext = os.path.splitext(task_name)[1]
             task_name = os.path.splitext(task_name)[0]
             task_file_path = os.path.join(project_root, "tasks", task_name + ".local" + task_ext)
-            Popen(["/bin/sh", "-c", "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
+            Popen(["/bin/sh",
+                   "-c",
+                   "echo 'add shebang to make sure file will be executable' > {0}".format(task_file_path)])
         else:
             task_file_path = os.path.join(project_root, "tasks", task_name + ".local" + ".sh")
             Popen(["/bin/sh", "-c", "echo '#!/bin/sh' > {0}".format(task_file_path)])
@@ -1065,16 +1111,17 @@ def create_task(project_name, task_name, no_alias, how):
             alias_file = os.path.join(project_root, "start.sh")
         else:
             alias_file = os.path.join(project_root, "start.local.entry.sh")
-        # TODO: find a nice place for this alias to be placed
         with open(alias_file, mode='a') as start_file:
             start_file.write("alias {0}=\"pet {0}\"\n".format(task_name))
-        raise Info("alias available during next boot of project.\nRight now you can invoke it: pet {0}".format(task_name))
+        raise Info("Alias will be available during next boot of project."
+                   "\nRight now you can invoke it: pet {0}".format(task_name))
 
 
 def edit_task(project_name, task_name):
     """
-        Edits task.
-    :param project_name: name of a project whose task is going to be edited 
+    Edits task.
+
+    :param project_name: name of a project whose task is going to be edited
     :param task_name: name of a task to edit
     :return: None or raises exception if task doesn't exist
     """
@@ -1086,7 +1133,8 @@ def edit_task(project_name, task_name):
 
 def edit_task_locals(project_name, task_name):
     """
-        Edits task locals.
+    Edits task locals.
+
     :param project_name: name of a project whose task locals are going to be edited
     :param task_name: name of a task whose locals are going to be edited
     :return: None or rasises exception if task doesn't exist
@@ -1101,8 +1149,9 @@ def edit_task_locals(project_name, task_name):
 
 def rename_task(project_name, old_task_name, new_task_name):
     """
-        Renames task.
-    :param project_name: name of a project whose task you want to rename 
+    Renames task.
+
+    :param project_name: name of a project whose task you want to rename
     :param old_task_name: name of a task to rename
     :param new_task_name: new name for a task
     :return: None or raises exception if task doesn't exist or name is already taken
@@ -1122,7 +1171,8 @@ def rename_task(project_name, old_task_name, new_task_name):
 
 def run_task(project_name, task_name, interactive, args=()):
     """
-        Executes task in correctly prepared shell.
+    Executes task in correctly prepared shell.
+
     :param project_name: name of a project whose task is going to be executed
     :param task_name: name of a task to execute
     :param interactive: boolean that indicates do you want to stay in shell after executing task
@@ -1137,8 +1187,9 @@ def run_task(project_name, task_name, interactive, args=()):
 
 def remove_task(project_name, task_name):
     """
-        Removes task.
-    :param project_name: name of a project whose task is going to be removed 
+    Removes task.
+
+    :param project_name: name of a project whose task is going to be removed
     :param task_name: name of a task to remove
     :return: None or raises exception if task doesn't exist
     """
@@ -1164,7 +1215,8 @@ def remove_task(project_name, task_name):
 
 def edit_config():
     """
-        Helps you edit config file using shell $EDITOR or vi.
+    Helps you edit config file using shell $EDITOR or vi.
+
     :return: None
     """
     edit_file(os.path.join(get_pet_folder(), "config"))
@@ -1172,15 +1224,17 @@ def edit_config():
 
 def edit_shell_profiles():
     """
-        Helps you edit file in which are stored links to standard files used to invoke shell 
-    :return: None 
+    Helps you edit file in which are stored links to standard files used to invoke shell
+
+    :return: None
     """
     get_shell().edit_shell_profiles()
 
 
 def deploy(shell=''):
     """
-        Deploys auto-completion.
+    Deploys auto-completion.
+
     :param shell: name of a shell for which you want to deploy auto-completion
     :return: None or exception if shell is not supported or haven't found correct path to deploy auto-completion
     """

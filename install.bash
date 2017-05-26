@@ -21,7 +21,7 @@ else
     fi
 fi
 
-curl -fsSL https://github.com/dmydlo/pet/archive/master.zip -o pet.zip
+curl -fsSL https://github.com/limebrains/pet/archive/master.zip -o pet.zip
 if [ ! -f pet.zip ]; then
     printf "\n\e[1;31mInstallation unsuccessful due to failed download\e[0m\n"
     exit

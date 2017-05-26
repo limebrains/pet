@@ -256,7 +256,6 @@ if active_project:
             else:
                 click.secho(ctx.invoke(lambda: remove_task.get_help(ctx)))
 
-
     @cli.command('rename')
     @click.argument('old_task_name')
     @click.argument('new_task_name')
@@ -295,7 +294,6 @@ else:
                 bl.remove_project(project_name=project_name[0])
             else:
                 click.secho(ctx.invoke(lambda: remove_project.get_help(ctx)))
-
 
     @cli.command('rename')
     @click.argument('old_project_name')

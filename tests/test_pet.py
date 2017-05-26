@@ -1,6 +1,10 @@
-import builtins
+try:
+    import builtins
+except ImportError:
+    import __builtin__
 import os
 
+import sys
 import mock
 import pytest
 
@@ -29,6 +33,10 @@ archive_root = os.path.join(PET_FOLDER, "archive")
 projects_templates_root = os.path.join(PET_FOLDER, "templates", "projects")
 tasks_templates_root = os.path.join(PET_FOLDER, "templates", "tasks")
 
+if sys.version_info[0] == 2:
+    builtins_name = '__builtin__'
+else:
+    builtins_name = 'builtins'
 
 def lockable_t(check_only_projects=True, check_active=False):
     def _lockable_t(func, *args, **kwargs):
@@ -316,7 +324,7 @@ def test_general_shell_mixin_make_rc_file_method(mock_root, mock_pet_folder, pro
     nr = 0
     additional_lines = ""
     rc = os.path.join(project_root, "bashrc")
-    with mock.patch('builtins.open', create=True) as mock_open:
+    with mock.patch('%s.open' % builtins_name, create=True) as mock_open:
         Bash().make_rc_file(project_name, nr)
         mock_open.assert_called_with(rc, mode='w')
         handle = mock_open.return_value.__enter__.return_value
@@ -333,7 +341,7 @@ def test_general_shell_mixin_make_rc_file_method(mock_root, mock_pet_folder, pro
         )
     nr = 1
     additional_lines = "cancerous line"
-    with mock.patch('builtins.open', create=True) as mock_open:
+    with mock.patch('%s.open' % builtins_name, create=True) as mock_open:
         Bash().make_rc_file(project_name, nr, additional_lines)
         mock_open.assert_called_with(rc, mode='w')
         handle = mock_open.return_value.__enter__.return_value
@@ -389,7 +397,7 @@ def test_bash_start_method(mock_make_rc_file, mock_popen, mock_how_many_active, 
 @mock.patch('os.path.isfile', side_effect=[False, True, True, True])
 @mock.patch('pet.bl.get_pet_folder', return_value=PET_FOLDER)
 def test_bash_create_shell_profiles_method(mock_pet_folder, mock_isfile):
-    with mock.patch('builtins.open', create=True) as mock_open:
+    with mock.patch('%s.open' % builtins_name, create=True) as mock_open:
         Bash().create_shell_profiles()
         mock_open.assert_called_with(os.path.join(PET_FOLDER, "bash_profiles"), mode='w')
         handle = mock_open.return_value.__enter__.return_value
@@ -475,13 +483,13 @@ def test_zsh_start_method(mock_make_rc_file, mock_popen, mock_how_many_active, p
 @mock.patch('os.environ.get')
 def test_zsh_create_shell_profiles_method(mock_get, mock_pet_folder, mock_isfile):
     mock_get.return_value = "/zdotpath/"
-    with mock.patch('builtins.open', create=True) as mock_open:
+    with mock.patch('%s.open' % builtins_name, create=True) as mock_open:
         Zsh().create_shell_profiles()
         mock_open.assert_called_with(os.path.join(PET_FOLDER, "zsh_profiles"), mode='w')
         handle = mock_open.return_value.__enter__.return_value
         handle.write.assert_called_with("source $ZDOTDIR/.zshrc\n")
     mock_get.return_value = ""
-    with mock.patch('builtins.open', create=True) as mock_open:
+    with mock.patch('%s.open' % builtins_name, create=True) as mock_open:
         Zsh().create_shell_profiles()
         mock_open.assert_called_with(os.path.join(PET_FOLDER, "zsh_profiles"), mode='w')
         handle = mock_open.return_value.__enter__.return_value
@@ -603,7 +611,7 @@ def test_project_creator_class(mock_pet_folder, mock_makedirs, mock_open, mock_s
 
     mock_path_exists.return_value = False
     mock_project_exist.side_effect = [False]
-    with mock.patch('builtins.open', create=True) as mock_open:
+    with mock.patch('%s.open' % builtins_name, create=True) as mock_open:
         ProjectCreator(project_name=project_name, in_place=True, templates=templates).create()
         assert mock_shell().create_shell_profiles.called
         assert mock_makedirs.called

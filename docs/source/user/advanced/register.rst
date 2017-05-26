@@ -9,12 +9,6 @@ if found all required files:
 
 - `stop.sh`
 
-- `tasks.py`
-
-- `tasks.sh`
-
-- `project_name.py`
-
 - tasks (directory)
 
 .. code::
