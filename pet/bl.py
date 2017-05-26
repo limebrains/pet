@@ -12,22 +12,12 @@ from subprocess import PIPE, Popen
 from tabulate import tabulate
 
 from pet.exceptions import (
-    ExceptionMessages,
-    FolderNotFound,
-    Info,
-    NameAlreadyTaken,
-    NameNotFound,
-    PetException,
-    ProjectActivated,
-    ShellNotRecognized,
+    ExceptionMessages, FolderNotFound, Info, NameAlreadyTaken, NameNotFound, PetException, ProjectActivated,
+    ShellNotRecognized
 )
 from pet.file_templates import (
-    auto_complete_zsh_deploy,
-    edit_file_popen_template,
-    new_project_rc_template,
-    new_start_sh_template,
-    new_stop_sh_template,
-    task_exec_template,
+    auto_complete_zsh_deploy, edit_file_popen_template, new_project_rc_template, new_start_sh_template,
+    new_stop_sh_template, task_exec_template
 )
 from pet.utils import makedirs
 
