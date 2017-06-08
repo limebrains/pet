@@ -2,7 +2,7 @@
 
 Usage
 
-https://showterm.io/5ce94c75126066ac40688#fast
+![Usage](./pet.gif)
 
 Installation
 
