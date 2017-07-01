@@ -25,5 +25,8 @@ install:
 - pip install -U tox
 - pip install coveralls
 language: python
+before_script:
+- pip install -e pet
+- pet recreate
 script:
 - tox
