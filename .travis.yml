@@ -27,6 +27,7 @@ install:
 language: python
 before_script:
 - pip install -e .
+- mkdir -p ~/.pet
 - pet recreate
 script:
 - tox
