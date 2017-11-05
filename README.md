@@ -15,7 +15,7 @@ Pet (Project Environment Tool) - is the tool to help you manage project and thei
 [Documentation](https://readthedocs.org/projects/pet-project-environment-tool/badge/?version=latest) 
 
 
-```python
+```bash
 | => pet --help
 Usage: pet [OPTIONS] COMMAND [ARGS]...
 
