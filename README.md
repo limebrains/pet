@@ -7,12 +7,11 @@ Pet (Project Environment Tool) - is the tool to help you manage project and thei
 [![coveralls](https://coveralls.io/repos/limebrains/pet/badge.svg?branch=master&service=github)](https://coveralls.io/github/limebrains/pet?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/pet-project-environment-tool/badge/?version=latest)](http://pet-project-environment-tool.readthedocs.io/en/latest/?badge=latest)
 
+[Documentation](http://pet-project-environment-tool.readthedocs.io/en/latest/?badge=latest) 
+
 ## Usage
 
 ![Usage](./pet.gif)
-
-
-[Documentation](https://readthedocs.org/projects/pet-project-environment-tool/badge/?version=latest) 
 
 
 ```bash
