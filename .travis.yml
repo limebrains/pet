@@ -2,11 +2,8 @@ sudo: required
 addons:
   apt:
     packages:
-    - python3.6
     - python3.5
     - python3.5-dev
-    - python2.6
-    - python2.6-dev
     sources:
     - deadsnakes
 after_success:
