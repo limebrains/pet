@@ -11,13 +11,9 @@ after_success:
 env:
 - TOXENV=check-isort
 - TOXENV=check-flake8
-- TOXENV=py36
 - TOXENV=py35
 - TOXENV=py34
-- TOXENV=py33
 - TOXENV=py27
-- TOXENV=py26
-- TOXENV=pypy
 install:
 - pip install -U tox
 - pip install coveralls
