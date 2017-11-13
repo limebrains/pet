@@ -43,5 +43,9 @@ Commands:
 ## Installation
 
 ```
+pip install pety
+```
+
+```
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/limebrains/pet/master/install.bash)"
 ```

@@ -19,7 +19,7 @@ class InstallScripts(install_scripts):
 
 
 setup(
-    name='pet',
+    name='pety',
     version='0.0.1',
     description='Project Environment Tool',
     author='LimeBrains',
