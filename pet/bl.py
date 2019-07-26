@@ -315,6 +315,10 @@ class GeneralShellMixin(object):
         self.rc_filename = ""
         self.shell_profiles = ""
 
+    def run_command(self, command):
+        raise ShellNotRecognized(
+            ExceptionMessages.shell_not_supported.value.format(os.environ.get('SHELL', 'not found $SHELL')))
+
     def get_rc_filename(self):
         """
         :return: corresponding to used shell name of rc file (.bashrc, .zshrc)
@@ -410,6 +414,11 @@ class Bash(GeneralShellMixin):
         GeneralShellMixin.__init__(self)
         self.rc_filename = BASH_RC_FILENAME
         self.shell_profiles = BASH_PROFILES_FILENAME
+
+    def run_command(self, command):
+        if type(command) is str:
+            command = command.split(' ')
+        return Popen(command).communicate()
 
     def start(self, project_root, project_name):
         """
@@ -511,6 +520,11 @@ class Zsh(GeneralShellMixin):
         GeneralShellMixin.__init__(self)
         self.rc_filename = ZSH_RC_FILENAME
         self.shell_profiles = ZSH_PROFILES_FILENAME
+
+    def run_command(self, command):
+        if type(command) is str:
+            command = command.split(' ')
+        return Popen(command).communicate()
 
     def start(self, project_root, project_name):
         """
@@ -649,7 +663,8 @@ class ProjectCreator(object):
     :param templates: list of templates to use while creating a project
     """
 
-    def __init__(self, project_name, in_place, templates=()):
+    def __init__(self, project_name, git_url, in_place, templates=()):
+        self.git_url = git_url
         self.projects_root = get_projects_root()
         self.templates_root = get_projects_templates_root()
         self.project_name = project_name
@@ -662,6 +677,11 @@ class ProjectCreator(object):
         self.templates_and_paths = {}
         self.check_name()
         self.check_templates()
+
+    def clone_repo(self):
+        if self.git_url:
+            get_shell().run_command("git clone {0} {1}".format(self.git_url, self.project_name))
+            os.chdir(self.project_name)
 
     def check_name(self):
         """
@@ -770,6 +790,7 @@ class ProjectCreator(object):
 
         :return: None
         """
+        self.clone_repo()
         self.create_dirs()
         self.create_locals()
         self.create_files()
@@ -789,17 +810,18 @@ def start(project_name):
     get_shell().start(project_root, project_name)
 
 
-def create(project_name, in_place, templates=()):
+def create(project_name, git_url, in_place, templates=()):
     """
     Creates new project.
 
     :param project_name: name of a project to create
+    :param git_url: git remote url
     :param in_place: boolean that indicates should we put project files in pet_folder or just add link to .pet directory
         in current directory
     :param templates: names of templates to used during creation
     :return: None
     """
-    ProjectCreator(project_name, in_place, templates).create()
+    ProjectCreator(project_name, git_url, in_place, templates).create()
 
 
 def register(project_name):

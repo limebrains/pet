@@ -81,17 +81,21 @@ class ActiveCli(click.MultiCommand):
 
 @cli.command('init')
 @click.option('--name', '-n', default=None, help="name for project")
+@click.option('--git', '-g', default=None, help="git remote url")
 @click.option('--in_place', '-i', is_flag=True, help="saves project files in ./.pet/")
 @click.option('--templates', '-t', multiple=True, help="-t template,template... or -t template -t template")
-def create_project(name, in_place, templates):
+def create_project(name, git, in_place, templates):
     """creates new project"""
+    if git:
+        name = git.split('/')[-1].replace('.git', '') if not name else name
     if not name:
         name = os.path.basename(os.getcwd())
     if len(templates) == 1:
         if templates[0].count(',') > 0:
             templates = templates[0].split(',')
     with pet_exception_manager():
-        bl.create(name, in_place, templates)
+        bl.create(name, git, in_place, templates)
+        bl.start(project_name=name)
 
 
 @cli.command('list')
